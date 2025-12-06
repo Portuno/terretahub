@@ -9,6 +9,7 @@ import {
 import { AuthUser, LinkBioProfile, BioBlock, BioTheme } from '../types';
 import { supabase } from '../lib/supabase';
 import { PublishProfileModal } from './PublishProfileModal';
+import { Toast } from './Toast';
 
 interface ProfileEditorProps {
   user: AuthUser;
@@ -159,6 +160,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
   const [isPublished, setIsPublished] = useState(false);
   const [customSlug, setCustomSlug] = useState<string | null>(null);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [showToast, setShowToast] = useState(false);
   
   // File input ref for avatar
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -301,8 +303,8 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
         }
       }
       
-      // Mostrar mensaje de éxito
-      alert('Perfil guardado correctamente');
+      // Mostrar toast de éxito
+      setShowToast(true);
     } catch (error: any) {
       console.error('Error completo al guardar:', error);
       alert(error.message || 'Error al guardar el perfil. Intenta nuevamente.');
@@ -982,6 +984,25 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
           }}
           currentExtension={customSlug || undefined}
         />
+
+        {/* Toast Notification */}
+        {showToast && (
+          <Toast
+            message="¡Perfil Guardado!"
+            secondaryMessage={
+              isPublished && customSlug
+                ? `Tu espacio está publicado en: terretahub.com/p/${customSlug}`
+                : undefined
+            }
+            secondaryLink={
+              isPublished && customSlug
+                ? `/p/${customSlug}`
+                : undefined
+            }
+            onClose={() => setShowToast(false)}
+            duration={4000}
+          />
+        )}
       </div>
 
       {/* --- RIGHT COLUMN: PREVIEW --- */}
