@@ -139,7 +139,13 @@ export const PublicLinkBio: React.FC = () => {
           if (result?.error) {
             linkBioError = result.error;
           } else if (result?.data && result.data.length > 0) {
-            linkBioProfile = result.data[0];
+            const profile = result.data[0];
+            // Verificar is_published en el cliente
+            if (profile.is_published) {
+              linkBioProfile = profile;
+            } else {
+              linkBioError = { code: 'NOT_PUBLISHED', message: 'Perfil no publicado' };
+            }
           } else {
             // No encontrado
             linkBioProfile = null;
