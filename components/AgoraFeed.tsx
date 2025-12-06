@@ -1,42 +1,21 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Send, User, Bold, Italic, AlertTriangle } from 'lucide-react';
 import { AgoraPost as AgoraPostComponent } from './AgoraPost';
 import { AgoraPost, AuthUser } from '../types';
+import { supabase } from '../lib/supabase';
 
-// Mock Data for the Feed
-const INITIAL_POSTS: AgoraPost[] = [
-  {
-    id: '1',
-    author: {
-        name: 'Lucía Valero',
-        handle: '@lucia_arch',
-        role: 'Arquitecta',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lucia'
-    },
-    content: '¡Hola Terreta! 👋 Estoy buscando colaboradores para un proyecto de arquitectura sostenible en la Albufera. ¿Algún diseñador interesado en biomateriales? #Sostenibilidad #Valencia',
-    timestamp: 'hace 2 horas',
-    comments: [
-        {
-            id: 'c1',
-            author: { name: 'Marc Soler', handle: '@marcsoler', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marc' },
-            content: '¡Suena increíble Lucía! Te escribo por DM, tengo experiencia en renderizado orgánico.',
-            timestamp: 'hace 1 hora'
-        }
-    ]
-  },
-  {
-    id: '2',
-    author: {
-        name: 'Pablo Mir',
-        handle: '@chefpablo',
-        role: 'Gastronomía',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Pablo'
-    },
-    content: 'Organizando el próximo evento de "Gastro-Tech" en el Hub. ¿Qué os parece fusionar impresión 3D con repostería tradicional valenciana? 🥘🤖',
-    timestamp: 'hace 5 horas',
-    comments: []
-  }
-];
+// Helper para formatear timestamps
+const formatTimestamp = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) return 'Ahora mismo';
+  if (diffInSeconds < 3600) return `hace ${Math.floor(diffInSeconds / 60)} minutos`;
+  if (diffInSeconds < 86400) return `hace ${Math.floor(diffInSeconds / 3600)} horas`;
+  if (diffInSeconds < 604800) return `hace ${Math.floor(diffInSeconds / 86400)} días`;
+  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+};
 
 interface AgoraFeedProps {
   user: AuthUser | null;
@@ -45,57 +24,204 @@ interface AgoraFeedProps {
 }
 
 export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth, onViewProfile }) => {
-  const [posts, setPosts] = useState<AgoraPost[]>(INITIAL_POSTS);
+  const [posts, setPosts] = useState<AgoraPost[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
+  const [loading, setLoading] = useState(true);
   
   // Anti-Paste & Formatting State
   const [pasteCount, setPasteCount] = useState(0);
   const [showPasteWarning, setShowPasteWarning] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleCreatePost = (e: React.FormEvent) => {
+  // Cargar posts desde Supabase
+  useEffect(() => {
+    const loadPosts = async () => {
+      try {
+        setLoading(true);
+        
+        // Cargar posts
+        const { data: postsData, error: postsError } = await supabase
+          .from('agora_posts')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (postsError) {
+          console.error('Error al cargar posts:', postsError);
+          return;
+        }
+
+        if (!postsData) return;
+
+        // Cargar perfiles de autores y comentarios
+        const postsWithComments = await Promise.all(
+          postsData.map(async (post: any) => {
+            // Obtener perfil del autor
+            const { data: authorProfile, error: authorError } = await supabase
+              .from('profiles')
+              .select('id, name, username, avatar')
+              .eq('id', post.author_id)
+              .single();
+
+            if (authorError) {
+              console.error('Error al cargar autor:', authorError);
+            }
+
+            // Cargar comentarios
+            const { data: commentsData, error: commentsError } = await supabase
+              .from('agora_comments')
+              .select('*')
+              .eq('post_id', post.id)
+              .order('created_at', { ascending: true });
+
+            if (commentsError) {
+              console.error('Error al cargar comentarios:', commentsError);
+            }
+
+            // Cargar perfiles de los autores de los comentarios
+            const commentsWithAuthors = await Promise.all(
+              (commentsData || []).map(async (comment: any) => {
+                const { data: commentAuthor, error: commentAuthorError } = await supabase
+                  .from('profiles')
+                  .select('id, name, username, avatar')
+                  .eq('id', comment.author_id)
+                  .single();
+
+                if (commentAuthorError) {
+                  console.error('Error al cargar autor del comentario:', commentAuthorError);
+                }
+
+                return {
+                  id: comment.id,
+                  author: {
+                    name: commentAuthor?.name || 'Usuario',
+                    handle: `@${commentAuthor?.username || 'usuario'}`,
+                    avatar: commentAuthor?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${commentAuthor?.username || 'user'}`
+                  },
+                  content: comment.content,
+                  timestamp: formatTimestamp(comment.created_at)
+                };
+              })
+            );
+
+            return {
+              id: post.id,
+              author: {
+                name: authorProfile?.name || 'Usuario',
+                handle: `@${authorProfile?.username || 'usuario'}`,
+                avatar: authorProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorProfile?.username || 'user'}`,
+                role: 'Miembro'
+              },
+              content: post.content,
+              timestamp: formatTimestamp(post.created_at),
+              comments: commentsWithAuthors
+            };
+          })
+        );
+
+        setPosts(postsWithComments);
+      } catch (err) {
+        console.error('Error al cargar posts:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPosts();
+  }, []);
+
+  const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !newPostContent.trim()) return;
 
-    const newPost: AgoraPost = {
-      id: Date.now().toString(),
-      author: {
-        name: user.name,
-        handle: `@${user.username}`,
-        avatar: user.avatar,
-        role: 'Miembro'
-      },
-      content: newPostContent,
-      timestamp: 'Ahora mismo',
-      comments: []
-    };
+    try {
+      // Crear post en Supabase
+      const { data: newPost, error: postError } = await supabase
+        .from('agora_posts')
+        .insert({
+          author_id: user.id,
+          content: newPostContent.trim()
+        })
+        .select('*')
+        .single();
 
-    setPosts([newPost, ...posts]);
-    setNewPostContent('');
-    setPasteCount(0);
-    setShowPasteWarning(false);
+      if (postError) {
+        console.error('Error al crear post:', postError);
+        alert('Error al publicar. Intenta nuevamente.');
+        return;
+      }
+
+      // Formatear el nuevo post
+      const formattedPost: AgoraPost = {
+        id: newPost.id,
+        author: {
+          name: user.name,
+          handle: `@${user.username}`,
+          avatar: user.avatar,
+          role: 'Miembro'
+        },
+        content: newPost.content,
+        timestamp: formatTimestamp(newPost.created_at),
+        comments: []
+      };
+
+      // Agregar al inicio de la lista
+      setPosts(prev => [formattedPost, ...prev]);
+      setNewPostContent('');
+      setPasteCount(0);
+      setShowPasteWarning(false);
+    } catch (err) {
+      console.error('Error al crear post:', err);
+      alert('Error al publicar. Intenta nuevamente.');
+    }
   };
 
-  const handleReply = (postId: string, content: string) => {
+  const handleReply = async (postId: string, content: string) => {
     if (!user) return;
     
-    setPosts(prev => prev.map(post => {
-      if (post.id === postId) {
-        return {
-          ...post,
-          comments: [
-            ...post.comments,
-            {
-              id: Date.now().toString(),
-              author: { name: user.name, handle: user.username, avatar: user.avatar },
-              content: content,
-              timestamp: 'Ahora mismo'
-            }
-          ]
-        };
+    try {
+      // Crear comentario en Supabase
+      const { data: newComment, error: commentError } = await supabase
+        .from('agora_comments')
+        .insert({
+          post_id: postId,
+          author_id: user.id,
+          content: content.trim()
+        })
+        .select('*')
+        .single();
+
+      if (commentError) {
+        console.error('Error al crear comentario:', commentError);
+        alert('Error al comentar. Intenta nuevamente.');
+        return;
       }
-      return post;
-    }));
+
+      // Formatear el nuevo comentario
+      const formattedComment = {
+        id: newComment.id,
+        author: {
+          name: user.name,
+          handle: `@${user.username}`,
+          avatar: user.avatar
+        },
+        content: newComment.content,
+        timestamp: formatTimestamp(newComment.created_at)
+      };
+
+      // Actualizar el post con el nuevo comentario
+      setPosts(prev => prev.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            comments: [...post.comments, formattedComment]
+          };
+        }
+        return post;
+      }));
+    } catch (err) {
+      console.error('Error al crear comentario:', err);
+      alert('Error al comentar. Intenta nuevamente.');
+    }
   };
 
   // --- EDITOR LOGIC ---
@@ -216,18 +342,30 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth, onViewPr
       </div>
 
       {/* Feed List */}
-      <div className="space-y-4">
-        {posts.map(post => (
-          <AgoraPostComponent 
-            key={post.id} 
-            post={post} 
-            currentUser={user}
-            onReply={handleReply}
-            onOpenAuth={onOpenAuth}
-            onViewProfile={onViewProfile}
-          />
-        ))}
-      </div>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D97706] mb-4"></div>
+          <p className="text-gray-500">Cargando posts...</p>
+        </div>
+      ) : posts.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">
+          <p className="text-lg mb-2">Aún no hay posts</p>
+          <p className="text-sm">Sé el primero en compartir algo con la comunidad</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {posts.map(post => (
+            <AgoraPostComponent 
+              key={post.id} 
+              post={post} 
+              currentUser={user}
+              onReply={handleReply}
+              onOpenAuth={onOpenAuth}
+              onViewProfile={onViewProfile}
+            />
+          ))}
+        </div>
+      )}
 
     </div>
   );
