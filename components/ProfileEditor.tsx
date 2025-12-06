@@ -179,14 +179,27 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
 
   // Cargar perfil desde Supabase solo al montar (una sola vez)
   useEffect(() => {
+    console.log('[ProfileEditor] useEffect triggered', { hasLoaded: hasLoadedRef.current, userId: user.id });
+    
     // Solo cargar si no se ha cargado antes
-    if (hasLoadedRef.current) return;
+    if (hasLoadedRef.current) {
+      console.log('[ProfileEditor] Already loaded, skipping');
+      return;
+    }
     hasLoadedRef.current = true;
 
     const loadProfile = async () => {
+      // Timeout de seguridad (10 segundos)
+      const timeoutId = setTimeout(() => {
+        console.error('[ProfileEditor] Timeout: Loading took too long');
+        setLoading(false);
+      }, 10000);
+
       try {
+        console.log('[ProfileEditor] Setting loading to true');
         setLoading(true);
         
+        console.log('[ProfileEditor] Querying Supabase', { userId: user.id, username: user.username });
         const { data: existingProfile, error } = await supabase
           .from('link_bio_profiles')
           .select('*')
@@ -194,12 +207,26 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
           .eq('username', user.username)
           .maybeSingle();
 
+        clearTimeout(timeoutId);
+
+        console.log('[ProfileEditor] Supabase response', { 
+          hasData: !!existingProfile, 
+          error: error,
+          errorCode: error?.code 
+        });
+
         if (error && error.code !== 'PGRST116') {
           // PGRST116 es "no rows returned", que es esperado si no existe
-          console.error('Error al cargar perfil:', error);
+          console.error('[ProfileEditor] Error al cargar perfil:', error);
         }
 
         if (existingProfile) {
+          console.log('[ProfileEditor] Profile found', { 
+            displayName: existingProfile.display_name,
+            isPublished: existingProfile.is_published,
+            customSlug: existingProfile.custom_slug
+          });
+          
           // Convertir el perfil de la base de datos al formato esperado
           const loadedProfile: LinkBioProfile = {
             username: existingProfile.username,
@@ -213,15 +240,18 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
           setProfile(loadedProfile);
           setIsPublished(existingProfile.is_published || false);
           setCustomSlug(existingProfile.custom_slug || null);
+          console.log('[ProfileEditor] Profile loaded successfully');
         } else {
+          console.log('[ProfileEditor] No profile found, using initial profile');
           // Si no existe, usar el perfil inicial
           setProfile(getInitialProfile(user));
           setIsPublished(false);
           setCustomSlug(null);
         }
       } catch (err) {
-        console.error('Error al cargar perfil:', err);
+        console.error('[ProfileEditor] Exception caught:', err);
       } finally {
+        console.log('[ProfileEditor] Finally block - setting loading to false');
         setLoading(false);
       }
     };
@@ -231,17 +261,25 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
   }, []); // Solo ejecutar una vez al montar
 
   const handleSave = async () => {
+    console.log('[ProfileEditor] handleSave started');
     setSaving(true);
     try {
       // Primero verificar si existe un perfil para preservar is_published y custom_slug
+      console.log('[ProfileEditor] Checking for existing profile', { userId: user.id });
       const { data: existing, error: checkError } = await supabase
         .from('link_bio_profiles')
         .select('id, is_published, custom_slug')
         .eq('user_id', user.id)
         .maybeSingle();
 
+      console.log('[ProfileEditor] Check response', { 
+        hasExisting: !!existing, 
+        error: checkError,
+        errorCode: checkError?.code 
+      });
+
       if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Error al verificar perfil:', checkError);
+        console.error('[ProfileEditor] Error al verificar perfil:', checkError);
         alert('Error al verificar el perfil: ' + (checkError.message || 'Error desconocido'));
         setSaving(false);
         return;
@@ -262,11 +300,16 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
         custom_slug: existing && existing.custom_slug ? existing.custom_slug : customSlug
       };
 
-      console.log('Guardando perfil:', profileData);
+      console.log('[ProfileEditor] Guardando perfil:', { 
+        hasBlocks: profileData.blocks?.length || 0,
+        hasTheme: !!profileData.theme,
+        isPublished: profileData.is_published,
+        customSlug: profileData.custom_slug
+      });
 
       if (existing) {
         // Existe, actualizar
-        console.log('Actualizando perfil existente');
+        console.log('[ProfileEditor] Actualizando perfil existente', { profileId: existing.id });
         let { data, error: updateError } = await supabase
           .from('link_bio_profiles')
           .update(profileData)
@@ -275,9 +318,10 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
           .single();
 
         if (updateError) {
-          console.error('Error al actualizar:', updateError);
+          console.error('[ProfileEditor] Error al actualizar:', updateError);
           
           // Reintentar una vez más
+          console.log('[ProfileEditor] Reintentando actualización...');
           const { data: retryData, error: retryError } = await supabase
             .from('link_bio_profiles')
             .update(profileData)
@@ -286,15 +330,21 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
             .single();
 
           if (retryError) {
+            console.error('[ProfileEditor] Error en reintento:', retryError);
             alert('Error al actualizar el perfil: ' + (retryError.message || 'Error desconocido'));
             setSaving(false);
             return;
           }
           
+          console.log('[ProfileEditor] Reintento exitoso');
           data = retryData;
         }
         
-        console.log('Perfil actualizado:', data);
+        console.log('[ProfileEditor] Perfil actualizado exitosamente', { 
+          hasData: !!data,
+          isPublished: data?.is_published,
+          customSlug: data?.custom_slug
+        });
         
         // Actualizar el estado local con los datos guardados directamente
         // No necesitamos recargar porque ya tenemos los datos frescos en 'data'
@@ -316,7 +366,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
         }
       } else {
         // No existe, crear nuevo
-        console.log('Creando nuevo perfil');
+        console.log('[ProfileEditor] Creando nuevo perfil');
         let { data, error: insertError } = await supabase
           .from('link_bio_profiles')
           .insert(profileData)
@@ -324,9 +374,10 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
           .single();
 
         if (insertError) {
-          console.error('Error al insertar:', insertError);
+          console.error('[ProfileEditor] Error al insertar:', insertError);
           
           // Reintentar una vez más
+          console.log('[ProfileEditor] Reintentando inserción...');
           const { data: retryData, error: retryError } = await supabase
             .from('link_bio_profiles')
             .insert(profileData)
@@ -334,15 +385,21 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
             .single();
 
           if (retryError) {
+            console.error('[ProfileEditor] Error en reintento:', retryError);
             alert('Error al guardar el perfil: ' + (retryError.message || 'Error desconocido'));
             setSaving(false);
             return;
           }
           
+          console.log('[ProfileEditor] Reintento exitoso');
           data = retryData;
         }
         
-        console.log('Perfil creado:', data);
+        console.log('[ProfileEditor] Perfil creado exitosamente', { 
+          hasData: !!data,
+          isPublished: data?.is_published,
+          customSlug: data?.custom_slug
+        });
         
         // Actualizar el estado local con los datos guardados
         if (data) {
@@ -352,11 +409,13 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
       }
       
       // Mostrar toast de éxito
+      console.log('[ProfileEditor] Mostrando toast de éxito');
       setShowToast(true);
     } catch (error: any) {
-      console.error('Error completo al guardar:', error);
+      console.error('[ProfileEditor] Error completo al guardar:', error);
       alert(error.message || 'Error al guardar el perfil. Intenta nuevamente.');
     } finally {
+      console.log('[ProfileEditor] handleSave finally - setting saving to false');
       setSaving(false);
     }
   };
