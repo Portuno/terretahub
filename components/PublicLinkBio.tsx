@@ -69,18 +69,36 @@ export const PublicLinkBio: React.FC = () => {
         const customSlugLower = extension.toLowerCase();
         console.log('[PublicLinkBio] Querying Supabase', { 
           custom_slug: customSlugLower,
-          timestamp: Date.now(),
-          supabaseUrl: supabase.supabaseUrl ? 'configured' : 'missing'
+          timestamp: Date.now()
         });
+
+        // Verificar configuración de Supabase
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        console.log('[PublicLinkBio] Supabase config check', {
+          urlPresent: !!supabaseUrl,
+          keyPresent: !!supabaseKey,
+          urlLength: supabaseUrl?.length || 0,
+          keyLength: supabaseKey?.length || 0
+        });
+
+        if (!supabaseUrl || !supabaseKey) {
+          console.error('[PublicLinkBio] Supabase not configured');
+          setError('Error de configuración: Supabase no está configurado correctamente.');
+          setLoading(false);
+          isLoadingRef.current = false;
+          clearTimeout(timeoutId);
+          return;
+        }
 
         // Buscar perfil por custom_slug (extensión) con timeout
         console.log('[PublicLinkBio] Starting profile query...');
         const queryStartTime = Date.now();
         
-        // Crear la query con timeout de 8 segundos
-        const queryPromise = supabase
+        // Intentar primero con una query más simple (solo campos necesarios)
+        let queryPromise = supabase
           .from('link_bio_profiles')
-          .select('*, updated_at')
+          .select('username, display_name, bio, avatar, socials, blocks, theme, updated_at')
           .eq('custom_slug', customSlugLower)
           .eq('is_published', true)
           .maybeSingle();
@@ -96,7 +114,11 @@ export const PublicLinkBio: React.FC = () => {
           linkBioError = result?.error;
         } catch (timeoutError: any) {
           console.error('[PublicLinkBio] Query timeout:', timeoutError);
-          setError('La consulta está tardando demasiado. Verifica tu conexión a internet.');
+          console.error('[PublicLinkBio] Supabase config check:', {
+            url: import.meta.env.VITE_SUPABASE_URL ? 'present' : 'missing',
+            key: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'present' : 'missing'
+          });
+          setError('La consulta está tardando demasiado. Esto puede ser un problema de red o de configuración. Intenta recargar la página.');
           setLoading(false);
           isLoadingRef.current = false;
           clearTimeout(timeoutId);
