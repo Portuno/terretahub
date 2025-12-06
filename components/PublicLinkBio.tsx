@@ -66,25 +66,59 @@ export const PublicLinkBio: React.FC = () => {
         setLoading(true);
         setError(null);
 
+        const customSlugLower = extension.toLowerCase();
         console.log('[PublicLinkBio] Querying Supabase', { 
-          custom_slug: extension.toLowerCase(),
-          timestamp: Date.now()
+          custom_slug: customSlugLower,
+          timestamp: Date.now(),
+          supabaseUrl: supabase.supabaseUrl ? 'configured' : 'missing'
         });
 
-        // Buscar perfil por custom_slug (extensión)
-        const { data: linkBioProfile, error: linkBioError } = await supabase
+        // Buscar perfil por custom_slug (extensión) con timeout
+        console.log('[PublicLinkBio] Starting profile query...');
+        const queryStartTime = Date.now();
+        
+        // Crear la query con timeout de 8 segundos
+        const queryPromise = supabase
           .from('link_bio_profiles')
           .select('*, updated_at')
-          .eq('custom_slug', extension.toLowerCase())
+          .eq('custom_slug', customSlugLower)
           .eq('is_published', true)
           .maybeSingle();
+
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Query timeout: La consulta tardó más de 8 segundos')), 8000)
+        );
+
+        let linkBioProfile, linkBioError;
+        try {
+          const result = await Promise.race([queryPromise, timeoutPromise]) as any;
+          linkBioProfile = result?.data;
+          linkBioError = result?.error;
+        } catch (timeoutError: any) {
+          console.error('[PublicLinkBio] Query timeout:', timeoutError);
+          setError('La consulta está tardando demasiado. Verifica tu conexión a internet.');
+          setLoading(false);
+          isLoadingRef.current = false;
+          clearTimeout(timeoutId);
+          return;
+        }
+
+        const queryDuration = Date.now() - queryStartTime;
+        console.log('[PublicLinkBio] Query completed', { 
+          duration: `${queryDuration}ms`,
+          hasData: !!linkBioProfile,
+          hasError: !!linkBioError
+        });
 
         clearTimeout(timeoutId);
 
         console.log('[PublicLinkBio] Supabase response', { 
           hasData: !!linkBioProfile, 
           error: linkBioError,
-          errorCode: linkBioError?.code 
+          errorCode: linkBioError?.code,
+          errorMessage: linkBioError?.message,
+          errorDetails: linkBioError?.details,
+          errorHint: linkBioError?.hint
         });
 
         if (linkBioError && linkBioError.code !== 'PGRST116') {
