@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { LinkBioProfile } from '../types';
@@ -9,6 +9,9 @@ export const PublicLinkBio: React.FC = () => {
   const [profile, setProfile] = useState<LinkBioProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const lastExtensionRef = useRef<string | null>(null);
+  const isLoadingRef = useRef(false);
+  const lastUpdatedAtRef = useRef<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -18,16 +21,29 @@ export const PublicLinkBio: React.FC = () => {
         return;
       }
 
+      // Evitar múltiples cargas simultáneas
+      if (isLoadingRef.current) {
+        return;
+      }
+
+      // Si es la misma extensión que ya cargamos, no recargar a menos que sea un refresh
+      // (cuando el componente se monta de nuevo, lastExtensionRef será null, así que cargará)
+      if (lastExtensionRef.current === extension && lastExtensionRef.current !== null) {
+        return;
+      }
+
+      lastExtensionRef.current = extension;
+      isLoadingRef.current = true;
+
       try {
         setLoading(true);
         setError(null);
 
         // Buscar perfil por custom_slug (extensión)
-        // Agregar timestamp para evitar caché del navegador
-        const timestamp = Date.now();
+        // Incluir updated_at para detectar cambios y forzar recarga si es necesario
         const { data: linkBioProfile, error: linkBioError } = await supabase
           .from('link_bio_profiles')
-          .select('*')
+          .select('*, updated_at')
           .eq('custom_slug', extension.toLowerCase())
           .eq('is_published', true)
           .maybeSingle();
@@ -37,13 +53,20 @@ export const PublicLinkBio: React.FC = () => {
           console.error('Error al buscar perfil:', linkBioError);
           setError('Error al cargar el perfil');
           setLoading(false);
+          isLoadingRef.current = false;
           return;
         }
 
         if (!linkBioProfile) {
           setError('Perfil no encontrado o no está publicado');
           setLoading(false);
+          isLoadingRef.current = false;
           return;
+        }
+
+        // Guardar el updated_at para futuras comparaciones
+        if (linkBioProfile.updated_at) {
+          lastUpdatedAtRef.current = linkBioProfile.updated_at;
         }
 
         // Si encontramos el perfil de link-in-bio, convertir al formato esperado
@@ -70,13 +93,15 @@ export const PublicLinkBio: React.FC = () => {
         setProfile(formattedProfile);
       } catch (err: any) {
         setError(err.message || 'Error al cargar el perfil');
+        setLoading(false);
       } finally {
         setLoading(false);
+        isLoadingRef.current = false;
       }
     };
 
     fetchProfile();
-  }, [extension]);
+  }, [extension]); // Solo ejecutar cuando cambie la extensión
 
   if (loading) {
     return (
