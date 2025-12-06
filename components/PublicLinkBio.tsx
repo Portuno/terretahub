@@ -25,7 +25,7 @@ export const PublicLinkBio: React.FC = () => {
         let linkBioProfile = null;
         let linkBioError = null;
 
-        // Si hay extensión, buscar por custom_slug
+        // Si hay extensión, buscar por custom_slug y username
         if (extension) {
           const result = await supabase
             .from('link_bio_profiles')
@@ -33,12 +33,12 @@ export const PublicLinkBio: React.FC = () => {
             .eq('custom_slug', extension.toLowerCase())
             .eq('username', username.toLowerCase())
             .eq('is_published', true)
-            .single();
+            .maybeSingle();
           
           linkBioProfile = result.data;
           linkBioError = result.error;
         } else {
-          // Si no hay extensión, buscar por username (perfil publicado)
+          // Si no hay extensión, buscar por username (perfil publicado, puede tener o no custom_slug)
           const result = await supabase
             .from('link_bio_profiles')
             .select('*')
