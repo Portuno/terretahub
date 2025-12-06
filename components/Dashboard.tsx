@@ -8,6 +8,7 @@ import { AgoraFeed } from './AgoraFeed';
 import { ProjectEditor } from './ProjectEditor';
 import { FeedbackModal } from './FeedbackModal';
 import { PublicProfile } from './PublicProfile';
+import { supabase } from '../lib/supabase';
 
 // Mock Data
 const MOCK_USERS: UserProfile[] = [
@@ -85,10 +86,51 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
     user.role.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
-  const handleProjectSave = (project: Project) => {
-    console.log("Project Saved:", project);
-    // Here we would save to backend/storage
-    setProjectMode('gallery');
+  const handleProjectSave = async (project: Project) => {
+    if (!user) {
+      console.error('[Dashboard] No user available to save project');
+      return;
+    }
+
+    try {
+      console.log('[Dashboard] Saving project to Supabase:', project);
+
+      // Mapear el proyecto del frontend a la estructura de la base de datos
+      const projectData = {
+        author_id: user.id, // El ID del usuario autenticado
+        name: project.name,
+        slogan: project.slogan || null,
+        description: project.description,
+        images: project.images || [],
+        video_url: project.videoUrl || null,
+        categories: project.categories || [],
+        technologies: project.technologies || [],
+        phase: project.phase,
+        status: project.status
+      };
+
+      console.log('[Dashboard] Project data to insert:', projectData);
+
+      // Insertar el proyecto en Supabase
+      const { data, error } = await supabase
+        .from('projects')
+        .insert(projectData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[Dashboard] Error saving project:', error);
+        alert('Error al guardar el proyecto: ' + (error.message || 'Error desconocido'));
+        return;
+      }
+
+      console.log('[Dashboard] Project saved successfully:', data);
+      alert(`Proyecto ${project.status === 'draft' ? 'guardado como borrador' : 'enviado para revisión'} exitosamente`);
+      setProjectMode('gallery');
+    } catch (err: any) {
+      console.error('[Dashboard] Exception saving project:', err);
+      alert('Error al guardar el proyecto: ' + (err.message || 'Error desconocido'));
+    }
   };
 
   const handleSectionChange = (section: string) => {
