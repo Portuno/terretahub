@@ -3,6 +3,7 @@ import { LandingPage } from './components/LandingPage';
 import { Dashboard } from './components/Dashboard';
 import { AuthModal } from './components/AuthModal';
 import { AppView, AuthUser } from './types';
+import { supabase } from './lib/supabase';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<AppView>('landing');
@@ -11,27 +12,71 @@ export default function App() {
 
   // Check for session persistence on mount
   useEffect(() => {
-    const session = localStorage.getItem('terreta_session');
-    if (session) {
-       const storedUsers = JSON.parse(localStorage.getItem('terreta_users') || '[]');
-       const foundUser = storedUsers.find((u: any) => u.id === session);
-       if (foundUser) {
-          const { password: _, ...safeUser } = foundUser;
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        // Obtener perfil del usuario
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (!error && profile) {
+          const safeUser: AuthUser = {
+            id: profile.id,
+            name: profile.name,
+            username: profile.username,
+            email: profile.email,
+            avatar: profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`,
+          };
           setUser(safeUser);
-       }
-    }
+        }
+      }
+    };
+
+    checkSession();
+
+    // Escuchar cambios en la autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        setUser(null);
+        setCurrentView('landing');
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile) {
+          const safeUser: AuthUser = {
+            id: profile.id,
+            name: profile.name,
+            username: profile.username,
+            email: profile.email,
+            avatar: profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`,
+          };
+          setUser(safeUser);
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLoginSuccess = (loggedInUser: AuthUser) => {
     setUser(loggedInUser);
-    localStorage.setItem('terreta_session', loggedInUser.id);
     setIsAuthModalOpen(false);
     setCurrentView('app'); // Redirect to app if logging in from landing
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('terreta_session');
     setCurrentView('landing');
   };
 

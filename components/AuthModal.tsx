@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, User, Mail, Lock, ArrowRight } from 'lucide-react';
 import { AuthUser } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -26,46 +27,114 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     setLoading(true);
     setError('');
 
-    // Simulate network delay
-    await new Promise(r => setTimeout(r, 1000));
-
     try {
-      const storedUsers = JSON.parse(localStorage.getItem('terreta_users') || '[]');
-      
       if (isRegistering) {
         // REGISTER LOGIC
-        if (storedUsers.find((u: any) => u.email === email || u.username === username)) {
-          throw new Error('El usuario o email ya existe.');
+        const cleanUsername = username.toLowerCase().replace(/\s+/g, '');
+        
+        // Verificar si el username ya existe
+        const { data: existingProfiles, error: checkError } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', cleanUsername)
+          .limit(1);
+
+        if (checkError && checkError.code !== 'PGRST116') {
+          // PGRST116 es "no rows returned", que es esperado si no existe
+          throw new Error('Error al verificar el usuario.');
         }
 
-        const newUser: AuthUser = {
-          id: Date.now().toString(),
-          name,
-          username: username.toLowerCase().replace(/\s+/g, ''),
+        if (existingProfiles && existingProfiles.length > 0) {
+          throw new Error('El usuario ya existe.');
+        }
+
+        // Crear usuario en Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
           email,
-          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+          password,
+          options: {
+            data: {
+              name,
+              username: cleanUsername,
+            }
+          }
+        });
+
+        if (authError) {
+          throw new Error(authError.message || 'Error al crear la cuenta.');
+        }
+
+        if (!authData.user) {
+          throw new Error('No se pudo crear el usuario.');
+        }
+
+        // El trigger automáticamente crea el perfil, pero esperamos un momento
+        // y luego lo obtenemos
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanUsername}`;
+        
+        // Obtener el perfil creado por el trigger
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (profileError || !profile) {
+          throw new Error('Error al crear el perfil. Intenta nuevamente.');
+        }
+
+        // Construir objeto de usuario para el estado
+        const newUser: AuthUser = {
+          id: profile.id,
+          name: profile.name,
+          username: profile.username,
+          email: profile.email,
+          avatar: profile.avatar || avatarUrl,
         };
 
-        // Save password (insecurely for demo purposes)
-        const userRecord = { ...newUser, password };
-        localStorage.setItem('terreta_users', JSON.stringify([...storedUsers, userRecord]));
-        
         onLoginSuccess(newUser);
         onClose();
       } else {
         // LOGIN LOGIC
-        const user = storedUsers.find((u: any) => u.email === email && u.password === password);
-        
-        if (!user) {
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (authError) {
           throw new Error('Credenciales incorrectas.');
         }
 
-        const { password: _, ...safeUser } = user; // Exclude password
-        onLoginSuccess(safeUser as AuthUser);
+        if (!authData.user) {
+          throw new Error('Error al iniciar sesión.');
+        }
+
+        // Obtener perfil del usuario
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (profileError || !profile) {
+          throw new Error('Error al cargar el perfil.');
+        }
+
+        const safeUser: AuthUser = {
+          id: profile.id,
+          name: profile.name,
+          username: profile.username,
+          email: profile.email,
+          avatar: profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`,
+        };
+
+        onLoginSuccess(safeUser);
         onClose();
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Ocurrió un error. Intenta nuevamente.');
     } finally {
       setLoading(false);
     }
