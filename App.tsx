@@ -44,7 +44,7 @@ const AppContent: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
         setUser(null);
-        navigate('/');
+        // No redirigir automáticamente, permitir que el usuario se quede en /app
       } else if (event === 'SIGNED_IN' && session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -83,11 +83,8 @@ const AppContent: React.FC = () => {
   };
 
   const handleEnterApp = () => {
-    if (user) {
-      navigate('/app');
-    } else {
-      setIsAuthModalOpen(true);
-    }
+    // Permitir acceso a /app sin necesidad de estar logueado
+    navigate('/app');
   };
 
   return (

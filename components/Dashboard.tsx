@@ -180,6 +180,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
              <PublicProfile handle={viewingProfileHandle} mockUsers={MOCK_USERS} />
           ) : activeSection === 'perfil' && user ? (
             <ProfileEditor user={user} />
+          ) : activeSection === 'perfil' && !user ? (
+            <div className="flex flex-col items-center justify-center h-[60vh] text-center p-10 animate-fade-in">
+              <div className="w-16 h-16 bg-[#EBE5DA] rounded-full flex items-center justify-center mb-4">
+                <User size={32} className="text-terreta-dark/50" />
+              </div>
+              <h3 className="font-serif text-2xl text-terreta-dark mb-2">Inicia sesión para editar tu perfil</h3>
+              <p className="max-w-md mx-auto mb-6 text-gray-500">Necesitas una cuenta para personalizar tu página de link-in-bio.</p>
+              <button 
+                onClick={onOpenAuth}
+                className="bg-[#D97706] text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 hover:bg-[#B45309] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+              >
+                Iniciar Sesión
+              </button>
+            </div>
           ) : activeSection === 'agora' ? (
             <AgoraFeed user={user} onOpenAuth={onOpenAuth} onViewProfile={handleViewProfile} />
           ) : activeSection === 'proyectos' ? (
