@@ -181,6 +181,9 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
     const loadProfile = async () => {
       try {
         setLoading(true);
+        
+        // Agregar timestamp para evitar caché del navegador
+        const timestamp = Date.now();
         const { data: existingProfile, error } = await supabase
           .from('link_bio_profiles')
           .select('*')
@@ -260,7 +263,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
       if (existing) {
         // Existe, actualizar
         console.log('Actualizando perfil existente');
-        const { data, error: updateError } = await supabase
+        let { data, error: updateError } = await supabase
           .from('link_bio_profiles')
           .update(profileData)
           .eq('user_id', user.id)
@@ -269,20 +272,56 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
 
         if (updateError) {
           console.error('Error al actualizar:', updateError);
-          alert('Error al actualizar el perfil: ' + (updateError.message || 'Error desconocido'));
-          return;
+          
+          // Reintentar una vez más
+          const { data: retryData, error: retryError } = await supabase
+            .from('link_bio_profiles')
+            .update(profileData)
+            .eq('user_id', user.id)
+            .select()
+            .single();
+
+          if (retryError) {
+            alert('Error al actualizar el perfil: ' + (retryError.message || 'Error desconocido'));
+            setSaving(false);
+            return;
+          }
+          
+          data = retryData;
         }
+        
         console.log('Perfil actualizado:', data);
         
         // Actualizar el estado local con los datos guardados
         if (data) {
           setIsPublished(data.is_published || false);
           setCustomSlug(data.custom_slug || null);
+          
+          // Recargar el perfil desde la base de datos para evitar problemas de caché
+          const { data: freshData } = await supabase
+            .from('link_bio_profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('username', user.username)
+            .maybeSingle();
+
+          if (freshData) {
+            const reloadedProfile: LinkBioProfile = {
+              username: freshData.username,
+              displayName: freshData.display_name,
+              bio: freshData.bio || '',
+              avatar: freshData.avatar || user.avatar,
+              socials: (freshData.socials as any) || {},
+              blocks: (freshData.blocks as any) || [],
+              theme: (freshData.theme as any) || getInitialProfile(user).theme
+            };
+            setProfile(reloadedProfile);
+          }
         }
       } else {
         // No existe, crear nuevo
         console.log('Creando nuevo perfil');
-        const { data, error: insertError } = await supabase
+        let { data, error: insertError } = await supabase
           .from('link_bio_profiles')
           .insert(profileData)
           .select()
@@ -290,10 +329,23 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
 
         if (insertError) {
           console.error('Error al insertar:', insertError);
-          alert('Error al guardar el perfil: ' + (insertError.message || 'Error desconocido'));
-          setSaving(false);
-          return;
+          
+          // Reintentar una vez más
+          const { data: retryData, error: retryError } = await supabase
+            .from('link_bio_profiles')
+            .insert(profileData)
+            .select()
+            .single();
+
+          if (retryError) {
+            alert('Error al guardar el perfil: ' + (retryError.message || 'Error desconocido'));
+            setSaving(false);
+            return;
+          }
+          
+          data = retryData;
         }
+        
         console.log('Perfil creado:', data);
         
         // Actualizar el estado local con los datos guardados

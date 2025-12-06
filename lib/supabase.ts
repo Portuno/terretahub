@@ -11,7 +11,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    storageKey: 'terretahub-auth'
+  },
+  global: {
+    headers: {
+      'Cache-Control': 'no-cache'
+    }
+  },
+  db: {
+    schema: 'public'
   }
 });
 

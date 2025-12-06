@@ -23,6 +23,8 @@ export const PublicLinkBio: React.FC = () => {
         setError(null);
 
         // Buscar perfil por custom_slug (extensión)
+        // Agregar timestamp para evitar caché del navegador
+        const timestamp = Date.now();
         const { data: linkBioProfile, error: linkBioError } = await supabase
           .from('link_bio_profiles')
           .select('*')
