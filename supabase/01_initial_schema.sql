@@ -135,6 +135,11 @@ ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 -- ============================================
 -- PROFILES POLICIES
 -- ============================================
+-- Eliminar políticas existentes si existen
+DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
+
 -- Cualquiera puede leer perfiles públicos
 CREATE POLICY "Profiles are viewable by everyone"
   ON profiles FOR SELECT
@@ -153,6 +158,10 @@ CREATE POLICY "Users can insert own profile"
 -- ============================================
 -- LINK BIO PROFILES POLICIES
 -- ============================================
+-- Eliminar políticas existentes si existen
+DROP POLICY IF EXISTS "Link bio profiles are viewable by everyone" ON link_bio_profiles;
+DROP POLICY IF EXISTS "Users can manage own link bio profile" ON link_bio_profiles;
+
 -- Cualquiera puede leer perfiles de link-in-bio públicos
 CREATE POLICY "Link bio profiles are viewable by everyone"
   ON link_bio_profiles FOR SELECT
@@ -166,6 +175,12 @@ CREATE POLICY "Users can manage own link bio profile"
 -- ============================================
 -- AGORA POSTS POLICIES
 -- ============================================
+-- Eliminar políticas existentes si existen
+DROP POLICY IF EXISTS "Agora posts are viewable by everyone" ON agora_posts;
+DROP POLICY IF EXISTS "Authenticated users can create posts" ON agora_posts;
+DROP POLICY IF EXISTS "Users can update own posts" ON agora_posts;
+DROP POLICY IF EXISTS "Users can delete own posts" ON agora_posts;
+
 -- Cualquiera puede leer posts públicos
 CREATE POLICY "Agora posts are viewable by everyone"
   ON agora_posts FOR SELECT
@@ -189,6 +204,12 @@ CREATE POLICY "Users can delete own posts"
 -- ============================================
 -- AGORA COMMENTS POLICIES
 -- ============================================
+-- Eliminar políticas existentes si existen
+DROP POLICY IF EXISTS "Agora comments are viewable by everyone" ON agora_comments;
+DROP POLICY IF EXISTS "Authenticated users can create comments" ON agora_comments;
+DROP POLICY IF EXISTS "Users can update own comments" ON agora_comments;
+DROP POLICY IF EXISTS "Users can delete own comments" ON agora_comments;
+
 -- Cualquiera puede leer comentarios
 CREATE POLICY "Agora comments are viewable by everyone"
   ON agora_comments FOR SELECT
@@ -212,6 +233,12 @@ CREATE POLICY "Users can delete own comments"
 -- ============================================
 -- PROJECTS POLICIES
 -- ============================================
+-- Eliminar políticas existentes si existen
+DROP POLICY IF EXISTS "Published projects are viewable by everyone" ON projects;
+DROP POLICY IF EXISTS "Authenticated users can create projects" ON projects;
+DROP POLICY IF EXISTS "Users can update own projects" ON projects;
+DROP POLICY IF EXISTS "Users can delete own projects" ON projects;
+
 -- Cualquiera puede leer proyectos publicados
 CREATE POLICY "Published projects are viewable by everyone"
   ON projects FOR SELECT
@@ -244,6 +271,13 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Eliminar triggers existentes si existen
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON profiles;
+DROP TRIGGER IF EXISTS update_link_bio_profiles_updated_at ON link_bio_profiles;
+DROP TRIGGER IF EXISTS update_agora_posts_updated_at ON agora_posts;
+DROP TRIGGER IF EXISTS update_agora_comments_updated_at ON agora_comments;
+DROP TRIGGER IF EXISTS update_projects_updated_at ON projects;
 
 -- Triggers para updated_at
 CREATE TRIGGER update_profiles_updated_at
@@ -289,6 +323,9 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Eliminar trigger existente si existe
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
 -- Trigger para crear perfil cuando se registra un usuario
 CREATE TRIGGER on_auth_user_created
