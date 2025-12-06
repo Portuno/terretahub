@@ -34,7 +34,7 @@ export interface AuthUser {
 
 // --- LINK IN BIO TYPES ---
 
-export type BlockType = 'link' | 'text' | 'header' | 'video' | 'music';
+export type BlockType = 'link' | 'text' | 'header' | 'video' | 'music' | 'gallery';
 
 export interface BioBlock {
   id: string;
@@ -43,6 +43,7 @@ export interface BioBlock {
   url?: string; // For links, video, music
   content?: string; // For text blocks
   icon?: string; // For links (e.g., 'instagram', 'star', 'heart')
+  images?: string[]; // For gallery blocks
   isVisible: boolean;
 }
 

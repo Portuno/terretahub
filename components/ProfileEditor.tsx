@@ -3,7 +3,8 @@ import {
   Save, Layout, Type, Link as LinkIcon, Image as ImageIcon, 
   Youtube, Music, Trash2, GripVertical, ChevronDown, ChevronUp,
   Instagram, Twitter, Linkedin, Globe, Plus, Palette, BarChart3,
-  Video, Star, Heart, Zap, CheckCircle, Upload, Camera, Smartphone, Monitor
+  Video, Star, Heart, Zap, CheckCircle, Upload, Camera, Smartphone, Monitor,
+  Images
 } from 'lucide-react';
 import { AuthUser, LinkBioProfile, BioBlock, BioTheme } from '../types';
 
@@ -214,10 +215,11 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
       id: Date.now().toString(),
       type,
       isVisible: true,
-      title: type === 'link' ? 'Nuevo Enlace' : type === 'header' ? 'Nueva Sección' : type === 'video' ? 'Video Destacado' : type === 'music' ? 'Canción' : '',
+      title: type === 'link' ? 'Nuevo Enlace' : type === 'header' ? 'Nueva Sección' : type === 'video' ? 'Video Destacado' : type === 'music' ? 'Canción' : type === 'gallery' ? 'Galería' : '',
       url: '',
       content: type === 'text' ? 'Escribe algo aquí...' : '',
-      icon: 'none'
+      icon: 'none',
+      images: type === 'gallery' ? [] : undefined
     };
     setProfile(prev => ({ ...prev, blocks: [...prev.blocks, newBlock] }));
   };
@@ -230,6 +232,40 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
     setProfile(prev => ({
       ...prev,
       blocks: prev.blocks.map(b => b.id === id ? { ...b, ...updates } : b)
+    }));
+  };
+
+  const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>, blockId: string) => {
+    if (e.target.files) {
+      Array.from(e.target.files).forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setProfile(prev => ({
+            ...prev,
+            blocks: prev.blocks.map(b => {
+              if (b.id === blockId) {
+                return { ...b, images: [...(b.images || []), reader.result as string] };
+              }
+              return b;
+            })
+          }));
+        };
+        reader.readAsDataURL(file as Blob);
+      });
+    }
+  };
+
+  const removeGalleryImage = (blockId: string, imageIndex: number) => {
+    setProfile(prev => ({
+      ...prev,
+      blocks: prev.blocks.map(b => {
+        if (b.id === blockId) {
+          const newImages = [...(b.images || [])];
+          newImages.splice(imageIndex, 1);
+          return { ...b, images: newImages };
+        }
+        return b;
+      })
     }));
   };
 
@@ -391,12 +427,13 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
               <section className="space-y-4">
                 <div className="flex justify-between items-center flex-wrap gap-2">
                    <h3 className="font-serif text-xl text-terreta-dark">Bloques</h3>
-                   <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
+                   <div className="flex gap-2 bg-gray-100 p-1 rounded-lg flex-wrap">
                       <button onClick={() => addBlock('link')} className="p-2 bg-white text-terreta-dark rounded shadow-sm hover:shadow text-xs flex items-center gap-1 font-bold border border-gray-200"><Plus size={14}/> Link</button>
                       <button onClick={() => addBlock('header')} className="p-2 bg-transparent text-gray-600 rounded hover:bg-gray-200 text-xs flex items-center gap-1"><Type size={14}/> Título</button>
                       <button onClick={() => addBlock('text')} className="p-2 bg-transparent text-gray-600 rounded hover:bg-gray-200 text-xs flex items-center gap-1"><Layout size={14}/> Texto</button>
                       <button onClick={() => addBlock('video')} className="p-2 bg-transparent text-gray-600 rounded hover:bg-gray-200 text-xs flex items-center gap-1"><Video size={14}/> Video</button>
                       <button onClick={() => addBlock('music')} className="p-2 bg-transparent text-gray-600 rounded hover:bg-gray-200 text-xs flex items-center gap-1"><Music size={14}/> Música</button>
+                      <button onClick={() => addBlock('gallery')} className="p-2 bg-transparent text-gray-600 rounded hover:bg-gray-200 text-xs flex items-center gap-1"><Images size={14}/> Galería</button>
                    </div>
                 </div>
 
@@ -419,7 +456,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                          <div className="flex justify-between items-start mb-3 cursor-move">
                             <div className="flex items-center gap-2 text-xs font-bold uppercase text-gray-400 select-none">
                                <GripVertical size={16} className="text-gray-300 group-hover:text-gray-500" />
-                               {block.type === 'header' ? 'Sección' : block.type}
+                               {block.type === 'header' ? 'Sección' : block.type === 'gallery' ? 'Galería' : block.type}
                             </div>
                             <button onClick={() => removeBlock(block.id)} className="p-1 text-red-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><Trash2 size={16}/></button>
                          </div>
@@ -468,6 +505,34 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                                 value={block.content || ''}
                                 onChange={e => updateBlock(block.id, { content: e.target.value })}
                               />
+                            )}
+                            {block.type === 'gallery' && (
+                              <div className="space-y-3">
+                                <div className="flex flex-wrap gap-2">
+                                   {block.images?.map((img, idx) => (
+                                      <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden group shadow-sm bg-gray-100">
+                                         <img src={img} className="w-full h-full object-cover" alt="Gallery thumbnail" />
+                                         <button 
+                                            onClick={() => removeGalleryImage(block.id, idx)}
+                                            className="absolute top-0 right-0 bg-black/60 text-white p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                         >
+                                            <Trash2 size={12} />
+                                         </button>
+                                      </div>
+                                   ))}
+                                   <label className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#D97706] hover:text-[#D97706] transition-colors bg-gray-50">
+                                      <Plus size={16} />
+                                      <span className="text-[9px] uppercase font-bold mt-1">Add</span>
+                                      <input 
+                                        type="file" 
+                                        multiple 
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => handleGalleryUpload(e, block.id)}
+                                      />
+                                   </label>
+                                </div>
+                              </div>
                             )}
                          </div>
                       </div>
@@ -880,6 +945,16 @@ export const ProfileRenderer: React.FC<{ profile: LinkBioProfile }> = ({ profile
                )
             }
             
+            if (block.type === 'gallery' && block.images && block.images.length > 0) {
+              return (
+                <div key={block.id} className="grid grid-cols-2 gap-2 mb-4">
+                  {block.images.map((img, i) => (
+                    <img key={i} src={img} className="w-full h-24 object-cover rounded-lg shadow-sm bg-black/5" alt={`Gallery ${i}`} />
+                  ))}
+                </div>
+              )
+            }
+
             return null;
           })}
         </div>
