@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS link_bio_profiles (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   username TEXT NOT NULL,
+  custom_slug TEXT,
+  is_published BOOLEAN DEFAULT false,
   display_name TEXT NOT NULL,
   bio TEXT,
   avatar TEXT,
@@ -49,12 +51,15 @@ CREATE TABLE IF NOT EXISTS link_bio_profiles (
   }'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
-  UNIQUE(user_id, username)
+  UNIQUE(user_id, username),
+  UNIQUE(custom_slug)
 );
 
 -- Índices para link_bio_profiles
 CREATE INDEX IF NOT EXISTS idx_link_bio_profiles_user_id ON link_bio_profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_link_bio_profiles_username ON link_bio_profiles(username);
+CREATE INDEX IF NOT EXISTS idx_link_bio_profiles_custom_slug ON link_bio_profiles(custom_slug);
+CREATE INDEX IF NOT EXISTS idx_link_bio_profiles_is_published ON link_bio_profiles(is_published);
 
 -- ============================================
 -- AGORA POSTS TABLE

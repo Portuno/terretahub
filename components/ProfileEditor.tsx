@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { AuthUser, LinkBioProfile, BioBlock, BioTheme } from '../types';
 import { supabase } from '../lib/supabase';
+import { PublishProfileModal } from './PublishProfileModal';
 
 interface ProfileEditorProps {
   user: AuthUser;
@@ -155,6 +156,9 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
   const [saving, setSaving] = useState(false);
   const [draggedBlockIndex, setDraggedBlockIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPublished, setIsPublished] = useState(false);
+  const [customSlug, setCustomSlug] = useState<string | null>(null);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   
   // File input ref for avatar
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -199,9 +203,13 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
             theme: (existingProfile.theme as any) || getInitialProfile(user).theme
           };
           setProfile(loadedProfile);
+          setIsPublished(existingProfile.is_published || false);
+          setCustomSlug(existingProfile.custom_slug || null);
         } else {
           // Si no existe, usar el perfil inicial
           setProfile(getInitialProfile(user));
+          setIsPublished(false);
+          setCustomSlug(null);
         }
       } catch (err) {
         console.error('Error al cargar perfil:', err);
@@ -225,7 +233,9 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
         avatar: profile.avatar,
         socials: profile.socials,
         blocks: profile.blocks,
-        theme: profile.theme
+        theme: profile.theme,
+        is_published: isPublished,
+        custom_slug: customSlug
       };
 
       console.log('Guardando perfil:', profileData);
@@ -862,13 +872,98 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
 
         {/* Footer Actions */}
         <div className="p-4 border-t border-gray-200 bg-white">
-          <button 
-            onClick={handleSave}
-            className="w-full bg-[#D97706] text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-[#B45309] transition-colors"
-          >
-            {saving ? 'Guardando...' : <><Save size={18} /> Guardar Cambios</>}
-          </button>
+          {!isPublished ? (
+            <button 
+              onClick={() => setIsPublishModalOpen(true)}
+              className="w-full bg-[#D97706] text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-[#B45309] transition-colors"
+            >
+              <Globe size={18} /> Publicar Perfil
+            </button>
+          ) : (
+            <>
+              <button 
+                onClick={handleSave}
+                className="w-full bg-[#D97706] text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-[#B45309] transition-colors mb-2"
+              >
+                {saving ? 'Guardando...' : <><Save size={18} /> Guardar Cambios</>}
+              </button>
+              {customSlug && (
+                <div className="text-center">
+                  <p className="text-xs text-gray-500 mb-1">Tu perfil está publicado en:</p>
+                  <a 
+                    href={`/p/${user.username}/${customSlug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-[#D97706] hover:underline font-mono"
+                  >
+                    terretahub.com/p/{user.username}/{customSlug}
+                  </a>
+                </div>
+              )}
+            </>
+          )}
         </div>
+
+        {/* Publish Modal */}
+        <PublishProfileModal
+          isOpen={isPublishModalOpen}
+          onClose={() => setIsPublishModalOpen(false)}
+          onPublish={async (extension: string) => {
+            // Primero guardar el perfil con la extensión
+            const profileData = {
+              user_id: user.id,
+              username: profile.username,
+              display_name: profile.displayName,
+              bio: profile.bio,
+              avatar: profile.avatar,
+              socials: profile.socials,
+              blocks: profile.blocks,
+              theme: profile.theme,
+              is_published: true,
+              custom_slug: extension
+            };
+
+            // Verificar si el slug ya existe
+            const { data: existingSlug } = await supabase
+              .from('link_bio_profiles')
+              .select('id')
+              .eq('custom_slug', extension)
+              .maybeSingle();
+
+            if (existingSlug) {
+              throw new Error('Esta extensión ya está en uso. Por favor, elige otra.');
+            }
+
+            // Guardar o actualizar
+            const { data: existing } = await supabase
+              .from('link_bio_profiles')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('username', user.username)
+              .maybeSingle();
+
+            if (existing) {
+              const { error: updateError } = await supabase
+                .from('link_bio_profiles')
+                .update(profileData)
+                .eq('user_id', user.id)
+                .eq('username', user.username);
+
+              if (updateError) throw updateError;
+            } else {
+              const { error: insertError } = await supabase
+                .from('link_bio_profiles')
+                .insert(profileData);
+
+              if (insertError) throw insertError;
+            }
+
+            setIsPublished(true);
+            setCustomSlug(extension);
+          }}
+          username={user.username}
+          currentExtension={customSlug || undefined}
+        />
       </div>
 
       {/* --- RIGHT COLUMN: PREVIEW --- */}

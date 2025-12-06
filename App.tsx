@@ -128,7 +128,7 @@ const AppContent: React.FC = () => {
           } 
         />
         <Route 
-          path="/p/:username" 
+          path="/p/:username/:extension?" 
           element={<PublicLinkBio />} 
         />
         <Route 

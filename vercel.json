@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/p/:username/:extension",
+      "destination": "/index.html"
+    },
+    {
       "source": "/p/:username",
       "destination": "/index.html"
     },

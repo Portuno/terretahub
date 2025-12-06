@@ -5,7 +5,7 @@ import { LinkBioProfile } from '../types';
 import { ProfileRenderer } from './ProfileEditor';
 
 export const PublicLinkBio: React.FC = () => {
-  const { username } = useParams<{ username: string }>();
+  const { username, extension } = useParams<{ username: string; extension?: string }>();
   const [profile, setProfile] = useState<LinkBioProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,67 +22,67 @@ export const PublicLinkBio: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        // Buscar el perfil de link-in-bio por username
-        const { data: linkBioProfile, error: linkBioError } = await supabase
-          .from('link_bio_profiles')
-          .select('*')
-          .eq('username', username.toLowerCase())
-          .single();
+        let linkBioProfile = null;
+        let linkBioError = null;
 
-        if (linkBioError) {
-          // Verificar si el error es porque no existe el perfil (PGRST116) o es otro error
-          if (linkBioError.code === 'PGRST116') {
-            // No existe el perfil de link-in-bio, intentar obtener el perfil básico
-            const { data: basicProfile, error: basicError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('username', username.toLowerCase())
-              .single();
+        // Si hay extensión, buscar por custom_slug
+        if (extension) {
+          const result = await supabase
+            .from('link_bio_profiles')
+            .select('*')
+            .eq('custom_slug', extension.toLowerCase())
+            .eq('username', username.toLowerCase())
+            .eq('is_published', true)
+            .single();
+          
+          linkBioProfile = result.data;
+          linkBioError = result.error;
+        } else {
+          // Si no hay extensión, buscar por username (perfil publicado)
+          const result = await supabase
+            .from('link_bio_profiles')
+            .select('*')
+            .eq('username', username.toLowerCase())
+            .eq('is_published', true)
+            .maybeSingle();
+          
+          linkBioProfile = result.data;
+          linkBioError = result.error;
+        }
 
-            if (basicError || !basicProfile) {
-              setError('Perfil no encontrado');
-              setLoading(false);
-              return;
-            }
+        if (linkBioError && linkBioError.code !== 'PGRST116') {
+          // Error diferente a "no encontrado"
+          console.error('Error al buscar perfil:', linkBioError);
+          setError('Error al cargar el perfil');
+          setLoading(false);
+          return;
+        }
 
-            // Crear un perfil básico desde el perfil de usuario
-            const defaultProfile: LinkBioProfile = {
-              username: basicProfile.username,
-              displayName: basicProfile.name,
-              bio: 'Explorador en Terreta Hub',
-              avatar: basicProfile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${basicProfile.username}`,
-              socials: {},
-              blocks: [
-                { 
-                  id: '1', 
-                  type: 'text', 
-                  content: `Bienvenido al perfil de ${basicProfile.name}.`, 
-                  isVisible: true 
-                }
-              ],
-              theme: {
-                id: 'terreta',
-                name: 'Terreta Original',
-                bgType: 'color',
-                bgColor: '#F9F6F0',
-                textColor: '#3E2723',
-                buttonStyle: 'solid',
-                buttonColor: '#3E2723',
-                buttonTextColor: '#FFFFFF',
-                font: 'serif'
-              }
-            };
+        if (!linkBioProfile) {
+          // No se encontró perfil publicado, intentar obtener perfil básico
+          const { data: basicProfile, error: basicError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('username', username.toLowerCase())
+            .single();
 
-            setProfile(defaultProfile);
-            setLoading(false);
-            return;
-          } else {
-            // Otro error
-            console.error('Error al buscar perfil:', linkBioError);
-            setError('Error al cargar el perfil');
+          if (basicError || !basicProfile) {
+            setError('Perfil no encontrado o no está publicado');
             setLoading(false);
             return;
           }
+
+          // Si hay extensión pero no se encontró perfil, el perfil no está publicado con esa extensión
+          if (extension) {
+            setError('Perfil no encontrado con esa extensión');
+            setLoading(false);
+            return;
+          }
+
+          // Si no hay extensión y no hay perfil publicado, mostrar mensaje
+          setError('Este perfil aún no está publicado');
+          setLoading(false);
+          return;
         }
 
         // Si encontramos el perfil de link-in-bio, convertir al formato esperado
