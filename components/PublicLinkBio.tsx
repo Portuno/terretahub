@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { LinkBioProfile } from '../types';
 import { ProfileRenderer } from './ProfileEditor';
@@ -7,6 +7,7 @@ import { NotFound404 } from './NotFound404';
 
 export const PublicLinkBio: React.FC = () => {
   const { extension } = useParams<{ extension: string }>();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<LinkBioProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -259,14 +260,45 @@ export const PublicLinkBio: React.FC = () => {
 
   return (
     <div 
-      className="w-full min-h-screen overflow-y-auto"
+      className="w-full min-h-screen overflow-y-auto relative"
       style={{ 
         background: profile.theme.bgType === 'gradient' ? profile.theme.bgColor : undefined,
         backgroundColor: profile.theme.bgType === 'color' ? profile.theme.bgColor : undefined,
       }}
     >
-      <div className="max-w-md mx-auto min-h-screen overflow-hidden">
-        <ProfileRenderer profile={profile} />
+      {/* Logo Button - Arriba a la izquierda */}
+      <div className="fixed top-6 left-6 z-20">
+        <button
+          onClick={() => navigate('/app')}
+          className="flex items-center gap-2.5 bg-white/90 backdrop-blur-sm px-4 py-2.5 rounded-lg hover:bg-white transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 group"
+        >
+          <div className="w-7 h-7 rounded-full bg-[#D97706] flex items-center justify-center text-white font-serif font-bold text-base group-hover:scale-105 transition-transform">
+            T
+          </div>
+          <span className="font-serif text-lg text-terreta-dark font-bold tracking-tight group-hover:text-[#D97706] transition-colors">
+            Terreta Hub
+          </span>
+        </button>
+      </div>
+
+      <div className="max-w-md mx-auto min-h-screen overflow-hidden flex flex-col">
+        <div className="flex-1">
+          <ProfileRenderer profile={profile} />
+        </div>
+        
+        {/* Footer */}
+        <div className="pb-6 pt-4 text-center">
+          <p className="text-xs opacity-70" style={{ color: profile.theme.textColor }}>
+            Perfil de miembro de{' '}
+            <button
+              onClick={() => navigate('/app')}
+              className="font-bold hover:underline transition-opacity hover:opacity-100"
+              style={{ color: profile.theme.textColor }}
+            >
+              Terreta Hub
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );
