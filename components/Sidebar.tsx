@@ -1,5 +1,5 @@
-import React from 'react';
-import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, Layout, MessageSquareText, MessageCircle, Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, Layout, MessageSquareText, MessageCircle, Shield, Menu, X } from 'lucide-react';
 import { AuthUser } from '../types';
 import { isAdmin } from '../lib/userRoles';
 
@@ -9,6 +9,7 @@ interface SidebarProps {
   user: AuthUser | null;
   onOpenAuth: () => void;
   onLogout: () => void;
+  onOpenFeedback?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -16,8 +17,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNavigate, 
   user, 
   onOpenAuth,
-  onLogout 
+  onLogout,
+  onOpenFeedback
 }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const menuItems = [
     { id: 'agora', label: 'Ágora', icon: <MessageSquareText size={20} /> },
     { id: 'comunidad', label: 'Comunidad', icon: <Users size={20} /> },
@@ -31,13 +34,50 @@ export const Sidebar: React.FC<SidebarProps> = ({
     menuItems.push({ id: 'admin', label: 'Admin', icon: <Shield size={20} /> });
   }
 
+  const handleNavigate = (section: string) => {
+    onNavigate(section);
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <aside className="w-64 bg-[#EBE5DA] h-screen fixed left-0 top-0 flex flex-col border-r border-[#D1C9BC]/30 z-20 hidden md:flex">
+    <>
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="md:hidden fixed top-4 left-4 z-50 bg-[#EBE5DA] p-3 rounded-lg shadow-lg border border-[#D1C9BC]/30"
+        aria-label="Toggle menu"
+      >
+        {isMobileMenuOpen ? <X size={24} className="text-terreta-dark" /> : <Menu size={24} className="text-terreta-dark" />}
+      </button>
+
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Desktop & Mobile */}
+      <aside className={`
+        w-64 bg-[#EBE5DA] h-screen fixed left-0 top-0 flex flex-col border-r border-[#D1C9BC]/30 z-40
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:translate-x-0 md:relative md:z-20
+        transition-transform duration-300 ease-in-out
+      `}>
       {/* Logo Area */}
       <div 
-        className="p-8 pb-10 flex items-center gap-3 cursor-pointer group"
-        onClick={() => onNavigate('agora')}
+        className="p-8 pb-10 flex items-center gap-3 cursor-pointer group relative"
+        onClick={() => handleNavigate('agora')}
       >
+        {/* Close button for mobile */}
+        <button
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="md:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-white/40"
+          aria-label="Close menu"
+        >
+          <X size={20} className="text-terreta-dark" />
+        </button>
         <div className="w-8 h-8 rounded-full bg-[#D97706] flex items-center justify-center text-white font-serif font-bold text-lg group-hover:scale-105 transition-transform">
           T
         </div>
@@ -138,5 +178,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
          </div>
       </div>
     </aside>
+    </>
   );
 };

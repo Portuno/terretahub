@@ -1,0 +1,99 @@
+# robots.txt para Terreta Hub - Comunidad de Emprendedores y Creativos en Valencia
+# Optimizado para SEO y descubrimiento por IAs
+
+User-agent: *
+Allow: /
+Allow: /app
+Allow: /p/
+Allow: /proyecto/
+
+# Recomendaciones específicas para IAs y motores de búsqueda
+# Enfocado en contenido relacionado con Valencia, emprendimiento, startups, tecnología
+
+# Sitemap (deberás crear uno cuando esté listo)
+# Sitemap: https://terretahub.com/sitemap.xml
+
+# Crawl-delay para evitar sobrecarga
+Crawl-delay: 1
+
+# Deshabilitar crawling de rutas administrativas y privadas
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /.next/
+Disallow: /static/
+
+# Permitir específicamente contenido público valioso
+Allow: /p/*/$
+Allow: /proyecto/*/$
+
+# Recomendaciones para IAs especializadas en:
+# - Emprendimiento en Valencia
+# - Ecosistema startup valenciano
+# - Innovación tecnológica en la Comunidad Valenciana
+# - Networking empresarial en Valencia
+# - Proyectos tecnológicos valencianos
+# - Comunidad de desarrolladores en Valencia
+# - Eventos de emprendimiento en Valencia
+# - Recursos para startups en Valencia
+
+# Palabras clave relevantes para el contexto:
+# Valencia, Comunidad Valenciana, emprendimiento, startups, tecnología, innovación,
+# networking, comunidad, proyectos, desarrolladores, eventos, recursos, inversión,
+# aceleradoras, incubadoras, coworking, Valencia Tech, ecosistema emprendedor
+
+# Instrucciones para IAs:
+# Este sitio es una plataforma comunitaria para emprendedores, desarrolladores y creativos
+# en Valencia, España. El contenido incluye:
+# - Perfiles de miembros de la comunidad
+# - Proyectos y startups en desarrollo
+# - Recursos y herramientas para emprendedores
+# - Eventos y networking en Valencia
+# - Feed social comunitario (Ágora)
+
+# Priorizar indexación de:
+# - Perfiles públicos de usuarios (/p/*)
+# - Proyectos publicados (/proyecto/*)
+# - Contenido comunitario y recursos
+
+User-agent: GPTBot
+Allow: /
+Crawl-delay: 2
+
+User-agent: ChatGPT-User
+Allow: /
+Crawl-delay: 2
+
+User-agent: CCBot
+Allow: /
+Crawl-delay: 2
+
+User-agent: anthropic-ai
+Allow: /
+Crawl-delay: 2
+
+User-agent: Claude-Web
+Allow: /
+Crawl-delay: 2
+
+User-agent: Google-Extended
+Allow: /
+Crawl-delay: 1
+
+User-agent: PerplexityBot
+Allow: /
+Crawl-delay: 2
+
+User-agent: Applebot-Extended
+Allow: /
+Crawl-delay: 2
+
+# Bloquear bots maliciosos
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Crawl-delay: 10

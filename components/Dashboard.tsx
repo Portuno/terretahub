@@ -325,8 +325,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
       <main className="flex-1 md:ml-64 flex flex-col min-h-screen transition-all duration-300">
         
         {/* Top Navbar */}
-        <header className="bg-white border-b border-gray-100 h-20 px-8 flex items-center justify-between sticky top-0 z-10">
-            <h2 className="font-serif text-2xl text-terreta-dark hidden md:block">
+        <header className="bg-white border-b border-gray-100 h-16 md:h-20 px-4 md:px-8 md:pl-8 pl-16 flex items-center justify-between sticky top-0 z-10">
+            <h2 className="font-serif text-lg md:text-2xl text-terreta-dark truncate">
                 {activeSection === 'agora' && 'Ágora Comunitario'}
                 {activeSection === 'comunidad' && 'Explorar Comunidad'}
                 {activeSection === 'proyectos' && (projectMode === 'create' ? 'Nuevo Proyecto' : 'Proyectos Destacados')}
@@ -348,7 +348,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
             </h2>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-6 ml-auto">
+            <div className="flex items-center gap-3 md:gap-6 ml-auto">
                 <div className="flex flex-col items-end mr-2 hidden sm:flex">
                     <span className="text-xs font-bold text-terreta-dark/40 uppercase tracking-wide">
                       {currentUser ? `Hola, ${currentUser.name}` : 'Hola, Turista'}
@@ -372,7 +372,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-4 md:pb-8">
           
           {activeSection === 'public_profile' && viewingProfileHandle ? (
              <PublicProfile handle={viewingProfileHandle} />

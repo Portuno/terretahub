@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Save, Layout, Type, Link as LinkIcon, Image as ImageIcon, 
-  Youtube, Music, Trash2, GripVertical, ChevronDown, ChevronUp,
+  Youtube, Music, Trash2, GripVertical, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
   Instagram, Twitter, Linkedin, Globe, Plus, Palette, BarChart3,
   Video, Star, Heart, Zap, CheckCircle, Upload, Camera, Smartphone, Monitor,
   Images
@@ -671,14 +671,31 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
 
   const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>, blockId: string) => {
     if (e.target.files) {
-      Array.from(e.target.files).forEach(file => {
+      const files = Array.from(e.target.files);
+      const currentBlock = profile.blocks.find(b => b.id === blockId);
+      const currentImageCount = currentBlock?.images?.length || 0;
+      const maxImages = 7;
+      const remainingSlots = maxImages - currentImageCount;
+      
+      if (remainingSlots <= 0) {
+        alert(`Máximo ${maxImages} imágenes permitidas por galería`);
+        return;
+      }
+      
+      const filesToProcess = files.slice(0, remainingSlots);
+      
+      filesToProcess.forEach(file => {
         const reader = new FileReader();
         reader.onloadend = () => {
           setProfile(prev => ({
             ...prev,
             blocks: prev.blocks.map(b => {
               if (b.id === blockId) {
-                return { ...b, images: [...(b.images || []), reader.result as string] };
+                const currentImages = b.images || [];
+                if (currentImages.length < maxImages) {
+                  return { ...b, images: [...currentImages, reader.result as string] };
+                }
+                return b;
               }
               return b;
             })
@@ -686,6 +703,10 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
         };
         reader.readAsDataURL(file as Blob);
       });
+      
+      if (files.length > remainingSlots) {
+        alert(`Solo se agregaron ${remainingSlots} imagen(es). Máximo ${maxImages} imágenes permitidas.`);
+      }
     }
   };
 
@@ -1414,6 +1435,246 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
   );
 };
 
+
+// --- IMAGE CAROUSEL COMPONENT ---
+interface ImageCarouselProps {
+  images: string[];
+}
+
+const ImageCarousel: React.FC<ImageCarouselProps> = ({ images }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [translateX, setTranslateX] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Limitar a máximo 7 imágenes
+  const limitedImages = images.slice(0, 7);
+  const imageCount = limitedImages.length;
+
+  // Si solo hay una imagen, mostrar sin carrusel
+  if (imageCount <= 1) {
+    return (
+      <div className="mb-4 w-full">
+        <img 
+          src={limitedImages[0]} 
+          className="w-full h-48 object-cover rounded-lg shadow-sm bg-black/5" 
+          alt="Gallery" 
+        />
+      </div>
+    );
+  }
+
+  // Calcular el índice real considerando el carrusel circular
+  const getRealIndex = (index: number) => {
+    if (index < 0) return imageCount - 1;
+    if (index >= imageCount) return 0;
+    return index;
+  };
+
+  // Obtener índices para mostrar (anterior, actual, siguiente)
+  const prevIndex = getRealIndex(currentIndex - 1);
+  const nextIndex = getRealIndex(currentIndex + 1);
+
+  // Mover al siguiente con animación suave
+  const goNext = () => {
+    setCurrentIndex((prev) => getRealIndex(prev + 1));
+  };
+
+  // Mover al anterior con animación suave
+  const goPrev = () => {
+    setCurrentIndex((prev) => getRealIndex(prev - 1));
+  };
+
+  // Manejar inicio del drag
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setStartX(e.clientX);
+    setTranslateX(0);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    setStartX(e.touches[0].clientX);
+    setTranslateX(0);
+  };
+
+  // Manejar fin del drag
+  const handleMouseUp = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    
+    const threshold = 50; // Píxeles mínimos para cambiar de imagen
+    if (translateX > threshold) {
+      goPrev();
+    } else if (translateX < -threshold) {
+      goNext();
+    }
+    setTranslateX(0);
+  };
+
+  const handleTouchEnd = () => {
+    handleMouseUp();
+  };
+
+  // Efecto para manejar eventos globales del mouse
+  useEffect(() => {
+    if (isDragging) {
+      const handleGlobalMouseMove = (e: MouseEvent) => {
+        if (carouselRef.current) {
+          const diff = e.clientX - startX;
+          setTranslateX(diff);
+        }
+      };
+
+      const handleGlobalMouseUp = () => {
+        handleMouseUp();
+      };
+
+      window.addEventListener('mousemove', handleGlobalMouseMove);
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+
+      return () => {
+        window.removeEventListener('mousemove', handleGlobalMouseMove);
+        window.removeEventListener('mouseup', handleGlobalMouseUp);
+      };
+    }
+  }, [isDragging, startX, translateX]);
+
+  // Manejar movimiento del touch
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const diff = e.touches[0].clientX - startX;
+    setTranslateX(diff);
+  };
+
+  return (
+    <div 
+      ref={containerRef}
+      className="mb-4 w-full relative"
+      style={{ 
+        paddingLeft: imageCount > 2 ? '12px' : '0',
+        paddingRight: imageCount > 2 ? '12px' : '0'
+      }}
+    >
+      <div
+        ref={carouselRef}
+        className="flex items-center gap-2 relative"
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          cursor: isDragging ? 'grabbing' : 'grab',
+          userSelect: 'none',
+        }}
+      >
+        {/* Imagen anterior (preview izquierda) - solo si hay más de 2 imágenes */}
+        {imageCount > 2 && (
+          <div 
+            className="flex-shrink-0 opacity-50 scale-90 transition-all duration-300 ease-out"
+            style={{
+              width: 'calc(33.333% - 5.33px)',
+              transform: `translateX(${translateX * 0.3}px)`,
+              transition: isDragging ? 'none' : 'all 0.3s ease-out',
+            }}
+          >
+            <img 
+              src={limitedImages[prevIndex]} 
+              className="w-full h-48 object-cover rounded-lg shadow-sm bg-black/5" 
+              alt={`Gallery ${prevIndex}`}
+              draggable={false}
+            />
+          </div>
+        )}
+
+        {/* Imagen actual (centro) */}
+        <div 
+          className="flex-shrink-0 transition-all duration-300 ease-out z-10"
+          style={{
+            width: imageCount > 2 ? 'calc(33.333% - 5.33px)' : '100%',
+            transform: `translateX(${translateX}px) scale(${isDragging ? 0.98 : 1})`,
+            transition: isDragging ? 'transform 0.1s ease-out' : 'all 0.3s ease-out',
+          }}
+        >
+          <img 
+            src={limitedImages[currentIndex]} 
+            className="w-full h-48 object-cover rounded-lg shadow-md bg-black/5" 
+            alt={`Gallery ${currentIndex}`}
+            draggable={false}
+          />
+        </div>
+
+        {/* Imagen siguiente (preview derecha) - solo si hay más de 2 imágenes */}
+        {imageCount > 2 && (
+          <div 
+            className="flex-shrink-0 opacity-50 scale-90 transition-all duration-300 ease-out"
+            style={{
+              width: 'calc(33.333% - 5.33px)',
+              transform: `translateX(${translateX * 0.3}px)`,
+              transition: isDragging ? 'none' : 'all 0.3s ease-out',
+            }}
+          >
+            <img 
+              src={limitedImages[nextIndex]} 
+              className="w-full h-48 object-cover rounded-lg shadow-sm bg-black/5" 
+              alt={`Gallery ${nextIndex}`}
+              draggable={false}
+            />
+          </div>
+        )}
+
+        {/* Botones de navegación (solo si hay más de 2 imágenes) */}
+        {imageCount > 2 && (
+          <>
+            <button
+              onClick={goPrev}
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg hover:bg-white transition-all hover:scale-110 active:scale-95"
+              aria-label="Imagen anterior"
+            >
+              <ChevronLeft 
+                size={20} 
+                className="text-gray-700"
+              />
+            </button>
+            <button
+              onClick={goNext}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg hover:bg-white transition-all hover:scale-110 active:scale-95"
+              aria-label="Siguiente imagen"
+            >
+              <ChevronRight 
+                size={20} 
+                className="text-gray-700"
+              />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Indicadores de posición (dots) */}
+      {imageCount > 1 && (
+        <div className="flex justify-center gap-2 mt-3">
+          {limitedImages.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentIndex(index)}
+              className={`transition-all duration-300 rounded-full ${
+                index === currentIndex 
+                  ? 'w-8 h-2 bg-[#D97706]' 
+                  : 'w-2 h-2 bg-gray-300 hover:bg-gray-400'
+              }`}
+              aria-label={`Ir a imagen ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // --- PREVIEW RENDERER COMPONENT ---
 // Separated specifically to render exactly what the public sees
