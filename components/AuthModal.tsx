@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Mail, Lock, ArrowRight } from 'lucide-react';
+import { X, User, Mail, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
 import { AuthUser } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -11,8 +11,10 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   
   // Form State
   const [name, setName] = useState('');
@@ -25,15 +27,42 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     if (!isOpen) {
       setLoading(false);
       setError('');
+      setSuccess('');
       setName('');
       setUsername('');
       setEmail('');
       setPassword('');
       setIsRegistering(false);
+      setIsForgotPassword(false);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (resetError) {
+        throw new Error(resetError.message || 'Error al enviar el email de recuperación.');
+      }
+
+      setSuccess('Se ha enviado un email con las instrucciones para recuperar tu contraseña. Revisa tu bandeja de entrada.');
+      setEmail('');
+    } catch (err: any) {
+      console.error('Error al recuperar contraseña:', err);
+      setError(err.message || 'Ocurrió un error. Intenta nuevamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,15 +215,64 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         <div className="p-8">
           <div className="text-center mb-6">
             <h2 className="font-serif text-3xl text-terreta-dark mb-2">
-              {isRegistering ? 'Únete a Terreta' : 'Bienvenido'}
+              {isForgotPassword ? 'Recuperar Contraseña' : isRegistering ? 'Únete a Terreta' : 'Bienvenido'}
             </h2>
             <p className="text-sm text-gray-500 font-sans">
-              {isRegistering ? 'Crea tu perfil y conecta con la comunidad.' : 'Ingresa para gestionar tu Link-in-bio.'}
+              {isForgotPassword 
+                ? 'Ingresa tu email y te enviaremos las instrucciones para recuperar tu contraseña.'
+                : isRegistering 
+                ? 'Crea tu perfil y conecta con la comunidad.' 
+                : 'Ingresa para gestionar tu Link-in-bio.'}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4 font-sans">
-            {error && <div className="bg-red-50 text-red-600 text-xs p-3 rounded-lg text-center">{error}</div>}
+          {isForgotPassword ? (
+            <form onSubmit={handleForgotPassword} className="space-y-4 font-sans">
+              {error && <div className="bg-red-50 text-red-600 text-xs p-3 rounded-lg text-center">{error}</div>}
+              {success && <div className="bg-green-50 text-green-700 text-xs p-3 rounded-lg text-center">{success}</div>}
+
+              <div className="relative group">
+                <Mail size={18} className="absolute left-3 top-3 text-gray-400 group-focus-within:text-[#D97706]" />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  required
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-[#D97706] outline-none text-sm transition-all"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-terreta-dark text-white font-bold py-3 rounded-lg hover:bg-[#2C1E1A] transition-all flex items-center justify-center gap-2 mt-2 shadow-md"
+              >
+                {loading ? 'Enviando...' : (
+                  <>
+                    Enviar Instrucciones
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setError('');
+                  setSuccess('');
+                  setEmail('');
+                }}
+                className="w-full text-sm text-[#D97706] font-bold hover:underline flex items-center justify-center gap-2 mt-2"
+              >
+                <ArrowLeft size={14} />
+                Volver al inicio de sesión
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4 font-sans">
+              {error && <div className="bg-red-50 text-red-600 text-xs p-3 rounded-lg text-center">{error}</div>}
 
             {isRegistering && (
               <>
@@ -247,6 +325,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
               />
             </div>
 
+            {!isRegistering && (
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotPassword(true);
+                    setError('');
+                    setPassword('');
+                  }}
+                  className="text-xs text-[#D97706] font-bold hover:underline"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
@@ -263,12 +357,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
 
           <div className="mt-6 text-center">
             <button
-              onClick={() => setIsRegistering(!isRegistering)}
+              onClick={() => {
+                setIsRegistering(!isRegistering);
+                setError('');
+              }}
               className="text-xs text-[#D97706] font-bold hover:underline uppercase tracking-wide"
             >
               {isRegistering ? '¿Ya tienes cuenta? Ingresa aquí' : '¿No tienes cuenta? Regístrate gratis'}
             </button>
           </div>
+          )}
         </div>
       </div>
     </div>
