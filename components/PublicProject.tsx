@@ -184,177 +184,180 @@ export const PublicProject: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5E8D8] relative">
-      {/* Hero Section - Reducido */}
-      {project.video_url ? (
-        <div className="relative w-full h-64 bg-gray-900">
-          <iframe
-            src={project.video_url}
-            className="w-full h-full"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-      ) : project.images && project.images.length > 0 ? (
-        <div className="relative w-full h-64 bg-gray-100 overflow-hidden">
-          <img
-            src={project.images[currentImageIndex]}
-            alt={project.name}
-            className="w-full h-full object-contain bg-gray-50"
-          />
-          {project.images.length > 1 && (
-            <>
-              <button
-                onClick={prevImage}
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm text-terreta-dark p-2 rounded-full hover:bg-white transition-colors shadow-lg"
+    <div className="min-h-screen bg-[#F5E8D8] relative py-8 px-4">
+      {/* Card Container */}
+      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
+        {/* Hero Section - Dentro de la Card, sin espacios laterales */}
+        {project.video_url ? (
+          <div className="relative w-full h-56 bg-gray-900">
+            <iframe
+              src={project.video_url}
+              className="w-full h-full"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        ) : project.images && project.images.length > 0 ? (
+          <div className="relative w-full h-56 bg-gray-50 overflow-hidden">
+            <img
+              src={project.images[currentImageIndex]}
+              alt={project.name}
+              className="w-full h-full object-contain"
+            />
+            {project.images.length > 1 && (
+              <>
+                <button
+                  onClick={prevImage}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm text-terreta-dark p-2 rounded-full hover:bg-white transition-colors shadow-lg"
+                >
+                  ←
+                </button>
+                <button
+                  onClick={nextImage}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm text-terreta-dark p-2 rounded-full hover:bg-white transition-colors shadow-lg"
+                >
+                  →
+                </button>
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+                  {project.images.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={`h-2 rounded-full transition-all ${
+                        idx === currentImageIndex ? 'bg-white w-8' : 'bg-white/50 w-2'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="relative w-full h-56 bg-gradient-to-br from-[#F5F0E6] to-[#EBE5DA] flex items-center justify-center">
+            <ImageIcon size={56} className="text-[#D97706]/30" />
+          </div>
+        )}
+
+        {/* Content - Dentro de la Card */}
+        <div className="px-6 py-6">
+          {/* Header Info */}
+          <div className="mb-5">
+            <div className="flex items-start justify-between mb-3 flex-wrap gap-3">
+              <div className="flex-1">
+                <h1 className="font-serif text-2xl md:text-3xl text-terreta-dark mb-1.5">{project.name}</h1>
+                {project.slogan && (
+                  <p className="text-base md:text-lg text-gray-600 italic">{project.slogan}</p>
+                )}
+              </div>
+              <span className="px-3 py-1 bg-[#A65D46] text-white text-xs font-bold rounded-full whitespace-nowrap">
+                {project.phase}
+              </span>
+            </div>
+
+            {/* Author & Date */}
+            <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-gray-200">
+              <div
+                className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => navigate(`/p/${project.author.username}`)}
               >
-                ←
-              </button>
-              <button
-                onClick={nextImage}
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm text-terreta-dark p-2 rounded-full hover:bg-white transition-colors shadow-lg"
-              >
-                →
-              </button>
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                {project.images.map((_, idx) => (
+                <img
+                  src={project.author.avatar}
+                  alt={project.author.name}
+                  className="w-9 h-9 rounded-full object-cover border-2 border-gray-200"
+                  onError={(e) => {
+                    // Si falla la carga, usar el fallback de dicebear
+                    const target = e.target as HTMLImageElement;
+                    target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${project.author.username}`;
+                  }}
+                />
+                <div>
+                  <p className="font-bold text-sm text-terreta-dark">{project.author.name}</p>
+                  <p className="text-xs text-gray-500">@{project.author.username}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                <Calendar size={14} />
+                <span>
+                  {new Date(project.created_at).toLocaleDateString('es-ES', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="mb-5">
+            <h2 className="font-serif text-lg md:text-xl text-terreta-dark mb-2.5">Sobre el Proyecto</h2>
+            <p className="text-gray-700 leading-relaxed text-sm md:text-base whitespace-pre-line">{project.description}</p>
+          </div>
+
+          {/* Categories & Technologies */}
+          <div className="grid md:grid-cols-2 gap-5 mb-5">
+            {project.categories.length > 0 && (
+              <div>
+                <h3 className="font-bold text-terreta-dark mb-2 uppercase text-xs tracking-wide">
+                  Categorías
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {project.categories.map((cat, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2.5 py-0.5 bg-gray-100 text-gray-700 text-xs rounded-full"
+                    >
+                      {cat}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {project.technologies.length > 0 && (
+              <div>
+                <h3 className="font-bold text-terreta-dark mb-2 uppercase text-xs tracking-wide">
+                  Tecnologías
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {project.technologies.map((tech, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full"
+                    >
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Gallery */}
+          {project.images && project.images.length > 1 && (
+            <div className="mb-5">
+              <h3 className="font-bold text-terreta-dark mb-2.5 uppercase text-xs tracking-wide">
+                Galería
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+                {project.images.map((img, idx) => (
                   <button
                     key={idx}
                     onClick={() => setCurrentImageIndex(idx)}
-                    className={`h-2 rounded-full transition-all ${
-                      idx === currentImageIndex ? 'bg-white w-8' : 'bg-white/50 w-2'
+                    className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${
+                      idx === currentImageIndex
+                        ? 'border-[#A65D46] ring-2 ring-[#A65D46]/20'
+                        : 'border-gray-200 hover:border-gray-300'
                     }`}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="relative w-full h-64 bg-gradient-to-br from-[#F5F0E6] to-[#EBE5DA] flex items-center justify-center">
-          <ImageIcon size={64} className="text-[#D97706]/30" />
-        </div>
-      )}
-
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Header Info */}
-        <div className="mb-6">
-          <div className="flex items-start justify-between mb-4 flex-wrap gap-4">
-            <div className="flex-1">
-              <h1 className="font-serif text-3xl md:text-4xl text-terreta-dark mb-2">{project.name}</h1>
-              {project.slogan && (
-                <p className="text-lg md:text-xl text-gray-600 italic">{project.slogan}</p>
-              )}
-            </div>
-            <span className="px-4 py-1.5 bg-[#A65D46] text-white text-sm font-bold rounded-full whitespace-nowrap">
-              {project.phase}
-            </span>
-          </div>
-
-          {/* Author & Date */}
-          <div className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-gray-300">
-            <div
-              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => navigate(`/p/${project.author.username}`)}
-            >
-              <img
-                src={project.author.avatar}
-                alt={project.author.name}
-                className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
-                onError={(e) => {
-                  // Si falla la carga, usar el fallback de dicebear
-                  const target = e.target as HTMLImageElement;
-                  target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${project.author.username}`;
-                }}
-              />
-              <div>
-                <p className="font-bold text-terreta-dark">{project.author.name}</p>
-                <p className="text-sm text-gray-500">@{project.author.username}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Calendar size={16} />
-              <span>
-                {new Date(project.created_at).toLocaleDateString('es-ES', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Description */}
-        <div className="mb-6">
-          <h2 className="font-serif text-xl md:text-2xl text-terreta-dark mb-3">Sobre el Proyecto</h2>
-          <p className="text-gray-700 leading-relaxed text-base md:text-lg whitespace-pre-line">{project.description}</p>
-        </div>
-
-        {/* Categories & Technologies */}
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
-          {project.categories.length > 0 && (
-            <div>
-              <h3 className="font-bold text-terreta-dark mb-2 uppercase text-sm tracking-wide">
-                Categorías
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {project.categories.map((cat, idx) => (
-                  <span
-                    key={idx}
-                    className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
                   >
-                    {cat}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {project.technologies.length > 0 && (
-            <div>
-              <h3 className="font-bold text-terreta-dark mb-2 uppercase text-sm tracking-wide">
-                Tecnologías
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {project.technologies.map((tech, idx) => (
-                  <span
-                    key={idx}
-                    className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full"
-                  >
-                    {tech}
-                  </span>
+                    <img src={img} alt={`${project.name} ${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
                 ))}
               </div>
             </div>
           )}
         </div>
-
-        {/* Gallery */}
-        {project.images && project.images.length > 1 && (
-          <div className="mb-6">
-            <h3 className="font-bold text-terreta-dark mb-3 uppercase text-sm tracking-wide">
-              Galería
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {project.images.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentImageIndex(idx)}
-                  className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${
-                    idx === currentImageIndex
-                      ? 'border-[#A65D46] ring-2 ring-[#A65D46]/20'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <img src={img} alt={`${project.name} ${idx + 1}`} className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Botón Volver - Abajo a la izquierda */}
