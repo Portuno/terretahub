@@ -85,37 +85,108 @@ export const PublicLinkBio: React.FC = () => {
           throw new Error('Cliente de Supabase no disponible');
         }
 
-        console.log('[PublicLinkBio] Supabase client available, executing query...');
+        // Verificar que las variables de entorno estén configuradas
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+          console.error('[PublicLinkBio] Supabase configuration missing', {
+            hasUrl: !!supabaseUrl,
+            hasKey: !!supabaseKey
+          });
+          throw new Error('Configuración de Supabase incompleta. Verifica las variables de entorno.');
+        }
+
+        console.log('[PublicLinkBio] Supabase client available, executing query...', {
+          urlConfigured: !!supabaseUrl,
+          keyConfigured: !!supabaseKey
+        });
         const queryStartTime = Date.now();
+        
+        // Crear AbortController para timeout de consultas individuales
+        const abortController = new AbortController();
+        const queryTimeout = setTimeout(() => {
+          console.warn('[PublicLinkBio] Individual query timeout (5s), aborting...');
+          abortController.abort();
+        }, 5000);
         
         // Primero intentar buscar por custom_slug, luego por username
         let data = null;
         let queryError = null;
 
-        // Intentar buscar por custom_slug primero
-        const { data: slugData, error: slugError } = await supabase
-          .from('link_bio_profiles')
-          .select('user_id, username, display_name, bio, avatar, socials, blocks, theme, updated_at, is_published')
-          .eq('custom_slug', customSlugLower)
-          .eq('is_published', true)
-          .maybeSingle();
-
-        if (slugData) {
-          data = slugData;
-        } else {
-          // Si no se encuentra por custom_slug, buscar por username
-          const { data: usernameData, error: usernameError } = await supabase
+        try {
+          // Intentar buscar por custom_slug primero
+          console.log('[PublicLinkBio] Querying by custom_slug:', customSlugLower);
+          const slugQueryStart = Date.now();
+          
+          const slugQuery = supabase
             .from('link_bio_profiles')
             .select('user_id, username, display_name, bio, avatar, socials, blocks, theme, updated_at, is_published')
-            .eq('username', customSlugLower)
+            .eq('custom_slug', customSlugLower)
             .eq('is_published', true)
             .maybeSingle();
+          
+          // Agregar timeout a la promesa
+          const slugQueryWithTimeout = Promise.race([
+            slugQuery,
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Query timeout: custom_slug')), 5000)
+            )
+          ]) as Promise<{ data: any; error: any }>;
+          
+          const { data: slugData, error: slugError } = await slugQueryWithTimeout;
+          const slugQueryDuration = Date.now() - slugQueryStart;
+          console.log('[PublicLinkBio] Slug query completed', {
+            duration: `${slugQueryDuration}ms`,
+            hasData: !!slugData,
+            hasError: !!slugError
+          });
 
-          if (usernameData) {
-            data = usernameData;
+          if (slugData) {
+            data = slugData;
+            clearTimeout(queryTimeout);
+          } else if (!slugError || slugError.code === 'PGRST116') {
+            // Si no se encuentra por custom_slug, buscar por username
+            console.log('[PublicLinkBio] Not found by slug, querying by username:', customSlugLower);
+            const usernameQueryStart = Date.now();
+            
+            const usernameQuery = supabase
+              .from('link_bio_profiles')
+              .select('user_id, username, display_name, bio, avatar, socials, blocks, theme, updated_at, is_published')
+              .eq('username', customSlugLower)
+              .eq('is_published', true)
+              .maybeSingle();
+            
+            // Agregar timeout a la promesa
+            const usernameQueryWithTimeout = Promise.race([
+              usernameQuery,
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Query timeout: username')), 5000)
+              )
+            ]) as Promise<{ data: any; error: any }>;
+            
+            const { data: usernameData, error: usernameError } = await usernameQueryWithTimeout;
+            const usernameQueryDuration = Date.now() - usernameQueryStart;
+            console.log('[PublicLinkBio] Username query completed', {
+              duration: `${usernameQueryDuration}ms`,
+              hasData: !!usernameData,
+              hasError: !!usernameError
+            });
+
+            if (usernameData) {
+              data = usernameData;
+            } else {
+              queryError = usernameError || slugError;
+            }
+            clearTimeout(queryTimeout);
           } else {
-            queryError = usernameError || slugError;
+            queryError = slugError;
+            clearTimeout(queryTimeout);
           }
+        } catch (queryErr: any) {
+          console.error('[PublicLinkBio] Query error caught:', queryErr);
+          queryError = queryErr;
+          clearTimeout(queryTimeout);
         }
         
         const queryDuration = Date.now() - queryStartTime;
@@ -141,6 +212,9 @@ export const PublicLinkBio: React.FC = () => {
           if (queryError.code === 'PGRST116') {
             console.warn('[PublicLinkBio] Profile not found');
             setError('Perfil no encontrado o no está publicado');
+          } else if (queryError.message?.includes('timeout') || queryError.message?.includes('Query timeout')) {
+            console.error('[PublicLinkBio] Query timeout error');
+            setError('La consulta tardó demasiado. Por favor, verifica tu conexión e intenta de nuevo.');
           } else {
             console.error('[PublicLinkBio] Unexpected error:', queryError);
             setError('Error al cargar el perfil: ' + (queryError.message || 'Error desconocido'));
