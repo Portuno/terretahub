@@ -180,6 +180,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
   const [customSlug, setCustomSlug] = useState<string | null>(null);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [showInCommunity, setShowInCommunity] = useState(true);
   const hasLoadedRef = useRef(false);
   const isLoadingRef = useRef(false);
   
@@ -338,6 +339,17 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
               .eq('id', user.id);
           }
           
+          // Cargar show_in_community desde profiles
+          const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('show_in_community')
+            .eq('id', user.id)
+            .single();
+          
+          if (userProfile) {
+            setShowInCommunity(userProfile.show_in_community !== false); // default true
+          }
+          
           console.log('[ProfileEditor] Profile loaded successfully');
         } else {
           console.log('[ProfileEditor] No profile found, using initial profile');
@@ -345,6 +357,17 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
           setProfile(getInitialProfile(user));
           setIsPublished(false);
           setCustomSlug(null);
+          
+          // Cargar show_in_community desde profiles
+          const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('show_in_community')
+            .eq('id', user.id)
+            .single();
+          
+          if (userProfile) {
+            setShowInCommunity(userProfile.show_in_community !== false); // default true
+          }
         }
       } catch (err) {
         console.error('[ProfileEditor] Exception caught:', err);
@@ -504,13 +527,19 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
           };
           setProfile(updatedProfile);
 
-          // También actualizar el avatar en la tabla profiles para que se muestre en el ágora
+          // También actualizar el avatar y show_in_community en la tabla profiles
+          const profileUpdate: any = {};
           if (data.avatar) {
-            await supabase
-              .from('profiles')
-              .update({ avatar: data.avatar })
-              .eq('id', user.id);
-            
+            profileUpdate.avatar = data.avatar;
+          }
+          profileUpdate.show_in_community = showInCommunity;
+          
+          await supabase
+            .from('profiles')
+            .update(profileUpdate)
+            .eq('id', user.id);
+          
+          if (data.avatar) {
             // Disparar evento para actualizar el usuario en Dashboard
             window.dispatchEvent(new CustomEvent('profileAvatarUpdated', { detail: { avatar: data.avatar } }));
           }
@@ -557,13 +586,19 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
           setIsPublished(data.is_published || false);
           setCustomSlug(data.custom_slug || null);
 
-          // También actualizar el avatar en la tabla profiles para que se muestre en el ágora
+          // También actualizar el avatar y show_in_community en la tabla profiles
+          const profileUpdate: any = {};
           if (data.avatar) {
-            await supabase
-              .from('profiles')
-              .update({ avatar: data.avatar })
-              .eq('id', user.id);
-            
+            profileUpdate.avatar = data.avatar;
+          }
+          profileUpdate.show_in_community = showInCommunity;
+          
+          await supabase
+            .from('profiles')
+            .update(profileUpdate)
+            .eq('id', user.id);
+          
+          if (data.avatar) {
             // Disparar evento para actualizar el usuario en Dashboard
             window.dispatchEvent(new CustomEvent('profileAvatarUpdated', { detail: { avatar: data.avatar } }));
           }
@@ -830,6 +865,31 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                         onChange={e => setProfile({...profile, socials: {...profile.socials, website: e.target.value}})}
                       />
                    </div>
+                </div>
+              </section>
+
+              {/* Community Visibility Section */}
+              <section className="space-y-4">
+                <h3 className="font-serif text-xl text-terreta-dark">Visibilidad</h3>
+                <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="font-bold text-sm text-terreta-dark mb-1">Aparecer en Comunidad</p>
+                      <p className="text-xs text-gray-500">Permite que otros usuarios te encuentren en la sección de Comunidad</p>
+                    </div>
+                    <button
+                      onClick={() => setShowInCommunity(!showInCommunity)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#D97706] focus:ring-offset-2 ${
+                        showInCommunity ? 'bg-[#D97706]' : 'bg-gray-300'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          showInCommunity ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
               </section>
 

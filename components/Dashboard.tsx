@@ -19,10 +19,11 @@ import { isAdmin } from '../lib/userRoles';
 // Función para cargar usuarios reales desde Supabase
 const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
   try {
-    // Cargar todos los perfiles
+    // Cargar solo perfiles que quieren aparecer en la comunidad
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, name, username, avatar, role')
+      .eq('show_in_community', true)
       .order('created_at', { ascending: false });
 
     if (profilesError) {

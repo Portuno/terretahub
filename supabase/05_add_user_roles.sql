@@ -123,7 +123,7 @@ CREATE POLICY "Admins can update contact messages"
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, name, username, email, avatar, role)
+  INSERT INTO public.profiles (id, name, username, email, avatar, role, show_in_community)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'name', 'Usuario'),
@@ -133,7 +133,8 @@ BEGIN
       NEW.raw_user_meta_data->>'avatar',
       'https://api.dicebear.com/7.x/avataaars/svg?seed=' || COALESCE(NEW.raw_user_meta_data->>'username', 'user')
     ),
-    'normal' -- Todos los usuarios nuevos tienen rol 'normal' por defecto
+    'normal', -- Todos los usuarios nuevos tienen rol 'normal' por defecto
+    true -- Por defecto, los usuarios aparecen en la comunidad
   );
   RETURN NEW;
 END;
