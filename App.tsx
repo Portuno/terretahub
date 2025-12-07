@@ -69,6 +69,7 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     let sessionChecked = false;
+    let isCheckingSession = false;
 
     // Timeout de seguridad: si después de 10 segundos no se ha verificado la sesión, continuar
     const safetyTimeout = setTimeout(() => {
@@ -76,10 +77,18 @@ const AppContent: React.FC = () => {
         console.warn('[App] Safety timeout: forcing session check to complete');
         setIsLoadingSession(false);
         sessionChecked = true;
+        isCheckingSession = false;
       }
     }, 10000);
 
     const checkSession = async () => {
+      if (isCheckingSession) {
+        console.log('[App] checkSession already in progress, skipping');
+        return;
+      }
+      
+      isCheckingSession = true;
+      
       try {
         console.log('[App] Checking session...');
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -90,6 +99,7 @@ const AppContent: React.FC = () => {
             setIsLoadingSession(false);
             setUser(null);
             sessionChecked = true;
+            isCheckingSession = false;
           }
           return;
         }
@@ -101,6 +111,7 @@ const AppContent: React.FC = () => {
             setUser(loadedUser);
             setIsLoadingSession(false);
             sessionChecked = true;
+            isCheckingSession = false;
             console.log('[App] Session restored', { hasUser: !!loadedUser });
           }
         } else {
@@ -109,6 +120,7 @@ const AppContent: React.FC = () => {
             setUser(null);
             setIsLoadingSession(false);
             sessionChecked = true;
+            isCheckingSession = false;
           }
         }
       } catch (err) {
@@ -117,6 +129,7 @@ const AppContent: React.FC = () => {
           setIsLoadingSession(false);
           setUser(null);
           sessionChecked = true;
+          isCheckingSession = false;
         }
       }
     };
@@ -125,38 +138,46 @@ const AppContent: React.FC = () => {
 
     // Escuchar cambios en la autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[App] Auth state changed', { event, hasSession: !!session, sessionChecked });
+      console.log('[App] Auth state changed', { event, hasSession: !!session, sessionChecked, isCheckingSession });
+      
+      // Ignorar eventos durante la inicialización - checkSession ya los maneja
+      if (!sessionChecked && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+        console.log('[App] Ignoring', event, 'event during initial session check');
+        return;
+      }
       
       try {
         if (event === 'SIGNED_OUT' || !session) {
           console.log('[App] User signed out');
           if (isMounted) {
             setUser(null);
-            // Si ya se verificó la sesión inicial, no cambiar isLoadingSession
-            if (!sessionChecked) {
-              setIsLoadingSession(false);
-            }
+            setIsLoadingSession(false);
+            sessionChecked = true;
           }
-        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          if (session?.user) {
-            console.log('[App] User signed in or token refreshed, loading profile...', { userId: session.user.id });
+        } else if (event === 'SIGNED_IN') {
+          // Solo manejar SIGNED_IN si ya se completó la verificación inicial
+          if (session?.user && sessionChecked) {
+            console.log('[App] User signed in after initial check, loading profile...', { userId: session.user.id });
             const loadedUser = await loadUserProfile(session.user.id);
             if (isMounted) {
               setUser(loadedUser);
-              // Asegurar que isLoadingSession esté en false si aún está en true
               setIsLoadingSession(false);
               console.log('[App] User profile loaded', { hasUser: !!loadedUser });
             }
           }
-        } else if (event === 'INITIAL_SESSION') {
-          // Este evento se dispara cuando se restaura la sesión desde localStorage
-          // No hacer nada aquí, checkSession ya lo maneja
-          console.log('[App] Initial session event (already handled by checkSession)');
+        } else if (event === 'TOKEN_REFRESHED') {
+          // Token refresh no requiere recargar el perfil, solo actualizar si es necesario
+          console.log('[App] Token refreshed');
+          if (isMounted && !sessionChecked) {
+            setIsLoadingSession(false);
+            sessionChecked = true;
+          }
         }
       } catch (err) {
         console.error('[App] Error en onAuthStateChange:', err);
         if (isMounted && !sessionChecked) {
           setIsLoadingSession(false);
+          sessionChecked = true;
         }
       }
     });
