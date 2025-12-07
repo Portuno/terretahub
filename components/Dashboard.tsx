@@ -12,60 +12,83 @@ import { PublicProfile } from './PublicProfile';
 import { AdminProjectsPanel } from './AdminProjectsPanel';
 import { ProjectsGallery } from './ProjectsGallery';
 import { Toast } from './Toast';
+import { Notifications } from './Notifications';
 import { supabase } from '../lib/supabase';
 import { isAdmin } from '../lib/userRoles';
 
-// Mock Data
-const MOCK_USERS: UserProfile[] = [
-  {
-    id: '1',
-    name: 'Lucía Valero',
-    role: 'ARQUITECTA',
-    handle: '@lucia_arch',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lucia',
-    tags: ['Diseño', 'Sostenibilidad']
-  },
-  {
-    id: '2',
-    name: 'Marc Soler',
-    role: 'DESARROLLADOR',
-    handle: '@marcsoler',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marc',
-    tags: ['React', 'NodeJS', 'Web3']
-  },
-  {
-    id: '3',
-    name: 'Elena Giner',
-    role: 'ARTISTA DIGITAL',
-    handle: '@elenaart',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elena',
-    tags: ['3D', 'NFT', 'Ilustración']
-  },
-  {
-    id: '4',
-    name: 'Pablo Mir',
-    role: 'GASTRONOMÍA',
-    handle: '@chefpablo',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Pablo',
-    tags: ['Chef', 'Innovación']
-  },
-  {
-    id: '5',
-    name: 'Sofía Roig',
-    role: 'MARKETING',
-    handle: '@sofiaroig',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sofia',
-    tags: ['Growth', 'Ads']
-  },
-  {
-    id: '6',
-    name: 'Javi Moltó',
-    role: 'VIDEO',
-    handle: '@javimolto',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Javi',
-    tags: ['Edición', 'Dirección']
+// Función para cargar usuarios reales desde Supabase
+const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
+  try {
+    // Cargar todos los perfiles
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, name, username, avatar, role')
+      .order('created_at', { ascending: false });
+
+    if (profilesError) {
+      console.error('Error al cargar perfiles:', profilesError);
+      return [];
+    }
+
+    if (!profiles || profiles.length === 0) {
+      return [];
+    }
+
+    // Para cada perfil, obtener sus tags desde sus proyectos
+    const usersWithTags = await Promise.all(
+      profiles.map(async (profile) => {
+        // Obtener proyectos del usuario para extraer tags
+        const { data: projects } = await supabase
+          .from('projects')
+          .select('categories, technologies')
+          .eq('author_id', profile.id);
+
+        // Extraer tags únicos de categorías y tecnologías
+        const tagsSet = new Set<string>();
+        if (projects) {
+          projects.forEach((project) => {
+            if (project.categories) {
+              project.categories.forEach((tag: string) => tagsSet.add(tag));
+            }
+            if (project.technologies) {
+              project.technologies.forEach((tag: string) => tagsSet.add(tag));
+            }
+          });
+        }
+        const tags = Array.from(tagsSet).slice(0, 5); // Limitar a 5 tags
+
+        // Obtener avatar actualizado de link_bio_profiles si existe
+        let finalAvatar = profile.avatar;
+        const { data: linkBioProfile } = await supabase
+          .from('link_bio_profiles')
+          .select('avatar')
+          .eq('user_id', profile.id)
+          .maybeSingle();
+
+        if (linkBioProfile?.avatar) {
+          finalAvatar = linkBioProfile.avatar;
+        }
+
+        // Formatear role para mostrar
+        const displayRole = profile.role === 'admin' ? 'ADMIN' : 'MIEMBRO';
+
+        return {
+          id: profile.id,
+          name: profile.name,
+          role: displayRole,
+          handle: `@${profile.username}`,
+          avatar: finalAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`,
+          tags: tags.length > 0 ? tags : ['Terreta Hub']
+        };
+      })
+    );
+
+    return usersWithTags;
+  } catch (error) {
+    console.error('Error al cargar usuarios:', error);
+    return [];
   }
-];
+};
 
 interface DashboardProps {
   user: AuthUser | null;
@@ -81,6 +104,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
   
   // Public Profile State
   const [viewingProfileHandle, setViewingProfileHandle] = useState<string | null>(null);
+  
+  // Community Users State
+  const [communityUsers, setCommunityUsers] = useState<UserProfile[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   
   // Actualizar usuario cuando cambia el prop o cuando se actualiza el perfil
   useEffect(() => {
@@ -140,9 +167,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
   // Toast State
   const [showProjectToast, setShowProjectToast] = useState(false);
 
-  const filteredUsers = MOCK_USERS.filter(user => 
+  // Cargar usuarios de la comunidad cuando se accede a la sección
+  useEffect(() => {
+    if (activeSection === 'comunidad') {
+      const loadUsers = async () => {
+        setLoadingUsers(true);
+        const users = await loadUsersFromSupabase();
+        setCommunityUsers(users);
+        setLoadingUsers(false);
+      };
+      loadUsers();
+    }
+  }, [activeSection]);
+
+  const filteredUsers = communityUsers.filter(user => 
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchQuery.toLowerCase())
+    user.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.handle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   );
   
   const handleProjectSave = async (project: Project) => {
@@ -300,10 +342,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
                 </div>
                 
                 {currentUser ? (
-                   <button className="relative text-terreta-dark/60 hover:text-terreta-dark transition-colors">
-                      <Bell size={20} />
-                      <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                  </button>
+                  <Notifications userId={currentUser.id} />
                 ) : null}
 
                 <div 
@@ -319,7 +358,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
         <div className="flex-1 overflow-y-auto">
           
           {activeSection === 'public_profile' && viewingProfileHandle ? (
-             <PublicProfile handle={viewingProfileHandle} mockUsers={MOCK_USERS} />
+             <PublicProfile handle={viewingProfileHandle} />
           ) : activeSection === 'perfil' && currentUser ? (
             <ProfileEditor user={currentUser} />
           ) : activeSection === 'perfil' && !user ? (
@@ -368,24 +407,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
                       </div>
                       <input 
                           type="text"
-                          placeholder="Buscar talento por nombre, rol o usuario..."
+                          placeholder="Buscar talento por nombre, rol, usuario o tags..."
                           className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none transition-all bg-white shadow-sm hover:shadow-md text-terreta-dark font-sans placeholder-gray-400"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                       />
                   </div>
 
-                  {/* Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                      {filteredUsers.map((user) => (
-                          <UserCard key={user.id} user={user} onViewProfile={handleViewProfile} />
-                      ))}
-                  </div>
-                  
-                  {filteredUsers.length === 0 && (
-                      <div className="text-center py-20 opacity-50">
-                          <p>No se encontraron resultados para "{searchQuery}"</p>
+                  {/* Loading State */}
+                  {loadingUsers ? (
+                    <div className="text-center py-20">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#D97706]"></div>
+                      <p className="mt-4 text-gray-500">Cargando comunidad...</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                          {filteredUsers.map((user) => (
+                              <UserCard key={user.id} user={user} onViewProfile={handleViewProfile} />
+                          ))}
                       </div>
+                      
+                      {filteredUsers.length === 0 && !loadingUsers && (
+                          <div className="text-center py-20 opacity-50">
+                              {searchQuery ? (
+                                <p>No se encontraron resultados para "{searchQuery}"</p>
+                              ) : (
+                                <p>No hay usuarios en la comunidad aún</p>
+                              )}
+                          </div>
+                      )}
+                    </>
                   )}
               </div>
             </div>

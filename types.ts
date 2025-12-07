@@ -129,3 +129,19 @@ export interface Project {
   status: ProjectStatus;
   createdAt: string;
 }
+
+// --- NOTIFICATIONS TYPES ---
+
+export type NotificationType = 'comment' | 'project_approved' | 'project_rejected';
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  related_id: string | null;
+  related_type: string | null;
+  is_read: boolean;
+  created_at: string;
+}
