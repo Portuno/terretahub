@@ -16,14 +16,29 @@ const AppContent: React.FC = () => {
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const navigate = useNavigate();
 
-  // Función helper para cargar el perfil del usuario
+  // Función helper para cargar el perfil del usuario (con timeout)
   const loadUserProfile = async (userId: string): Promise<AuthUser | null> => {
     try {
-      const { data: profile, error: profileError } = await supabase
+      console.log('[App] Loading profile for user:', userId);
+      const queryStartTime = Date.now();
+      
+      // Agregar timeout a la consulta
+      const profileQuery = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
+      
+      const profileQueryWithTimeout = Promise.race([
+        profileQuery,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Profile query timeout')), 5000)
+        )
+      ]) as Promise<{ data: any; error: any }>;
+      
+      const { data: profile, error: profileError } = await profileQueryWithTimeout;
+      const queryDuration = Date.now() - queryStartTime;
+      console.log('[App] Profile query completed', { duration: `${queryDuration}ms`, hasError: !!profileError });
 
       if (profileError) {
         console.error('[App] Error al cargar perfil:', profileError);
@@ -41,8 +56,11 @@ const AppContent: React.FC = () => {
         };
       }
       return null;
-    } catch (err) {
+    } catch (err: any) {
       console.error('[App] Error en loadUserProfile:', err);
+      if (err.message?.includes('timeout')) {
+        console.error('[App] Profile query timed out after 5 seconds');
+      }
       return null;
     }
   };
@@ -50,6 +68,16 @@ const AppContent: React.FC = () => {
   // Check for session persistence on mount
   useEffect(() => {
     let isMounted = true;
+    let sessionChecked = false;
+
+    // Timeout de seguridad: si después de 10 segundos no se ha verificado la sesión, continuar
+    const safetyTimeout = setTimeout(() => {
+      if (isMounted && !sessionChecked) {
+        console.warn('[App] Safety timeout: forcing session check to complete');
+        setIsLoadingSession(false);
+        sessionChecked = true;
+      }
+    }, 10000);
 
     const checkSession = async () => {
       try {
@@ -61,6 +89,7 @@ const AppContent: React.FC = () => {
           if (isMounted) {
             setIsLoadingSession(false);
             setUser(null);
+            sessionChecked = true;
           }
           return;
         }
@@ -71,6 +100,7 @@ const AppContent: React.FC = () => {
           if (isMounted) {
             setUser(loadedUser);
             setIsLoadingSession(false);
+            sessionChecked = true;
             console.log('[App] Session restored', { hasUser: !!loadedUser });
           }
         } else {
@@ -78,6 +108,7 @@ const AppContent: React.FC = () => {
           if (isMounted) {
             setUser(null);
             setIsLoadingSession(false);
+            sessionChecked = true;
           }
         }
       } catch (err) {
@@ -85,6 +116,7 @@ const AppContent: React.FC = () => {
         if (isMounted) {
           setIsLoadingSession(false);
           setUser(null);
+          sessionChecked = true;
         }
       }
     };
@@ -93,27 +125,45 @@ const AppContent: React.FC = () => {
 
     // Escuchar cambios en la autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[App] Auth state changed', { event, hasSession: !!session });
+      console.log('[App] Auth state changed', { event, hasSession: !!session, sessionChecked });
       
       try {
         if (event === 'SIGNED_OUT' || !session) {
           console.log('[App] User signed out');
-          setUser(null);
+          if (isMounted) {
+            setUser(null);
+            // Si ya se verificó la sesión inicial, no cambiar isLoadingSession
+            if (!sessionChecked) {
+              setIsLoadingSession(false);
+            }
+          }
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session?.user) {
             console.log('[App] User signed in or token refreshed, loading profile...', { userId: session.user.id });
             const loadedUser = await loadUserProfile(session.user.id);
-            setUser(loadedUser);
-            console.log('[App] User profile loaded', { hasUser: !!loadedUser });
+            if (isMounted) {
+              setUser(loadedUser);
+              // Asegurar que isLoadingSession esté en false si aún está en true
+              setIsLoadingSession(false);
+              console.log('[App] User profile loaded', { hasUser: !!loadedUser });
+            }
           }
+        } else if (event === 'INITIAL_SESSION') {
+          // Este evento se dispara cuando se restaura la sesión desde localStorage
+          // No hacer nada aquí, checkSession ya lo maneja
+          console.log('[App] Initial session event (already handled by checkSession)');
         }
       } catch (err) {
         console.error('[App] Error en onAuthStateChange:', err);
+        if (isMounted && !sessionChecked) {
+          setIsLoadingSession(false);
+        }
       }
     });
 
     return () => {
       isMounted = false;
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
   }, []);
