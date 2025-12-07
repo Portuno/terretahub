@@ -11,11 +11,14 @@ export const PublicLinkBio: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const lastExtensionRef = useRef<string | null>(null);
   const isLoadingRef = useRef(false);
-  const lastUpdatedAtRef = useRef<string | null>(null);
-  const queryAbortControllerRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    console.log('[PublicLinkBio] useEffect triggered', { extension, lastExtension: lastExtensionRef.current, isLoading: isLoadingRef.current });
+    console.log('[PublicLinkBio] useEffect triggered', { 
+      extension, 
+      lastExtension: lastExtensionRef.current,
+      isLoading: isLoadingRef.current 
+    });
     
     const fetchProfile = async () => {
       console.log('[PublicLinkBio] fetchProfile started', { extension });
@@ -27,160 +30,102 @@ export const PublicLinkBio: React.FC = () => {
         return;
       }
 
-      // Limpiar cualquier estado anterior
-      if (queryAbortControllerRef.current) {
-        queryAbortControllerRef.current = null;
+      // Prevenir múltiples cargas simultáneas
+      if (isLoadingRef.current && lastExtensionRef.current === extension) {
+        console.warn('[PublicLinkBio] Already loading this extension, skipping');
+        return;
       }
 
-      // Resetear estado de carga si estaba bloqueado
-      if (isLoadingRef.current) {
-        console.warn('[PublicLinkBio] Resetting stuck loading state');
-        isLoadingRef.current = false;
-      }
-
-      // Resetear refs al cambiar de extensión
+      // Resetear si cambió la extensión
       if (lastExtensionRef.current !== extension) {
-        console.log('[PublicLinkBio] Extension changed, resetting refs', { 
+        console.log('[PublicLinkBio] Extension changed, resetting', { 
           old: lastExtensionRef.current, 
           new: extension 
         });
         lastExtensionRef.current = null;
-        lastUpdatedAtRef.current = null;
-        // Limpiar estado anterior
         setProfile(null);
         setError(null);
       }
 
       lastExtensionRef.current = extension;
       isLoadingRef.current = true;
+      setLoading(true);
+      setError(null);
 
-      // Timeout de seguridad (20 segundos - más generoso para dar tiempo a la query)
-      const timeoutId = setTimeout(() => {
+      // Limpiar timeout anterior si existe
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
+      // Timeout de seguridad (15 segundos)
+      timeoutRef.current = setTimeout(() => {
         if (isLoadingRef.current) {
-          console.error('[PublicLinkBio] Timeout: Loading took too long');
-          console.error('[PublicLinkBio] This might indicate a network or Supabase connection issue');
+          console.error('[PublicLinkBio] Timeout: Loading took more than 15 seconds');
+          console.error('[PublicLinkBio] This suggests a network or Supabase connection issue');
           setError('Tiempo de espera agotado. Por favor, recarga la página.');
           setLoading(false);
           isLoadingRef.current = false;
         }
-      }, 20000);
+      }, 15000);
 
       try {
-        console.log('[PublicLinkBio] Setting loading to true');
-        setLoading(true);
-        setError(null);
-
         const customSlugLower = extension.toLowerCase();
-        console.log('[PublicLinkBio] Querying Supabase for extension:', customSlugLower);
-        
-        // Verificar que el cliente de Supabase esté disponible
-        if (!supabase) {
-          console.error('[PublicLinkBio] Supabase client is not available');
-          setError('Error de configuración: Cliente de Supabase no disponible');
-          setLoading(false);
-          isLoadingRef.current = false;
-          clearTimeout(timeoutId);
-          return;
-        }
-        
-        console.log('[PublicLinkBio] Supabase client check:', {
-          hasClient: !!supabase,
-          url: import.meta.env.VITE_SUPABASE_URL ? 'present' : 'missing',
-          key: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'present' : 'missing',
-          urlPreview: import.meta.env.VITE_SUPABASE_URL ? import.meta.env.VITE_SUPABASE_URL.substring(0, 30) + '...' : 'missing'
+        console.log('[PublicLinkBio] Querying Supabase', { 
+          extension: customSlugLower,
+          timestamp: new Date().toISOString()
         });
-
-        // Verificar conectividad básica antes de la query principal
-        console.log('[PublicLinkBio] Testing basic Supabase connection...');
-        try {
-          const testResult = await Promise.race([
-            supabase.from('link_bio_profiles').select('id').limit(1),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Connection test timeout')), 5000))
-          ]) as any;
-          
-          console.log('[PublicLinkBio] Connection test result:', {
-            hasError: !!testResult?.error,
-            errorCode: testResult?.error?.code,
-            canConnect: !testResult?.error || testResult.error.code === 'PGRST116'
-          });
-        } catch (testErr: any) {
-          console.error('[PublicLinkBio] Connection test failed:', testErr);
-          setError('No se pudo conectar con Supabase. Verifica tu conexión a internet.');
-          setLoading(false);
-          isLoadingRef.current = false;
-          clearTimeout(timeoutId);
-          return;
+        
+        // Verificar cliente de Supabase
+        if (!supabase) {
+          throw new Error('Cliente de Supabase no disponible');
         }
 
-        // Query simple y directa con timeout explícito
-        console.log('[PublicLinkBio] Executing query...');
+        console.log('[PublicLinkBio] Supabase client available, executing query...');
         const queryStartTime = Date.now();
         
-        let linkBioProfile = null;
-        let linkBioError = null;
+        // Query DIRECTA sin Promise.race ni test de conectividad
+        const { data, error: queryError } = await supabase
+          .from('link_bio_profiles')
+          .select('username, display_name, bio, avatar, socials, blocks, theme, updated_at, is_published')
+          .eq('custom_slug', customSlugLower)
+          .eq('is_published', true)
+          .maybeSingle();
         
-        try {
-          // Crear una promesa con timeout de 10 segundos
-          const queryPromise = supabase
-            .from('link_bio_profiles')
-            .select('username, display_name, bio, avatar, socials, blocks, theme, updated_at, is_published')
-            .eq('custom_slug', customSlugLower)
-            .eq('is_published', true)
-            .maybeSingle();
-          
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000);
-          });
-          
-          console.log('[PublicLinkBio] Waiting for query response...');
-          const result = await Promise.race([queryPromise, timeoutPromise]) as any;
-          
-          linkBioProfile = result?.data;
-          linkBioError = result?.error;
-          
-          const queryDuration = Date.now() - queryStartTime;
-          console.log('[PublicLinkBio] Query completed', {
-            duration: `${queryDuration}ms`,
-            hasData: !!linkBioProfile,
-            hasError: !!linkBioError,
-            errorCode: linkBioError?.code,
-            errorMessage: linkBioError?.message
-          });
-        } catch (queryErr: any) {
-          const queryDuration = Date.now() - queryStartTime;
-          console.error('[PublicLinkBio] Query failed:', queryErr);
-          console.error('[PublicLinkBio] Query duration before failure:', `${queryDuration}ms`);
-          
-          linkBioError = { 
-            code: 'QUERY_TIMEOUT', 
-            message: queryErr.message || 'La consulta tardó demasiado tiempo',
-            details: queryErr.stack
-          };
-          linkBioProfile = null;
-        }
-
-        clearTimeout(timeoutId);
-
-        console.log('[PublicLinkBio] Supabase response', { 
-          hasData: !!linkBioProfile, 
-          error: linkBioError,
-          errorCode: linkBioError?.code,
-          errorMessage: linkBioError?.message,
-          errorDetails: linkBioError?.details,
-          errorHint: linkBioError?.hint
+        const queryDuration = Date.now() - queryStartTime;
+        console.log('[PublicLinkBio] Query completed', {
+          duration: `${queryDuration}ms`,
+          hasData: !!data,
+          hasError: !!queryError,
+          errorCode: queryError?.code,
+          errorMessage: queryError?.message,
+          timestamp: new Date().toISOString()
         });
 
-        if (linkBioError && linkBioError.code !== 'PGRST116') {
-          // Error diferente a "no encontrado"
-          console.error('[PublicLinkBio] Error al buscar perfil:', linkBioError);
-          setError('Error al cargar el perfil: ' + (linkBioError.message || 'Error desconocido'));
+        // Limpiar timeout
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+
+        if (queryError) {
+          console.error('[PublicLinkBio] Supabase error:', queryError);
+          
+          // PGRST116 = "no rows returned" - esto es normal si no existe
+          if (queryError.code === 'PGRST116') {
+            console.warn('[PublicLinkBio] Profile not found');
+            setError('Perfil no encontrado o no está publicado');
+          } else {
+            console.error('[PublicLinkBio] Unexpected error:', queryError);
+            setError('Error al cargar el perfil: ' + (queryError.message || 'Error desconocido'));
+          }
           setLoading(false);
           isLoadingRef.current = false;
           return;
         }
 
-        if (!linkBioProfile) {
-          console.warn('[PublicLinkBio] Profile not found or not published');
+        if (!data) {
+          console.warn('[PublicLinkBio] No profile data returned');
           setError('Perfil no encontrado o no está publicado');
           setLoading(false);
           isLoadingRef.current = false;
@@ -188,25 +133,21 @@ export const PublicLinkBio: React.FC = () => {
         }
 
         console.log('[PublicLinkBio] Profile found', { 
-          username: linkBioProfile.username,
-          displayName: linkBioProfile.display_name,
-          updatedAt: linkBioProfile.updated_at
+          username: data.username,
+          displayName: data.display_name,
+          updatedAt: data.updated_at,
+          isPublished: data.is_published
         });
 
-        // Guardar el updated_at para futuras comparaciones
-        if (linkBioProfile.updated_at) {
-          lastUpdatedAtRef.current = linkBioProfile.updated_at;
-        }
-
-        // Si encontramos el perfil de link-in-bio, convertir al formato esperado
+        // Convertir al formato esperado
         const formattedProfile: LinkBioProfile = {
-          username: linkBioProfile.username,
-          displayName: linkBioProfile.display_name,
-          bio: linkBioProfile.bio || '',
-          avatar: linkBioProfile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${linkBioProfile.username}`,
-          socials: (linkBioProfile.socials as any) || {},
-          blocks: (linkBioProfile.blocks as any) || [],
-          theme: (linkBioProfile.theme as any) || {
+          username: data.username,
+          displayName: data.display_name,
+          bio: data.bio || '',
+          avatar: data.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.username}`,
+          socials: (data.socials as any) || {},
+          blocks: (data.blocks as any) || [],
+          theme: (data.theme as any) || {
             id: 'terreta',
             name: 'Terreta Original',
             bgType: 'color',
@@ -223,23 +164,28 @@ export const PublicLinkBio: React.FC = () => {
           blocksCount: formattedProfile.blocks.length,
           hasTheme: !!formattedProfile.theme
         });
+        
         setProfile(formattedProfile);
-        console.log('[PublicLinkBio] Profile set successfully');
+        setLoading(false);
+        isLoadingRef.current = false;
+        
+        console.log('[PublicLinkBio] Profile loaded successfully');
       } catch (err: any) {
-        clearTimeout(timeoutId);
         console.error('[PublicLinkBio] Exception caught:', err);
-        console.error('[PublicLinkBio] Error stack:', err.stack);
         console.error('[PublicLinkBio] Error details:', {
           name: err.name,
           message: err.message,
-          cause: err.cause
+          stack: err.stack,
+          timestamp: new Date().toISOString()
         });
+        
+        // Limpiar timeout
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+        
         setError(err.message || 'Error al cargar el perfil');
-        setLoading(false);
-        isLoadingRef.current = false;
-      } finally {
-        console.log('[PublicLinkBio] Finally block - setting loading to false');
-        clearTimeout(timeoutId);
         setLoading(false);
         isLoadingRef.current = false;
       }
@@ -247,13 +193,16 @@ export const PublicLinkBio: React.FC = () => {
 
     fetchProfile();
 
-    // Cleanup: resetear refs al desmontar o cambiar extensión
+    // Cleanup
     return () => {
-      console.log('[PublicLinkBio] Cleanup: resetting refs');
-      queryAbortControllerRef.current = null;
+      console.log('[PublicLinkBio] Cleanup');
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       isLoadingRef.current = false;
     };
-  }, [extension]); // Solo ejecutar cuando cambie la extensión
+  }, [extension]);
 
   if (loading) {
     return (
@@ -264,6 +213,10 @@ export const PublicLinkBio: React.FC = () => {
         <button
           onClick={() => {
             console.log('[PublicLinkBio] Manual reset triggered by user');
+            if (timeoutRef.current) {
+              clearTimeout(timeoutRef.current);
+              timeoutRef.current = null;
+            }
             isLoadingRef.current = false;
             lastExtensionRef.current = null;
             setLoading(false);
@@ -300,4 +253,3 @@ export const PublicLinkBio: React.FC = () => {
     </div>
   );
 };
-
