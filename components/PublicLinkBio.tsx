@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { LinkBioProfile } from '../types';
 import { ProfileRenderer } from './ProfileEditor';
+import { NotFound404 } from './NotFound404';
 
 export const PublicLinkBio: React.FC = () => {
   const { extension } = useParams<{ extension: string }>();
@@ -231,18 +232,7 @@ export const PublicLinkBio: React.FC = () => {
   }
 
   if (error || !profile) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-10 text-center">
-        <h2 className="text-2xl font-serif text-terreta-dark mb-2">Perfil no encontrado</h2>
-        <p className="text-gray-500 mb-4">{error || 'El perfil que buscas no existe o ha sido eliminado.'}</p>
-        <a 
-          href="/" 
-          className="text-[#D97706] hover:underline font-bold"
-        >
-          Volver al inicio
-        </a>
-      </div>
-    );
+    return <NotFound404 variant="profile" profileName={extension || undefined} />;
   }
 
   return (

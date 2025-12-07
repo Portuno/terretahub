@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Filter, X, FolderKanban, Calendar, Plus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ProjectStatus } from '../types';
+import { ProjectModal } from './ProjectModal';
 
 interface ProjectFromDB {
   id: string;
@@ -41,6 +42,8 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
   const [selectedPhase, setSelectedPhase] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<ProjectWithAuthor | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     loadProjects();
@@ -353,7 +356,11 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
             {filteredProjects.map((project) => (
               <div
                 key={project.id}
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                onClick={() => {
+                  setSelectedProject(project);
+                  setIsModalOpen(true);
+                }}
               >
                 {/* Imagen principal */}
                 {project.images && project.images.length > 0 ? (
@@ -459,6 +466,17 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
           </div>
         )}
       </div>
+
+      {/* Project Modal */}
+      <ProjectModal
+        project={selectedProject}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedProject(null);
+        }}
+        onViewProfile={onViewProfile}
+      />
     </div>
   );
 };

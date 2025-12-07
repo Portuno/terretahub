@@ -5,6 +5,8 @@ import { LandingPage } from './components/LandingPage';
 import { Dashboard } from './components/Dashboard';
 import { AuthModal } from './components/AuthModal';
 import { PublicLinkBio } from './components/PublicLinkBio';
+import { PublicProject } from './components/PublicProject';
+import { NotFound404 } from './components/NotFound404';
 import { AuthUser } from './types';
 import { supabase } from './lib/supabase';
 
@@ -135,8 +137,12 @@ const AppContent: React.FC = () => {
           element={<PublicLinkBio />} 
         />
         <Route 
+          path="/proyecto/:slug" 
+          element={<PublicProject />} 
+        />
+        <Route 
           path="*" 
-          element={<Navigate to="/" replace />} 
+          element={<NotFound404 variant="generic" />} 
         />
       </Routes>
 
