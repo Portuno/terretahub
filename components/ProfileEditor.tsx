@@ -10,6 +10,7 @@ import { AuthUser, LinkBioProfile, BioBlock, BioTheme } from '../types';
 import { supabase } from '../lib/supabase';
 import { PublishProfileModal } from './PublishProfileModal';
 import { Toast } from './Toast';
+import { trackLinkClick, getProfileViewsStats, getLinkClicksStats } from '../lib/analytics';
 
 interface ProfileEditorProps {
   user: AuthUser;
@@ -182,6 +183,30 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
   const hasLoadedRef = useRef(false);
   const isLoadingRef = useRef(false);
   
+  // Stats state
+  const [viewsStats, setViewsStats] = useState<{
+    total_views: number;
+    mobile_views: number;
+    desktop_views: number;
+    tablet_views: number;
+    views_today: number;
+    views_this_week: number;
+    views_this_month: number;
+  } | null>(null);
+  const [clicksStats, setClicksStats] = useState<{
+    total_clicks: number;
+    mobile_clicks: number;
+    desktop_clicks: number;
+    tablet_clicks: number;
+    clicks_today: number;
+    clicks_this_week: number;
+    clicks_this_month: number;
+    top_link_url: string;
+    top_link_title: string;
+    top_link_clicks: number;
+  } | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+  
   // File input ref for avatar
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -344,6 +369,36 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Solo ejecutar una vez al montar
+
+  // Cargar estadísticas cuando se abre la pestaña de stats
+  useEffect(() => {
+    const loadStats = async () => {
+      if (activeTab !== 'stats' || !user.id || loading) {
+        return;
+      }
+
+      setLoadingStats(true);
+      try {
+        const [viewsData, clicksData] = await Promise.all([
+          getProfileViewsStats(user.id, 30),
+          getLinkClicksStats(user.id, 30)
+        ]);
+
+        if (viewsData) {
+          setViewsStats(viewsData);
+        }
+        if (clicksData) {
+          setClicksStats(clicksData);
+        }
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    loadStats();
+  }, [activeTab, user.id, loading]);
 
   const handleSave = async () => {
     console.log('[ProfileEditor] handleSave started');
@@ -1051,56 +1106,111 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
             <div className="space-y-6 animate-fade-in">
               <h3 className="font-serif text-xl text-terreta-dark mb-4">Rendimiento (Últimos 30 días)</h3>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                   <p className="text-xs font-bold text-gray-400 uppercase">Vistas Totales</p>
-                   <p className="text-3xl font-bold text-terreta-dark mt-1">1,248</p>
-                   <p className="text-xs text-green-500 mt-2 font-bold flex items-center gap-1"><ChevronUp size={12}/> +12%</p>
+              {loadingStats ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D97706]"></div>
                 </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                   <p className="text-xs font-bold text-gray-400 uppercase">Clicks en Enlaces</p>
-                   <p className="text-3xl font-bold text-terreta-dark mt-1">482</p>
-                   <p className="text-xs text-green-500 mt-2 font-bold flex items-center gap-1"><ChevronUp size={12}/> +5%</p>
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                       <p className="text-xs font-bold text-gray-400 uppercase">Vistas Totales</p>
+                       <p className="text-3xl font-bold text-terreta-dark mt-1">
+                         {viewsStats?.total_views.toLocaleString() || '0'}
+                       </p>
+                       <p className="text-xs text-gray-500 mt-2">
+                         {viewsStats?.views_this_month || 0} este mes
+                       </p>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                       <p className="text-xs font-bold text-gray-400 uppercase">Clicks en Enlaces</p>
+                       <p className="text-3xl font-bold text-terreta-dark mt-1">
+                         {clicksStats?.total_clicks.toLocaleString() || '0'}
+                       </p>
+                       <p className="text-xs text-gray-500 mt-2">
+                         {clicksStats?.clicks_this_month || 0} este mes
+                       </p>
+                    </div>
+                  </div>
 
-              {/* Devices Card */}
-              <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
-                 <h4 className="font-bold text-gray-500 text-xs uppercase mb-4 flex items-center gap-2">
-                    <Smartphone size={14} /> Dispositivos
-                 </h4>
-                 <div className="space-y-4">
-                    <div>
-                       <div className="flex justify-between text-xs mb-2 text-terreta-dark font-medium">
-                          <span className="flex items-center gap-1"><Smartphone size={12}/> Móvil</span>
-                          <span className="font-bold">85%</span>
-                       </div>
-                       <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                          <div className="bg-[#D97706] h-full rounded-full transition-all duration-1000" style={{ width: '85%' }}></div>
+                  {/* Devices Card */}
+                  {viewsStats && (viewsStats.mobile_views > 0 || viewsStats.desktop_views > 0 || viewsStats.tablet_views > 0) && (
+                    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                       <h4 className="font-bold text-gray-500 text-xs uppercase mb-4 flex items-center gap-2">
+                          <Smartphone size={14} /> Dispositivos
+                       </h4>
+                       <div className="space-y-4">
+                          {viewsStats.mobile_views > 0 && (() => {
+                            const total = viewsStats.mobile_views + viewsStats.desktop_views + viewsStats.tablet_views;
+                            const percentage = Math.round((viewsStats.mobile_views / total) * 100);
+                            return (
+                              <div>
+                                 <div className="flex justify-between text-xs mb-2 text-terreta-dark font-medium">
+                                    <span className="flex items-center gap-1"><Smartphone size={12}/> Móvil</span>
+                                    <span className="font-bold">{percentage}%</span>
+                                 </div>
+                                 <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                    <div className="bg-[#D97706] h-full rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
+                                 </div>
+                              </div>
+                            );
+                          })()}
+                          {viewsStats.desktop_views > 0 && (() => {
+                            const total = viewsStats.mobile_views + viewsStats.desktop_views + viewsStats.tablet_views;
+                            const percentage = Math.round((viewsStats.desktop_views / total) * 100);
+                            return (
+                              <div>
+                                 <div className="flex justify-between text-xs mb-2 text-terreta-dark font-medium">
+                                    <span className="flex items-center gap-1"><Monitor size={12}/> Escritorio</span>
+                                    <span className="font-bold">{percentage}%</span>
+                                 </div>
+                                 <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                    <div className="bg-gray-400 h-full rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
+                                 </div>
+                              </div>
+                            );
+                          })()}
+                          {viewsStats.tablet_views > 0 && (() => {
+                            const total = viewsStats.mobile_views + viewsStats.desktop_views + viewsStats.tablet_views;
+                            const percentage = Math.round((viewsStats.tablet_views / total) * 100);
+                            return (
+                              <div>
+                                 <div className="flex justify-between text-xs mb-2 text-terreta-dark font-medium">
+                                    <span className="flex items-center gap-1"><Smartphone size={12}/> Tablet</span>
+                                    <span className="font-bold">{percentage}%</span>
+                                 </div>
+                                 <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                    <div className="bg-gray-500 h-full rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
+                                 </div>
+                              </div>
+                            );
+                          })()}
                        </div>
                     </div>
-                    <div>
-                       <div className="flex justify-between text-xs mb-2 text-terreta-dark font-medium">
-                          <span className="flex items-center gap-1"><Monitor size={12}/> Escritorio</span>
-                          <span className="font-bold">15%</span>
-                       </div>
-                       <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                          <div className="bg-gray-400 h-full rounded-full transition-all duration-1000" style={{ width: '15%' }}></div>
-                       </div>
+                  )}
+
+                  {clicksStats && clicksStats.top_link_clicks > 0 && (
+                    <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                      <h4 className="font-bold text-[#D97706] mb-2 text-sm uppercase">Enlace más popular</h4>
+                      <p className="font-serif text-lg text-terreta-dark">{clicksStats.top_link_title || 'Sin título'}</p>
+                      <p className="text-xs text-gray-500">
+                        {clicksStats.top_link_clicks} Clicks
+                        {clicksStats.total_clicks > 0 && (
+                          ` (${Math.round((clicksStats.top_link_clicks / clicksStats.total_clicks) * 100)}%)`
+                        )}
+                      </p>
                     </div>
-                 </div>
-              </div>
+                  )}
 
-              <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
-                <h4 className="font-bold text-[#D97706] mb-2 text-sm uppercase">Enlace más popular</h4>
-                <p className="font-serif text-lg text-terreta-dark">Visita mi web</p>
-                <p className="text-xs text-gray-500">210 Clicks (43%)</p>
-              </div>
-
-              <div className="text-center p-8 opacity-50">
-                 <BarChart3 className="w-12 h-12 mx-auto text-gray-300 mb-2" />
-                 <p className="text-sm text-gray-400">Más métricas próximamente</p>
-              </div>
+                  {(!viewsStats || viewsStats.total_views === 0) && (!clicksStats || clicksStats.total_clicks === 0) && (
+                    <div className="text-center p-8 opacity-50">
+                       <BarChart3 className="w-12 h-12 mx-auto text-gray-300 mb-2" />
+                       <p className="text-sm text-gray-400">Aún no hay estadísticas disponibles</p>
+                       <p className="text-xs text-gray-400 mt-1">Las estadísticas aparecerán cuando tu perfil reciba visitas</p>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -1247,7 +1357,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
 
 // --- PREVIEW RENDERER COMPONENT ---
 // Separated specifically to render exactly what the public sees
-export const ProfileRenderer: React.FC<{ profile: LinkBioProfile }> = ({ profile }) => {
+export const ProfileRenderer: React.FC<{ profile: LinkBioProfile; profileUserId?: string }> = ({ profile, profileUserId }) => {
   const { theme } = profile;
 
   // Style helper
@@ -1355,6 +1465,19 @@ export const ProfileRenderer: React.FC<{ profile: LinkBioProfile }> = ({ profile
             }
 
             if (block.type === 'link') {
+              const handleLinkClick = () => {
+                if (profileUserId && block.url) {
+                  trackLinkClick(
+                    profileUserId,
+                    block.id,
+                    normalizeUrl(block.url),
+                    block.title
+                  ).catch(err => {
+                    console.warn('Failed to track link click:', err);
+                  });
+                }
+              };
+
               return (
                 <a 
                   key={block.id} 
@@ -1363,6 +1486,7 @@ export const ProfileRenderer: React.FC<{ profile: LinkBioProfile }> = ({ profile
                   rel="noopener noreferrer"
                   className={getBtnClass()}
                   style={getBtnStyle()}
+                  onClick={handleLinkClick}
                 >
                   {renderIcon(block.icon)}
                   <span>{block.title}</span>

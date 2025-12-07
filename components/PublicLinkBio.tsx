@@ -4,11 +4,13 @@ import { supabase } from '../lib/supabase';
 import { LinkBioProfile } from '../types';
 import { ProfileRenderer } from './ProfileEditor';
 import { NotFound404 } from './NotFound404';
+import { trackProfileView } from '../lib/analytics';
 
 export const PublicLinkBio: React.FC = () => {
   const { extension } = useParams<{ extension: string }>();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<LinkBioProfile | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const lastExtensionRef = useRef<string | null>(null);
@@ -93,7 +95,7 @@ export const PublicLinkBio: React.FC = () => {
         // Intentar buscar por custom_slug primero
         const { data: slugData, error: slugError } = await supabase
           .from('link_bio_profiles')
-          .select('username, display_name, bio, avatar, socials, blocks, theme, updated_at, is_published')
+          .select('user_id, username, display_name, bio, avatar, socials, blocks, theme, updated_at, is_published')
           .eq('custom_slug', customSlugLower)
           .eq('is_published', true)
           .maybeSingle();
@@ -104,7 +106,7 @@ export const PublicLinkBio: React.FC = () => {
           // Si no se encuentra por custom_slug, buscar por username
           const { data: usernameData, error: usernameError } = await supabase
             .from('link_bio_profiles')
-            .select('username, display_name, bio, avatar, socials, blocks, theme, updated_at, is_published')
+            .select('user_id, username, display_name, bio, avatar, socials, blocks, theme, updated_at, is_published')
             .eq('username', customSlugLower)
             .eq('is_published', true)
             .maybeSingle();
@@ -192,6 +194,13 @@ export const PublicLinkBio: React.FC = () => {
         setProfile(formattedProfile);
         setLoading(false);
         isLoadingRef.current = false;
+        
+        // Registrar vista de perfil
+        if (data.user_id) {
+          trackProfileView(data.user_id).catch(err => {
+            console.warn('[PublicLinkBio] Failed to track profile view:', err);
+          });
+        }
         
         console.log('[PublicLinkBio] Profile loaded successfully');
       } catch (err: any) {
@@ -283,7 +292,7 @@ export const PublicLinkBio: React.FC = () => {
 
       <div className="max-w-md mx-auto min-h-screen overflow-hidden flex flex-col">
         <div className="flex-1">
-          <ProfileRenderer profile={profile} />
+          <ProfileRenderer profile={profile} profileUserId={profileUserId || undefined} />
         </div>
         
         {/* Footer */}

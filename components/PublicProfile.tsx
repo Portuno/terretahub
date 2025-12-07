@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LinkBioProfile } from '../types';
 import { ProfileRenderer, THEMES } from './ProfileEditor';
 import { supabase } from '../lib/supabase';
+import { trackProfileView } from '../lib/analytics';
 
 interface PublicProfileProps {
   handle: string;
@@ -10,6 +11,7 @@ interface PublicProfileProps {
 export const PublicProfile: React.FC<PublicProfileProps> = ({ handle }) => {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<LinkBioProfile | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Limpiar el handle (quitar @ si existe)
@@ -25,6 +27,7 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ handle }) => {
         let profileData = null;
         let username = cleanHandle;
         let userProfile = null;
+        let profileUserId: string | null = null;
 
         const { data: linkBioBySlug } = await supabase
           .from('link_bio_profiles')
@@ -36,6 +39,7 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ handle }) => {
         if (linkBioBySlug) {
           // Si encontramos por custom_slug, obtener el perfil del usuario
           profileData = linkBioBySlug;
+          profileUserId = linkBioBySlug.user_id;
           const { data: profileFromDb } = await supabase
             .from('profiles')
             .select('username')
@@ -61,6 +65,7 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ handle }) => {
 
           userProfile = profileFromDb;
           username = profileFromDb.username;
+          profileUserId = profileFromDb.id;
 
           // Intentar obtener link_bio_profile del usuario
           const { data: linkBioByUsername } = await supabase
@@ -112,6 +117,15 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ handle }) => {
               ],
               theme: theme
             });
+            setProfileUserId(profileUserId);
+            
+            // Registrar vista de perfil
+            if (profileUserId) {
+              trackProfileView(profileUserId).catch(err => {
+                console.warn('Failed to track profile view:', err);
+              });
+            }
+            
             setLoading(false);
             return;
           }
@@ -128,6 +142,14 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ handle }) => {
             blocks: (profileData.blocks as any) || [],
             theme: (profileData.theme as any) || THEMES[0]
           });
+          setProfileUserId(profileUserId);
+          
+          // Registrar vista de perfil
+          if (profileUserId) {
+            trackProfileView(profileUserId).catch(err => {
+              console.warn('Failed to track profile view:', err);
+            });
+          }
         }
       } catch (err: any) {
         console.error('Error al cargar perfil:', err);
@@ -159,10 +181,10 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ handle }) => {
   }
 
   return (
-    <div className="w-full h-full bg-white overflow-y-auto">
+      <div className="w-full h-full bg-white overflow-y-auto">
        {/* We reuse the ProfileRenderer but wrap it to look good on desktop full-width */}
        <div className="max-w-md mx-auto min-h-screen shadow-2xl overflow-hidden">
-          <ProfileRenderer profile={profile} />
+          <ProfileRenderer profile={profile} profileUserId={profileUserId || undefined} />
        </div>
     </div>
   );
