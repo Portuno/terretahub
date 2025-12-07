@@ -271,101 +271,103 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
               </button>
             </form>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4 font-sans">
-              {error && <div className="bg-red-50 text-red-600 text-xs p-3 rounded-lg text-center">{error}</div>}
+            <>
+              <form onSubmit={handleSubmit} className="space-y-4 font-sans">
+                {error && <div className="bg-red-50 text-red-600 text-xs p-3 rounded-lg text-center">{error}</div>}
 
-            {isRegistering && (
-              <>
+                {isRegistering && (
+                  <>
+                    <div className="relative group">
+                      <User size={18} className="absolute left-3 top-3 text-gray-400 group-focus-within:text-[#D97706]" />
+                      <input
+                        type="text"
+                        placeholder="Nombre completo"
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-[#D97706] outline-none text-sm transition-all"
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                      />
+                    </div>
+                    <div className="relative group">
+                      <span className="absolute left-3 top-2.5 text-gray-400 font-bold text-sm">@</span>
+                      <input
+                        type="text"
+                        placeholder="usuario (slug)"
+                        required
+                        className="w-full pl-8 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-[#D97706] outline-none text-sm transition-all"
+                        value={username}
+                        onChange={e => setUsername(e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+
                 <div className="relative group">
-                  <User size={18} className="absolute left-3 top-3 text-gray-400 group-focus-within:text-[#D97706]" />
+                  <Mail size={18} className="absolute left-3 top-3 text-gray-400 group-focus-within:text-[#D97706]" />
                   <input
-                    type="text"
-                    placeholder="Nombre completo"
+                    type="email"
+                    placeholder="Email"
                     required
                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-[#D97706] outline-none text-sm transition-all"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
                   />
                 </div>
+
                 <div className="relative group">
-                  <span className="absolute left-3 top-2.5 text-gray-400 font-bold text-sm">@</span>
+                  <Lock size={18} className="absolute left-3 top-3 text-gray-400 group-focus-within:text-[#D97706]" />
                   <input
-                    type="text"
-                    placeholder="usuario (slug)"
+                    type="password"
+                    placeholder="Contraseña"
                     required
-                    className="w-full pl-8 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-[#D97706] outline-none text-sm transition-all"
-                    value={username}
-                    onChange={e => setUsername(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-[#D97706] outline-none text-sm transition-all"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
                   />
                 </div>
-              </>
-            )}
 
-            <div className="relative group">
-              <Mail size={18} className="absolute left-3 top-3 text-gray-400 group-focus-within:text-[#D97706]" />
-              <input
-                type="email"
-                placeholder="Email"
-                required
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-[#D97706] outline-none text-sm transition-all"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-              />
-            </div>
+                {!isRegistering && (
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsForgotPassword(true);
+                        setError('');
+                        setPassword('');
+                      }}
+                      className="text-xs text-[#D97706] font-bold hover:underline"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  </div>
+                )}
 
-            <div className="relative group">
-              <Lock size={18} className="absolute left-3 top-3 text-gray-400 group-focus-within:text-[#D97706]" />
-              <input
-                type="password"
-                placeholder="Contraseña"
-                required
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-[#D97706] outline-none text-sm transition-all"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-              />
-            </div>
-
-            {!isRegistering && (
-              <div className="text-right">
                 <button
-                  type="button"
-                  onClick={() => {
-                    setIsForgotPassword(true);
-                    setError('');
-                    setPassword('');
-                  }}
-                  className="text-xs text-[#D97706] font-bold hover:underline"
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-terreta-dark text-white font-bold py-3 rounded-lg hover:bg-[#2C1E1A] transition-all flex items-center justify-center gap-2 mt-2 shadow-md"
                 >
-                  ¿Olvidaste tu contraseña?
+                  {loading ? 'Procesando...' : (
+                    <>
+                      {isRegistering ? 'Crear Cuenta' : 'Ingresar'}
+                      <ArrowRight size={16} />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => {
+                    setIsRegistering(!isRegistering);
+                    setError('');
+                  }}
+                  className="text-xs text-[#D97706] font-bold hover:underline uppercase tracking-wide"
+                >
+                  {isRegistering ? '¿Ya tienes cuenta? Ingresa aquí' : '¿No tienes cuenta? Regístrate gratis'}
                 </button>
               </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-terreta-dark text-white font-bold py-3 rounded-lg hover:bg-[#2C1E1A] transition-all flex items-center justify-center gap-2 mt-2 shadow-md"
-            >
-              {loading ? 'Procesando...' : (
-                <>
-                  {isRegistering ? 'Crear Cuenta' : 'Ingresar'}
-                  <ArrowRight size={16} />
-                </>
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => {
-                setIsRegistering(!isRegistering);
-                setError('');
-              }}
-              className="text-xs text-[#D97706] font-bold hover:underline uppercase tracking-wide"
-            >
-              {isRegistering ? '¿Ya tienes cuenta? Ingresa aquí' : '¿No tienes cuenta? Regístrate gratis'}
-            </button>
-          </div>
+            </>
           )}
         </div>
       </div>
