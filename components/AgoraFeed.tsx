@@ -52,8 +52,8 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth, onViewPr
 
       if (!postsData) return;
 
-      // Cargar perfiles de autores y comentarios
-      const postsWithComments = await Promise.all(
+        // Cargar perfiles de autores y comentarios
+        const postsWithComments = await Promise.all(
         postsData.map(async (post: any) => {
           // Obtener perfil del autor (siempre desde la BD para tener el avatar actualizado)
           const { data: authorProfile, error: authorError } = await supabase
@@ -64,6 +64,21 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth, onViewPr
 
           if (authorError) {
             console.error('Error al cargar autor:', authorError);
+          }
+
+          // Intentar obtener el avatar de link_bio_profiles si existe (puede estar más actualizado)
+          let finalAvatar = authorProfile?.avatar;
+          if (authorProfile) {
+            const { data: linkBioProfile } = await supabase
+              .from('link_bio_profiles')
+              .select('avatar')
+              .eq('user_id', authorProfile.id)
+              .maybeSingle();
+            
+            // Usar el avatar de link_bio_profiles si existe, sino el de profiles
+            if (linkBioProfile?.avatar) {
+              finalAvatar = linkBioProfile.avatar;
+            }
           }
 
           // Cargar comentarios
@@ -77,8 +92,8 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth, onViewPr
             console.error('Error al cargar comentarios:', commentsError);
           }
 
-          // Cargar perfiles de los autores de los comentarios (siempre desde la BD)
-          const commentsWithAuthors = await Promise.all(
+            // Cargar perfiles de los autores de los comentarios (siempre desde la BD)
+            const commentsWithAuthors = await Promise.all(
             (commentsData || []).map(async (comment: any) => {
               const { data: commentAuthor, error: commentAuthorError } = await supabase
                 .from('profiles')
@@ -90,12 +105,26 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth, onViewPr
                 console.error('Error al cargar autor del comentario:', commentAuthorError);
               }
 
+              // Intentar obtener el avatar de link_bio_profiles si existe
+              let commentAvatar = commentAuthor?.avatar;
+              if (commentAuthor) {
+                const { data: linkBioProfile } = await supabase
+                  .from('link_bio_profiles')
+                  .select('avatar')
+                  .eq('user_id', commentAuthor.id)
+                  .maybeSingle();
+                
+                if (linkBioProfile?.avatar) {
+                  commentAvatar = linkBioProfile.avatar;
+                }
+              }
+
               return {
                 id: comment.id,
                 author: {
                   name: commentAuthor?.name || 'Usuario',
                   handle: `@${commentAuthor?.username || 'usuario'}`,
-                  avatar: commentAuthor?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${commentAuthor?.username || 'user'}`
+                  avatar: commentAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${commentAuthor?.username || 'user'}`
                 },
                 content: comment.content,
                 timestamp: formatTimestamp(comment.created_at)
@@ -103,19 +132,19 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth, onViewPr
             })
           );
 
-          return {
-            id: post.id,
-            authorId: post.author_id,
-            author: {
-              name: authorProfile?.name || 'Usuario',
-              handle: `@${authorProfile?.username || 'usuario'}`,
-              avatar: authorProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorProfile?.username || 'user'}`,
-              role: authorProfile?.role === 'admin' ? 'Admin' : 'Miembro'
-            },
-            content: post.content,
-            timestamp: formatTimestamp(post.created_at),
-            comments: commentsWithAuthors
-          };
+            return {
+              id: post.id,
+              authorId: post.author_id,
+              author: {
+                name: authorProfile?.name || 'Usuario',
+                handle: `@${authorProfile?.username || 'usuario'}`,
+                avatar: finalAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorProfile?.username || 'user'}`,
+                role: authorProfile?.role === 'admin' ? 'Admin' : 'Miembro'
+              },
+              content: post.content,
+              timestamp: formatTimestamp(post.created_at),
+              comments: commentsWithAuthors
+            };
         })
       );
 
@@ -160,6 +189,20 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth, onViewPr
         .eq('id', user.id)
         .single();
 
+      // Intentar obtener el avatar de link_bio_profiles si existe
+      let finalAvatar = updatedProfile?.avatar || user.avatar;
+      if (updatedProfile) {
+        const { data: linkBioProfile } = await supabase
+          .from('link_bio_profiles')
+          .select('avatar')
+          .eq('user_id', updatedProfile.id)
+          .maybeSingle();
+        
+        if (linkBioProfile?.avatar) {
+          finalAvatar = linkBioProfile.avatar;
+        }
+      }
+
       // Formatear el nuevo post con datos actualizados de la BD
       const formattedPost: AgoraPost = {
         id: newPost.id,
@@ -167,7 +210,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth, onViewPr
         author: {
           name: updatedProfile?.name || user.name,
           handle: `@${updatedProfile?.username || user.username}`,
-          avatar: updatedProfile?.avatar || user.avatar,
+          avatar: finalAvatar,
           role: updatedProfile?.role === 'admin' ? 'Admin' : 'Miembro'
         },
         content: newPost.content,
@@ -214,13 +257,27 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth, onViewPr
         .eq('id', user.id)
         .single();
 
+      // Intentar obtener el avatar de link_bio_profiles si existe
+      let finalAvatar = updatedProfile?.avatar || user.avatar;
+      if (updatedProfile) {
+        const { data: linkBioProfile } = await supabase
+          .from('link_bio_profiles')
+          .select('avatar')
+          .eq('user_id', updatedProfile.id)
+          .maybeSingle();
+        
+        if (linkBioProfile?.avatar) {
+          finalAvatar = linkBioProfile.avatar;
+        }
+      }
+
       // Formatear el nuevo comentario con datos actualizados de la BD
       const formattedComment = {
         id: newComment.id,
         author: {
           name: updatedProfile?.name || user.name,
           handle: `@${updatedProfile?.username || user.username}`,
-          avatar: updatedProfile?.avatar || user.avatar
+          avatar: finalAvatar
         },
         content: newComment.content,
         timestamp: formatTimestamp(newComment.created_at)

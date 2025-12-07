@@ -83,12 +83,27 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
             console.error('Error al cargar autor:', authorError);
           }
 
+          // Intentar obtener el avatar de link_bio_profiles si existe (puede estar más actualizado)
+          let finalAvatar = authorProfile?.avatar;
+          if (authorProfile) {
+            const { data: linkBioProfile } = await supabase
+              .from('link_bio_profiles')
+              .select('avatar')
+              .eq('user_id', authorProfile.id)
+              .maybeSingle();
+            
+            // Usar el avatar de link_bio_profiles si existe, sino el de profiles
+            if (linkBioProfile?.avatar) {
+              finalAvatar = linkBioProfile.avatar;
+            }
+          }
+
           return {
             ...project,
             author: {
               name: authorProfile?.name || 'Usuario',
               username: authorProfile?.username || 'usuario',
-              avatar: authorProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorProfile?.username || 'user'}`
+              avatar: finalAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorProfile?.username || 'user'}`
             }
           };
         })

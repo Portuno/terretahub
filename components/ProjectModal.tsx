@@ -167,7 +167,12 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
                   <img
                     src={project.author.avatar}
                     alt={project.author.name}
-                    className="w-10 h-10 rounded-full"
+                    className="w-10 h-10 rounded-full object-cover border border-gray-200"
+                    onError={(e) => {
+                      // Si falla la carga, usar el fallback de dicebear
+                      const target = e.target as HTMLImageElement;
+                      target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${project.author.username}`;
+                    }}
                   />
                   <div>
                     <p className="font-bold text-terreta-dark">{project.author.name}</p>
