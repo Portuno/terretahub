@@ -26,7 +26,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
       setCurrentImageIndex(0);
     } else {
       setIsVisible(false);
-      // Esperar a que termine la animación antes de desmontar
+      // Esperar a que termine la animación antes de desmontar (300ms coincide con la duración de la animación)
       const timer = setTimeout(() => {
         setShouldRender(false);
         document.body.style.overflow = 'unset';
@@ -34,6 +34,20 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
       return () => clearTimeout(timer);
     }
   }, [isOpen, project]);
+
+  // Cerrar con tecla Escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    
+    if (isOpen) {
+      window.addEventListener('keydown', handleEscape);
+      return () => window.removeEventListener('keydown', handleEscape);
+    }
+  }, [isOpen, onClose]);
 
   if (!shouldRender || !project) return null;
 
@@ -60,21 +74,21 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
 
   return (
     <div
-      className={`fixed inset-0 z-[80] flex items-center justify-center p-4 transition-all duration-300 ease-out ${
+      className={`fixed inset-0 z-[80] flex items-center justify-center p-4 transition-all duration-300 ease-in-out ${
         isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
       onClick={handleBackdropClick}
     >
       {/* Backdrop */}
       <div
-        className={`absolute inset-0 bg-terreta-dark/70 backdrop-blur-sm transition-opacity duration-300 ease-out ${
+        className={`absolute inset-0 bg-terreta-dark/70 backdrop-blur-sm transition-opacity duration-300 ease-in-out ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
       />
 
       {/* Modal Content */}
       <div
-        className={`relative bg-[#F9F6F0] w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-out ${
+        className={`relative bg-[#F9F6F0] w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-in-out ${
           isVisible 
             ? 'scale-100 translate-y-0 opacity-100' 
             : 'scale-95 translate-y-8 opacity-0'
