@@ -132,159 +132,138 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
   const badgeIdle = 'border-amber-200 text-slate-700 hover:border-emerald-500 bg-white/70';
 
   return (
-    <section className="w-full mt-0 mb-3 flex flex-col gap-4 rounded-2xl bg-gradient-to-br from-amber-50 via-emerald-50/60 to-orange-50 p-3 md:p-4 lg:p-5 shadow-lg border border-amber-100">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">
-          Recursos (En construcción)
+    <section className="w-full mt-0 mb-3 flex flex-col gap-3 rounded-2xl bg-gradient-to-br from-amber-50 via-emerald-50/60 to-orange-50 p-4 shadow-lg border border-amber-100">
+      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-2">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 mb-1">
+            Recursos (En construcción)
+          </p>
+          <h2 className="text-2xl font-serif font-bold text-slate-900 leading-tight">
+            Panel de Colaboración
+          </h2>
+        </div>
+        <p className="text-sm text-slate-700 max-w-xl text-right md:text-right hidden md:block">
+          Siembra tu necesidad aquí para priorizar el contenido.
         </p>
-        <h2 className="text-3xl md:text-4xl font-serif font-bold text-slate-900">
-          Panel de Colaboración
-        </h2>
-        <p className="text-base md:text-lg text-slate-700">
-          La sección de Recursos está en construcción, ¡pero no queremos construirla solos! Siembra tu necesidad aquí para que la comunidad nos ayude a priorizar el contenido.
+        <p className="text-sm text-slate-700 md:hidden">
+           Siembra tu necesidad aquí para priorizar el contenido.
         </p>
       </header>
 
-      <div className="grid gap-5 md:gap-6 rounded-2xl bg-white/90 p-5 md:p-6 shadow-inner border border-white/70">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-baseline justify-between">
-            <div>
-              <p className="text-sm font-semibold text-emerald-800">Paso 1: Tipo de Recurso</p>
-              <p className="text-sm text-slate-600">¿Qué tipo de herramienta o apoyo necesitas?</p>
+      <div className="grid gap-4 rounded-xl bg-white/90 p-4 shadow-inner border border-white/70">
+        
+        {/* Top Row: Type and Vertical side by side on desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">1. Tipo de Recurso</p>
+              <div className="flex flex-wrap gap-1.5">
+                {RESOURCE_TYPES.map((type) => {
+                  const isActive = selectedTypes.includes(type);
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => toggleItem(type, selectedTypes, setSelectedTypes)}
+                      className={`${badgeBase} ${isActive ? badgeActive : badgeIdle} px-2.5 py-1 text-xs`}
+                    >
+                      {type}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {RESOURCE_TYPES.map((type) => {
-              const isActive = selectedTypes.includes(type);
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  role="checkbox"
-                  aria-checked={isActive}
-                  tabIndex={0}
-                  onClick={() => toggleItem(type, selectedTypes, setSelectedTypes)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      toggleItem(type, selectedTypes, setSelectedTypes);
-                    }
-                  }}
-                  className={`${badgeBase} ${isActive ? badgeActive : badgeIdle}`}
-                >
-                  <span>{type}</span>
-                </button>
-              );
-            })}
-          </div>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">2. Vertical de Interés</p>
+              <div className="flex flex-wrap gap-1.5">
+                {VERTICALS.map((vertical) => {
+                  const isActive = selectedVerticals.includes(vertical);
+                  return (
+                    <button
+                      key={vertical}
+                      type="button"
+                      onClick={() => toggleItem(vertical, selectedVerticals, setSelectedVerticals)}
+                      className={`${badgeBase} ${isActive ? badgeActive : badgeIdle} px-2.5 py-1 text-xs`}
+                    >
+                      {vertical}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
         </div>
 
-        <div className="grid gap-3">
-          <label className="text-sm font-semibold text-emerald-800">¿Qué formatos consumes?</label>
-          <div className="flex flex-wrap gap-2">
+        {/* Middle Row: Formats */}
+        <div className="grid gap-2">
+          <label className="text-xs font-bold text-emerald-800 uppercase tracking-wide">3. Formatos preferidos</label>
+          <div className="flex flex-wrap gap-2 items-center">
             {formatTags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-sm text-emerald-800"
+                className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800 border border-emerald-200"
               >
                 {tag}
                 <button
                   type="button"
-                  aria-label={`Quitar ${tag}`}
-                  className="text-emerald-700 hover:text-emerald-900 focus:outline-none"
+                  className="text-emerald-700 hover:text-emerald-900 focus:outline-none font-bold ml-1"
                   onClick={() => handleRemoveTag(tag)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      handleRemoveTag(tag);
-                    }
-                  }}
                 >
                   ×
                 </button>
               </span>
             ))}
-          </div>
-          <input
-            value={tagInput}
-            onChange={(event) => setTagInput(event.target.value)}
-            onKeyDown={handleTagKeyDown}
-            placeholder="Ej: videos cortos, guías PDF, podcast, newsletters."
-            aria-label="Formatos que consumes"
-            className="w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-          />
-          <p className="text-xs text-slate-500">Presiona Enter o coma para agregar cada formato.</p>
-        </div>
-
-        <div className="grid gap-3">
-          <p className="text-sm font-semibold text-emerald-800">¿Qué Vertical te Interesa?</p>
-          <div className="flex flex-wrap gap-2">
-            {VERTICALS.map((vertical) => {
-              const isActive = selectedVerticals.includes(vertical);
-              return (
-                <button
-                  key={vertical}
-                  type="button"
-                  role="checkbox"
-                  aria-checked={isActive}
-                  tabIndex={0}
-                  onClick={() => toggleItem(vertical, selectedVerticals, setSelectedVerticals)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      toggleItem(vertical, selectedVerticals, setSelectedVerticals);
-                    }
-                  }}
-                  className={`${badgeBase} ${isActive ? badgeActive : badgeIdle}`}
-                >
-                  {vertical}
-                </button>
-              );
-            })}
+             <input
+                value={tagInput}
+                onChange={(event) => setTagInput(event.target.value)}
+                onKeyDown={handleTagKeyDown}
+                placeholder="Ej: videos cortos, PDF... (Enter)"
+                className="flex-1 min-w-[200px] bg-transparent text-sm text-slate-800 outline-none placeholder-slate-400 border-b border-transparent focus:border-emerald-300 transition-colors"
+              />
           </div>
         </div>
 
-        <div className="grid gap-3">
+        {/* Bottom Row: Details */}
+        <div className="grid gap-2">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-emerald-800">Detalles y Colaboración</p>
+            <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">4. Detalles</p>
             <button
               type="button"
               onClick={rotatePlaceholder}
-              className="text-xs text-emerald-700 underline underline-offset-4 hover:text-emerald-900 focus:outline-none"
+              className="text-[10px] text-emerald-600 hover:text-emerald-800 flex items-center gap-1"
             >
-              Actualizar placeholder
+               <span>Inspiración</span>
             </button>
           </div>
           <textarea
             value={details}
             onChange={(event) => setDetails(event.target.value)}
             placeholder={placeholder}
-            aria-label="Detalles y colaboración"
-            className="min-h-[200px] w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+            className="min-h-[80px] w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200 resize-y"
           />
         </div>
 
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div className="text-xs text-slate-500">
-            Comparte lo que necesitas y cómo quieres recibirlo. Sumamos la voz de la comunidad.
-          </div>
-          <div className="flex items-center gap-3">
-            {submitState === 'success' && (
-              <span className="text-sm text-emerald-700 font-semibold">¡Recibido! Gracias por guiar el panel.</span>
-            )}
-            {submitState === 'error' && (
-              <span className="text-sm text-red-600 font-semibold">{errorMessage || 'Algo salió mal.'}</span>
-            )}
-            <button
-              type="button"
-              disabled={isSubmitDisabled || submitState === 'loading'}
-              onClick={handleSubmit}
-              className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-300"
-              aria-label="Enviar necesidad"
-            >
-              {submitState === 'loading' ? 'Enviando...' : 'Enviar necesidad'}
-            </button>
-          </div>
+        <div className="flex items-center justify-end pt-2 border-t border-emerald-100/50">
+            <div className="flex items-center gap-3 w-full justify-between">
+             <span className="text-[10px] text-slate-400 italic hidden sm:block">
+                Tu aporte construye la comunidad.
+             </span>
+             <div className="flex items-center gap-3 ml-auto">
+                {submitState === 'success' && (
+                <span className="text-xs text-emerald-700 font-bold animate-pulse">¡Recibido!</span>
+                )}
+                {submitState === 'error' && (
+                <span className="text-xs text-red-600 font-bold">Error al enviar.</span>
+                )}
+                <button
+                type="button"
+                disabled={isSubmitDisabled || submitState === 'loading'}
+                onClick={handleSubmit}
+                className="rounded-lg bg-emerald-600 px-6 py-2 text-xs font-bold text-white shadow-md transition hover:bg-emerald-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider transform active:scale-95"
+                >
+                {submitState === 'loading' ? '...' : 'Enviar'}
+                </button>
+             </div>
+            </div>
         </div>
       </div>
     </section>
