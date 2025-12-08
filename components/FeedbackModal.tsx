@@ -8,6 +8,8 @@ interface FeedbackModalProps {
 
 export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
   const [name, setName] = useState('');
+  const [identityMode, setIdentityMode] = useState<'user' | 'anon'>('user');
+  const [username, setUsername] = useState<string>('anónimo');
   const [feedback, setFeedback] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -22,6 +24,35 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose })
       setShouldRender(true);
       setTimeout(() => setIsVisible(true), 50);
       document.body.style.overflow = 'hidden';
+      // Cargar username del usuario para preseleccionar identidad
+      (async () => {
+        try {
+          const { supabase } = await import('../lib/supabase');
+          const { data: authData } = await supabase.auth.getUser();
+          const userId = authData?.user?.id;
+          if (!userId) {
+            setUsername('anónimo');
+            setIdentityMode('anon');
+            return;
+          }
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', userId)
+            .single();
+          if (profile?.username) {
+            setUsername(profile.username);
+            setIdentityMode('user');
+          } else {
+            setUsername('anónimo');
+            setIdentityMode('anon');
+          }
+        } catch (err) {
+          console.error('[FeedbackModal] Error loading username', err);
+          setUsername('anónimo');
+          setIdentityMode('anon');
+        }
+      })();
     } else {
       setIsVisible(false);
       const timer = setTimeout(() => {
@@ -41,13 +72,13 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose })
 
     try {
       const { supabase } = await import('../lib/supabase');
-      const { data: authData } = await supabase.auth.getUser();
       const userAgent = typeof window !== 'undefined' ? navigator.userAgent : null;
+      const authorUsername = identityMode === 'anon' ? 'anonimo' : username || 'anonimo';
 
       const { error: insertError } = await supabase.from('feedback_messages').insert({
         name: name.trim() || 'Anónimo',
         message: feedback.trim(),
-        user_id: authData?.user?.id ?? null,
+        username: authorUsername,
         user_agent: userAgent
       });
 
@@ -60,6 +91,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose })
         setSuccess(false);
         setFeedback('');
         setName('');
+        setIdentityMode(authorUsername === 'anonimo' ? 'anon' : 'user');
         onClose();
       }, 2000);
     } catch (err) {
@@ -111,6 +143,39 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose })
               <p className="text-sm text-gray-600 font-sans leading-relaxed">
                 ¿Tienes alguna idea, sugerencia o encontraste un error? Cuéntanoslo para mejorar Terreta Hub.
               </p>
+
+              <div className="grid gap-2">
+                <p className="text-xs font-bold text-[#D97706] uppercase tracking-widest">Identidad</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIdentityMode('user')}
+                    className={`rounded-full border px-3 py-2 text-sm transition ${
+                      identityMode === 'user'
+                        ? 'border-[#D97706] bg-white shadow-sm text-terreta-dark'
+                        : 'border-gray-200 bg-white/80 text-gray-600 hover:border-[#D97706]/60'
+                    }`}
+                    aria-pressed={identityMode === 'user'}
+                  >
+                    {username !== 'anónimo' ? `Usar mi usuario (@${username})` : 'Usar mi usuario'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIdentityMode('anon')}
+                    className={`rounded-full border px-3 py-2 text-sm transition ${
+                      identityMode === 'anon'
+                        ? 'border-[#D97706] bg-white shadow-sm text-terreta-dark'
+                        : 'border-gray-200 bg-white/80 text-gray-600 hover:border-[#D97706]/60'
+                    }`}
+                    aria-pressed={identityMode === 'anon'}
+                  >
+                    Enviar como Anónimo
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Por privacidad, solo guardaremos el username seleccionado (o "anonimo"). No guardamos user_id.
+                </p>
+              </div>
 
               <div className="space-y-2">
                 <label htmlFor="feedback-name" className="text-xs font-bold text-[#D97706] uppercase tracking-widest">
