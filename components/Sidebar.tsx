@@ -21,6 +21,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenFeedback
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [activeSection]);
+  React.useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [activeSection]);
   const menuItems = [
     { id: 'agora', label: 'Ágora', icon: <MessageSquareText size={20} /> },
     { id: 'comunidad', label: 'Comunidad', icon: <Users size={20} /> },

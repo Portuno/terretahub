@@ -373,7 +373,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 pb-4 md:pb-8">
+        <div className="flex-1 overflow-y-auto px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 2xl:px-8 pb-4 md:pb-8">
           
           {activeSection === 'public_profile' && viewingProfileHandle ? (
              <PublicProfile handle={viewingProfileHandle} />
@@ -406,7 +406,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
                 />
              )
           ) : activeSection === 'recursos' ? (
-            <div className="px-3 md:px-5 lg:px-8 py-4 md:py-6">
+            <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-7 py-3 md:py-4">
               <ResourceCollabPanel user={currentUser} />
             </div>
           ) : activeSection === 'admin' && currentUser && isAdmin(currentUser) ? (

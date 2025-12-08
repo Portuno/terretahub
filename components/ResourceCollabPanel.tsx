@@ -132,7 +132,7 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
   const badgeIdle = 'border-amber-200 text-slate-700 hover:border-emerald-500 bg-white/70';
 
   return (
-    <section className="w-full my-6 md:my-8 flex flex-col gap-6 rounded-3xl bg-gradient-to-br from-amber-50 via-emerald-50/60 to-orange-50 p-6 md:p-8 shadow-xl border border-amber-100">
+    <section className="w-full my-3 md:my-5 flex flex-col gap-5 rounded-2xl bg-gradient-to-br from-amber-50 via-emerald-50/60 to-orange-50 p-4 md:p-6 lg:p-7 shadow-lg border border-amber-100">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">
           Recursos (En construcción)
@@ -145,7 +145,7 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
         </p>
       </header>
 
-      <div className="grid gap-6 rounded-2xl bg-white/90 p-6 shadow-inner border border-white/70">
+      <div className="grid gap-5 md:gap-6 rounded-2xl bg-white/90 p-5 md:p-6 shadow-inner border border-white/70">
         <div className="flex flex-col gap-3">
           <div className="flex items-baseline justify-between">
             <div>
