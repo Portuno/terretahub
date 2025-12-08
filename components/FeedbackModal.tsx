@@ -7,7 +7,9 @@ interface FeedbackModalProps {
 }
 
 export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
+  const [name, setName] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   
@@ -32,15 +34,40 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!feedback.trim()) return;
+
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setSuccess(true);
-    setIsSubmitting(false);
-    setTimeout(() => {
-      setSuccess(false);
-      setFeedback('');
-      onClose();
-    }, 2000);
+    setError('');
+
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { data: authData } = await supabase.auth.getUser();
+      const userAgent = typeof window !== 'undefined' ? navigator.userAgent : null;
+
+      const { error: insertError } = await supabase.from('feedback_messages').insert({
+        name: name.trim() || 'Anónimo',
+        message: feedback.trim(),
+        user_id: authData?.user?.id ?? null,
+        user_agent: userAgent
+      });
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        setFeedback('');
+        setName('');
+        onClose();
+      }, 2000);
+    } catch (err) {
+      console.error('[FeedbackModal] Error sending feedback', err);
+      setError('No pudimos enviar tu feedback. Inténtalo de nuevo en unos segundos.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!shouldRender) return null;
@@ -80,23 +107,55 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose })
                <p className="text-sm text-gray-500">Tu opinión nos ayuda a mejorar.</p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit}>
-              <p className="text-sm text-gray-600 mb-4 font-sans leading-relaxed">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <p className="text-sm text-gray-600 font-sans leading-relaxed">
                 ¿Tienes alguna idea, sugerencia o encontraste un error? Cuéntanoslo para mejorar Terreta Hub.
               </p>
+
+              <div className="space-y-2">
+                <label htmlFor="feedback-name" className="text-xs font-bold text-[#D97706] uppercase tracking-widest">
+                  Nombre (opcional o anónimo)
+                </label>
+                <input
+                  id="feedback-name"
+                  name="feedback-name"
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Pon tu nombre o déjalo vacío para ser Anónimo"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-white border border-gray-200 rounded-xl p-3 text-terreta-dark placeholder-gray-400 focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none text-sm font-sans"
+                  aria-label="Nombre para el feedback"
+                />
+              </div>
               
-              <textarea
-                required
-                className="w-full bg-white border border-gray-200 rounded-xl p-4 text-terreta-dark placeholder-gray-400 focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none resize-none h-32 text-sm mb-4 font-sans"
-                placeholder="Escribe tu mensaje aquí..."
-                value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
-              />
+              <div className="space-y-2">
+                <label htmlFor="feedback-message" className="text-xs font-bold text-[#D97706] uppercase tracking-widest">
+                  Mensaje
+                </label>
+                <textarea
+                  id="feedback-message"
+                  name="feedback-message"
+                  required
+                  className="w-full bg-white border border-gray-200 rounded-xl p-4 text-terreta-dark placeholder-gray-400 focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none resize-none h-32 text-sm font-sans"
+                  placeholder="Escribe tu mensaje aquí..."
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  aria-label="Mensaje de feedback"
+                />
+              </div>
+
+              {error && (
+                <p className="text-sm text-red-500 font-semibold" role="alert">
+                  {error}
+                </p>
+              )}
 
               <button
                 type="submit"
                 disabled={isSubmitting || !feedback.trim()}
                 className="w-full bg-[#D97706] text-white font-bold py-3 rounded-xl hover:bg-[#B45309] transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm uppercase tracking-wide"
+                aria-label="Enviar feedback"
               >
                 {isSubmitting ? 'Enviando...' : 'Enviar Feedback'}
               </button>
