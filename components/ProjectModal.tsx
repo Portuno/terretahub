@@ -18,11 +18,15 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
   useEffect(() => {
     if (isOpen && project) {
       setShouldRender(true);
-      setTimeout(() => setIsVisible(true), 50);
+      // Pequeño delay para permitir que el DOM se actualice antes de la animación
+      requestAnimationFrame(() => {
+        setTimeout(() => setIsVisible(true), 10);
+      });
       document.body.style.overflow = 'hidden';
       setCurrentImageIndex(0);
     } else {
       setIsVisible(false);
+      // Esperar a que termine la animación antes de desmontar
       const timer = setTimeout(() => {
         setShouldRender(false);
         document.body.style.overflow = 'unset';
@@ -56,22 +60,24 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
 
   return (
     <div
-      className={`fixed inset-0 z-[80] flex items-center justify-center p-4 transition-all duration-300 ${
+      className={`fixed inset-0 z-[80] flex items-center justify-center p-4 transition-all duration-300 ease-out ${
         isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
       onClick={handleBackdropClick}
     >
       {/* Backdrop */}
       <div
-        className={`absolute inset-0 bg-terreta-dark/70 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`absolute inset-0 bg-terreta-dark/70 backdrop-blur-sm transition-opacity duration-300 ease-out ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
       />
 
       {/* Modal Content */}
       <div
-        className={`relative bg-[#F9F6F0] w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ${
-          isVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
+        className={`relative bg-[#F9F6F0] w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-out ${
+          isVisible 
+            ? 'scale-100 translate-y-0 opacity-100' 
+            : 'scale-95 translate-y-8 opacity-0'
         }`}
         onClick={(e) => e.stopPropagation()}
       >

@@ -60,7 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar - Desktop & Mobile */}
       <aside className={`
-        w-64 bg-[#EBE5DA] h-screen fixed left-0 top-0 flex flex-col border-r border-[#D1C9BC]/30 z-40
+        w-64 lg:w-52 bg-[#EBE5DA] h-screen fixed left-0 top-0 flex flex-col border-r border-[#D1C9BC]/30 z-40
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         md:translate-x-0 md:relative md:z-20
         transition-transform duration-300 ease-in-out

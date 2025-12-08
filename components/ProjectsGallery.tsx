@@ -409,13 +409,10 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
                     {project.name}
                   </h3>
                   {project.slogan && (
-                    <p className="text-sm text-gray-500 italic mb-3 line-clamp-1">
+                    <p className="text-sm text-gray-500 italic mb-4 line-clamp-1">
                       {project.slogan}
                     </p>
                   )}
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-3">
-                    {project.description}
-                  </p>
 
                   {/* Categorías */}
                   {project.categories.length > 0 && (
