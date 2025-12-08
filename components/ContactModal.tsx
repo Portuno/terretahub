@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Send } from 'lucide-react';
 import { ContactFormState } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface ContactModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   // Animation states
   const [shouldRender, setShouldRender] = useState(false);
@@ -39,14 +41,36 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setSuccess(true);
-    setIsSubmitting(false);
-    setTimeout(() => {
-      setSuccess(false);
-      setFormData({ name: '', email: '', message: '' });
-      onClose();
-    }, 2000);
+    setErrorMessage(null);
+
+    try {
+      const { error } = await supabase
+        .from('contact_messages')
+        .insert({
+          name: formData.name,
+          email: formData.email,
+          message: formData.message
+        });
+
+      if (error) {
+        console.error('[ContactModal] Error al guardar mensaje:', error);
+        setErrorMessage('No pudimos enviar tu mensaje. Intenta nuevamente.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      setSuccess(true);
+      setIsSubmitting(false);
+      setTimeout(() => {
+        setSuccess(false);
+        setFormData({ name: '', email: '', message: '' });
+        onClose();
+      }, 2000);
+    } catch (err: any) {
+      console.error('[ContactModal] Excepción al enviar mensaje:', err);
+      setErrorMessage('Ocurrió un error al enviar tu mensaje.');
+      setIsSubmitting(false);
+    }
   };
 
   if (!shouldRender) return null;
@@ -90,6 +114,11 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-8">
+              {errorMessage && (
+                <div className="bg-red-900/30 border border-red-800/50 text-red-100 text-sm px-4 py-3 rounded-lg">
+                  {errorMessage}
+                </div>
+              )}
               <div className="group">
                 <label htmlFor="name" className="block text-xs font-bold text-[#D97706]/80 uppercase tracking-wider mb-2 font-sans group-focus-within:text-[#D97706] transition-colors">Nombre</label>
                 <input
