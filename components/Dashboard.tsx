@@ -326,7 +326,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
       <main className="flex-1 flex flex-col min-h-screen transition-all duration-300">
         
         {/* Top Navbar */}
-        <header className="bg-white border-b border-gray-100 h-14 md:h-16 px-4 flex items-center justify-between sticky top-0 z-10">
+        <header className="bg-white border-b border-gray-100 h-14 md:h-16 px-4 md:px-8 flex items-center justify-between sticky top-0 z-10">
             <h2 className="font-serif text-lg md:text-2xl text-terreta-dark truncate">
                 {activeSection === 'agora' && 'Ágora Comunitario'}
                 {activeSection === 'comunidad' && 'Explorar Comunidad'}
@@ -373,7 +373,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto px-2 md:px-3 pb-4 md:pl-0">
+        <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-4">
           
           {activeSection === 'public_profile' && viewingProfileHandle ? (
              <PublicProfile handle={viewingProfileHandle} />
