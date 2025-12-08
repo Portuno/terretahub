@@ -350,7 +350,7 @@ export const PublicLinkBio: React.FC = () => {
       }}
     >
       {/* Logo Button - Arriba a la izquierda */}
-      <div className="fixed top-6 left-6 z-20">
+      <div className="fixed top-6 left-6 z-20 hidden md:block">
         <button
           onClick={() => navigate('/app')}
           className="flex items-center gap-2.5 bg-white/90 backdrop-blur-sm px-4 py-2.5 rounded-lg hover:bg-white transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 group"
