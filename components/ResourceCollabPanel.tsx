@@ -5,25 +5,14 @@ import { HelpCircle, Lightbulb } from 'lucide-react';
 
 type SubmissionState = 'idle' | 'loading' | 'success' | 'error';
 
-const RESOURCE_TYPES = [
-  'Plantillas',
-  'Coworkings',
-  'Mentores',
-  'Fondos',
-  'Cursos',
-  'Herramientas',
-  'Comunidad',
-  'Eventos'
-];
-
 const VERTICALS = [
-  'Tecnología',
-  'Arte & Educación',
-  'Finanzas',
-  'Legal',
-  'Comunidad',
-  'Salud'
-];
+    'Tecnología',
+    'Arte & Educación',
+    'Finanzas',
+    'Legal',
+    'Comunidad',
+    'Salud'
+  ];
 
 const PLACEHOLDERS = [
   '¿Buscas específicamente un mentor con experiencia en rondas de financiación Serie A o una guía legal detallada sobre tokenización? Sé preciso con las cifras y el mercado. Si conoces un nombre que debemos contactar, ¡compártelo!',
@@ -41,7 +30,6 @@ interface ResourceCollabPanelProps {
 }
 
 export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }) => {
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [formatTags, setFormatTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [selectedVerticals, setSelectedVerticals] = useState<string[]>([]);
@@ -86,8 +74,8 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
 
   const isSubmitDisabled = useMemo(() => {
     const hasDetails = details.trim().length > 12;
-    return !hasDetails || (selectedTypes.length === 0 && selectedVerticals.length === 0);
-  }, [details, selectedTypes, selectedVerticals]);
+    return !hasDetails || selectedVerticals.length === 0;
+  }, [details, selectedVerticals]);
 
   const handleSubmit = async () => {
     if (isSubmitDisabled || submitState === 'loading') return;
@@ -97,7 +85,7 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
 
     const payload = {
       user_id: user?.id ?? null,
-      need_types: selectedTypes,
+      need_types: [],
       format_tags: formatTags,
       verticals: selectedVerticals,
       details: details.trim(),
@@ -115,7 +103,6 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
 
       setSubmitState('success');
       setDetails('');
-      setSelectedTypes([]);
       setSelectedVerticals([]);
       setFormatTags([]);
       rotatePlaceholder();
@@ -136,122 +123,84 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
     <section className="w-full h-full flex flex-col gap-2 rounded-2xl bg-gradient-to-br from-amber-50 via-emerald-50/60 to-orange-50 p-3 shadow-lg border border-amber-100 flex-grow min-h-[calc(100vh-4rem)]">
       <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-1 shrink-0">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 mb-1">
             Recursos (En construcción)
           </p>
-          <h2 className="text-xl font-serif font-bold text-slate-900 leading-tight">
+          <h2 className="text-3xl font-serif font-bold text-slate-900 leading-tight">
             Panel de Colaboración
           </h2>
         </div>
-        <p className="text-xs text-slate-700 max-w-xl text-right md:text-right hidden md:block">
+        <p className="text-sm text-slate-700 max-w-xl text-right md:text-right hidden md:block pb-2">
           Siembra tu necesidad aquí para priorizar el contenido.
         </p>
       </header>
 
       <div className="flex-1 flex flex-col gap-3 rounded-xl bg-white/90 p-3 shadow-inner border border-white/70 overflow-y-auto">
         
-        {/* Encapsulated Options: Types & Verticals */}
-        <div className="bg-white/50 rounded-xl p-3 shadow-sm border border-slate-100 shrink-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* 1. Resource Types */}
-                <div className="flex flex-col gap-2 relative">
-                  <div className="flex items-center gap-1">
-                      <p className="text-xs font-bold text-terreta-dark uppercase tracking-wide">Tipo de Recurso</p>
-                      <div className="group relative">
-                          <HelpCircle size={12} className="text-terreta-gold cursor-help" />
-                          <div className="absolute left-full top-0 ml-2 w-48 bg-slate-800 text-white text-[10px] p-2 rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none z-10 transition-opacity">
-                              Selecciona qué tipo de ayuda estás buscando para tu proyecto.
-                          </div>
+        {/* Encapsulated Options: Verticals */}
+        <div className="bg-white/50 rounded-xl p-4 shadow-sm border border-slate-100 shrink-0">
+            <div className="flex flex-col gap-3 relative">
+              <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-terreta-dark uppercase tracking-wide">1. Vertical de Interés</p>
+                  <div className="group relative">
+                      <HelpCircle size={14} className="text-terreta-gold cursor-help" />
+                      <div className="absolute left-full top-0 ml-2 w-48 bg-slate-800 text-white text-xs p-2 rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none z-10 transition-opacity">
+                          Elige el sector al que pertenece tu consulta.
                       </div>
                   </div>
-                  <div className="w-8 h-0.5 bg-[#E6DEC9] rounded-full mb-1"></div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {RESOURCE_TYPES.map((type) => {
-                      const isActive = selectedTypes.includes(type);
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => toggleItem(type, selectedTypes, setSelectedTypes)}
-                          className={`
-                            inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs transition focus:outline-none focus:ring-1 focus:ring-emerald-500
-                            ${isActive 
-                                ? 'border-emerald-600 bg-emerald-50 text-emerald-700 shadow-sm font-semibold' 
-                                : 'border-slate-200 text-slate-600 hover:border-emerald-400 bg-white'
-                            }
-                          `}
-                        >
-                          {type}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+              </div>
+              <div className="w-8 h-0.5 bg-[#E6DEC9] rounded-full"></div>
+              <div className="flex flex-wrap gap-2">
+                {VERTICALS.map((vertical) => {
+                  const isActive = selectedVerticals.includes(vertical);
+                  // Determine color based on vertical name
+                  let activeClass = 'border-slate-600 bg-slate-50 text-slate-700';
+                  if (vertical === 'Tecnología' || vertical === 'Salud') {
+                      activeClass = 'border-emerald-600 bg-emerald-50 text-emerald-700';
+                  } else if (vertical === 'Arte & Educación' || vertical === 'Comunidad') {
+                      activeClass = 'border-[#8D6E63] bg-[#FDF8F6] text-[#8D6E63]'; // Arcilla/Clay
+                  } else {
+                      activeClass = 'border-amber-500 bg-amber-50 text-amber-700';
+                  }
 
-                {/* 2. Verticals */}
-                <div className="flex flex-col gap-2 relative border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-3">
-                  <div className="flex items-center gap-1">
-                      <p className="text-xs font-bold text-terreta-dark uppercase tracking-wide">Vertical de Interés</p>
-                      <div className="group relative">
-                          <HelpCircle size={12} className="text-terreta-gold cursor-help" />
-                          <div className="absolute right-0 top-6 w-48 bg-slate-800 text-white text-[10px] p-2 rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none z-10 transition-opacity">
-                              Elige el sector al que pertenece tu consulta.
-                          </div>
-                      </div>
-                  </div>
-                  <div className="w-8 h-0.5 bg-[#E6DEC9] rounded-full mb-1"></div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {VERTICALS.map((vertical) => {
-                      const isActive = selectedVerticals.includes(vertical);
-                      // Determine color based on vertical name
-                      let activeClass = 'border-slate-600 bg-slate-50 text-slate-700';
-                      if (vertical === 'Tecnología' || vertical === 'Salud') {
-                          activeClass = 'border-emerald-600 bg-emerald-50 text-emerald-700';
-                      } else if (vertical === 'Arte & Educación' || vertical === 'Comunidad') {
-                          activeClass = 'border-[#8D6E63] bg-[#FDF8F6] text-[#8D6E63]'; // Arcilla/Clay
-                      } else {
-                          activeClass = 'border-amber-500 bg-amber-50 text-amber-700';
-                      }
-
-                      return (
-                        <button
-                          key={vertical}
-                          type="button"
-                          onClick={() => toggleItem(vertical, selectedVerticals, setSelectedVerticals)}
-                          className={`
-                            inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs transition focus:outline-none focus:ring-1 focus:ring-emerald-500
-                            ${isActive 
-                                ? `${activeClass} shadow-sm font-semibold` 
-                                : 'border-slate-200 text-slate-600 hover:border-slate-400 bg-white'
-                            }
-                          `}
-                        >
-                          {vertical}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                  return (
+                    <button
+                      key={vertical}
+                      type="button"
+                      onClick={() => toggleItem(vertical, selectedVerticals, setSelectedVerticals)}
+                      className={`
+                        inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition focus:outline-none focus:ring-1 focus:ring-emerald-500
+                        ${isActive 
+                            ? `${activeClass} shadow-sm font-semibold` 
+                            : 'border-slate-200 text-slate-600 hover:border-slate-400 bg-white'
+                        }
+                      `}
+                    >
+                      {vertical}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
         </div>
 
-        {/* 3. Formats */}
-        <div className="grid gap-2 shrink-0 px-1">
-          <div className="flex items-center gap-1">
-               <label className="text-xs font-bold text-terreta-dark uppercase tracking-wide">Formatos preferidos</label>
+        {/* Formats */}
+        <div className="grid gap-2 shrink-0 px-1 mt-2">
+          <div className="flex items-center gap-2">
+               <label className="text-sm font-bold text-terreta-dark uppercase tracking-wide">2. Formatos preferidos</label>
                <div className="group relative">
-                  <HelpCircle size={12} className="text-terreta-gold cursor-help" />
-                   <div className="absolute left-0 bottom-6 w-48 bg-slate-800 text-white text-[10px] p-2 rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none z-10 transition-opacity">
+                  <HelpCircle size={14} className="text-terreta-gold cursor-help" />
+                   <div className="absolute left-0 bottom-6 w-48 bg-slate-800 text-white text-xs p-2 rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none z-10 transition-opacity">
                       ¿Cómo prefieres consumir este contenido? (PDF, Video, Taller...)
                    </div>
                </div>
           </div>
           
-          <div className="flex flex-wrap gap-2 items-center pb-1 border-b border-terreta-accent/30 focus-within:border-terreta-accent transition-colors">
+          <div className="flex flex-wrap gap-2 items-center pb-2 border-b border-terreta-accent/30 focus-within:border-terreta-accent transition-colors">
             {formatTags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-1 rounded-full bg-[#EBE5DA] px-2 py-0.5 text-xs text-terreta-dark border border-[#D1C9BC]"
+                className="inline-flex items-center gap-1 rounded-full bg-[#EBE5DA] px-3 py-1 text-sm text-terreta-dark border border-[#D1C9BC]"
               >
                 {tag}
                 <button
@@ -268,19 +217,19 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
                 onChange={(event) => setTagInput(event.target.value)}
                 onKeyDown={handleTagKeyDown}
                 placeholder="Ej: videos cortos, PDF... (Enter)"
-                className="flex-1 min-w-[200px] bg-transparent text-sm text-slate-600 placeholder-slate-400 outline-none"
+                className="flex-1 min-w-[200px] bg-transparent text-base text-slate-700 placeholder-slate-400 outline-none py-1"
               />
           </div>
         </div>
 
-        {/* 4. Details */}
-        <div className="flex flex-col gap-2 flex-1 min-h-[100px] px-1">
+        {/* Details */}
+        <div className="flex flex-col gap-3 flex-1 min-h-[150px] px-1 mt-2">
           <div className="flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-1">
-                <p className="text-xs font-bold text-terreta-dark uppercase tracking-wide">Detalles</p>
+            <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-terreta-dark uppercase tracking-wide">3. Detalles</p>
                  <div className="group relative">
-                  <HelpCircle size={12} className="text-terreta-gold cursor-help" />
-                   <div className="absolute left-0 bottom-6 w-64 bg-slate-800 text-white text-[10px] p-2 rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none z-10 transition-opacity">
+                  <HelpCircle size={14} className="text-terreta-gold cursor-help" />
+                   <div className="absolute left-0 bottom-6 w-64 bg-slate-800 text-white text-xs p-2 rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none z-10 transition-opacity">
                       Cuéntanos más sobre lo que necesitas. Sé específico para que podamos ayudarte mejor.
                    </div>
                </div>
@@ -289,9 +238,9 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
             <button
               type="button"
               onClick={rotatePlaceholder}
-              className="group flex items-center gap-1 px-2 py-1 rounded bg-amber-50 hover:bg-amber-100 text-[10px] text-amber-700 transition-colors border border-amber-200/50"
+              className="group flex items-center gap-1.5 px-3 py-1.5 rounded bg-amber-50 hover:bg-amber-100 text-xs text-amber-700 transition-colors border border-amber-200/50"
             >
-               <Lightbulb size={10} className="text-amber-500 group-hover:text-amber-600" />
+               <Lightbulb size={12} className="text-amber-500 group-hover:text-amber-600" />
                <span className="font-semibold">Inspiración</span>
             </button>
           </div>
@@ -299,7 +248,7 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
             value={details}
             onChange={(event) => setDetails(event.target.value)}
             placeholder={placeholder}
-            className="flex-1 w-full rounded-lg border-b-2 border-slate-100 bg-slate-50/50 px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:border-terreta-accent focus:bg-white transition-all resize-none outline-none"
+            className="flex-1 w-full rounded-xl border-b-2 border-slate-100 bg-slate-50/50 px-4 py-3 text-base text-slate-800 placeholder-slate-400 focus:border-terreta-accent focus:bg-white transition-all resize-none outline-none leading-relaxed"
           />
         </div>
 
