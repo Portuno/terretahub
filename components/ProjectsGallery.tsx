@@ -199,8 +199,8 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
   }
 
   return (
-    <div className="p-6 md:p-10 animate-fade-in">
-      <div className="max-w-7xl mx-auto">
+    <div className="w-full px-3 lg:px-4 py-4 animate-fade-in">
+      <div className="w-full">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>

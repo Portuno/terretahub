@@ -373,7 +373,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 2xl:px-8 pb-4 md:pb-8">
+        <div className="flex-1 overflow-y-auto px-3 lg:px-4 pb-4 md:pb-6">
           
           {activeSection === 'public_profile' && viewingProfileHandle ? (
              <PublicProfile handle={viewingProfileHandle} />
@@ -406,7 +406,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
                 />
              )
           ) : activeSection === 'recursos' ? (
-            <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-7 py-3 md:py-4">
+            <div className="w-full px-3 lg:px-4 py-3 md:py-4">
               <ResourceCollabPanel user={currentUser} />
             </div>
           ) : activeSection === 'admin' && currentUser && isAdmin(currentUser) ? (
@@ -420,8 +420,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
               <p className="max-w-md mx-auto text-gray-500">No tienes permisos de administrador para acceder a esta sección.</p>
             </div>
           ) : activeSection === 'comunidad' ? (
-            <div className="p-6 md:p-10">
-              <div className="max-w-7xl mx-auto animate-fade-in">
+            <div className="w-full py-4">
+              <div className="w-full animate-fade-in">
                   {/* Search Bar */}
                   <div className="relative mb-10 group">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
