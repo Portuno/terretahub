@@ -138,14 +138,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-4 bg-[#E3DDD0]">
          
          {/* Feedback Section */}
-         <div className="mb-4 px-2">
-            <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#D97706] mb-1 flex items-center gap-1">
-              <MessageCircle size={10} /> Feedback
-            </h4>
-            <p className="text-[11px] text-terreta-dark/60 leading-tight">
-              Tu opinión importa. Ayúdanos a hacer de Terreta Hub el mejor hogar digital.
-            </p>
-         </div>
+         <button
+           type="button"
+           onClick={() => {
+             setIsMobileMenuOpen(false);
+             onOpenFeedback?.();
+           }}
+           className="mb-4 px-2 w-full text-left rounded-lg hover:bg-white/40 transition-colors focus:outline-none focus:ring-2 focus:ring-[#D97706] focus:ring-offset-2 focus:ring-offset-[#E3DDD0]"
+           aria-label="Abrir feedback"
+         >
+           <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#D97706] mb-1 flex items-center gap-1">
+             <MessageCircle size={10} /> Feedback
+           </h4>
+           <p className="text-[11px] text-terreta-dark/60 leading-tight">
+             Tu opinión importa. Ayúdanos a hacer de Terreta Hub el mejor hogar digital.
+           </p>
+         </button>
 
          {user ? (
             <div className="flex items-center gap-3 p-2 rounded-lg bg-white/50 border border-white/40">
