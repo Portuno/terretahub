@@ -31,8 +31,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     root.classList.add(`theme-${theme}`);
     
     // Also update body background color to avoid flashes
-    // This will be handled by CSS variables, but ensuring the class is on html/body is good.
-    document.body.className = `theme-${theme}`; // Optional: keep it on body too if needed
+    document.body.className = `theme-${theme}`; 
+
+    // Debugging: Log the theme change
+    console.log(`[ThemeContext] Theme changed to: ${theme}`);
+    
+    // Force variable update just in case (hack for some browsers/frameworks)
+    root.style.setProperty('--dummy', Date.now().toString());
   }, [theme]);
 
   return (
