@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Calendar, User, ExternalLink, Video, Image as ImageIcon } from 'lucide-react';
 import { ProjectWithAuthor } from './ProjectsGallery';
-import { generateSlug } from '../lib/utils';
+import { generateSlug, normalizeUrl } from '../lib/utils';
 
 interface ProjectModalProps {
   project: ProjectWithAuthor | null;
@@ -221,7 +221,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
               {project.website && (
                 <div className="mt-4">
                   <a
-                    href={project.website}
+                    href={normalizeUrl(project.website)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-terreta-accent text-white rounded-lg hover:opacity-90 transition-colors font-bold text-sm shadow-sm"

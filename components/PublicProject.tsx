@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { generateSlug } from '../lib/utils';
+import { generateSlug, normalizeUrl } from '../lib/utils';
 import { NotFound404 } from './NotFound404';
 import { Calendar, User, Video, Image as ImageIcon, ArrowLeft, ExternalLink } from 'lucide-react';
 
@@ -314,7 +314,7 @@ export const PublicProject: React.FC = () => {
             {project.website && (
               <div className="mt-4">
                 <a
-                  href={project.website}
+                  href={normalizeUrl(project.website)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-[#D97706] text-white rounded-lg hover:bg-[#B45309] transition-colors font-bold text-sm shadow-sm"
