@@ -144,9 +144,9 @@ const HexColorPicker: React.FC<{
 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      <span className="text-[10px] uppercase text-gray-500 font-bold tracking-wide">{label}</span>
+      <span className="text-[10px] uppercase text-terreta-secondary font-bold tracking-wide">{label}</span>
       <div className="flex items-center gap-2">
-        <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-gray-200 shadow-sm shrink-0">
+        <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-terreta-border shadow-sm shrink-0">
           <input 
             type="color" 
             value={value.startsWith('#') ? value : '#000000'} // Fallback for gradients in basic picker
@@ -155,12 +155,12 @@ const HexColorPicker: React.FC<{
           />
         </div>
         <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-mono">#</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-terreta-secondary text-xs font-mono">#</span>
           <input 
             type="text" 
             value={localHex.replace('#', '')}
             onChange={handleHexChange}
-            className="w-full pl-6 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono text-gray-700 focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none uppercase"
+            className="w-full pl-6 pr-3 py-2 bg-terreta-card border border-terreta-border rounded-lg text-xs font-mono text-terreta-dark focus:border-terreta-accent focus:ring-1 focus:ring-terreta-accent outline-none uppercase"
             maxLength={6}
           />
         </div>
@@ -811,38 +811,38 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
 
   if (loading) {
     return (
-      <div className="h-[calc(100vh-80px)] flex items-center justify-center bg-gray-50">
+      <div className="h-[calc(100vh-80px)] flex items-center justify-center bg-terreta-bg">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D97706] mx-auto mb-4"></div>
-          <p className="text-gray-500">Cargando perfil...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-terreta-accent mx-auto mb-4"></div>
+          <p className="text-terreta-secondary">Cargando perfil...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] flex flex-col lg:flex-row bg-gray-50 overflow-hidden">
+    <div className="h-[calc(100vh-80px)] flex flex-col lg:flex-row bg-terreta-bg overflow-hidden">
       
       {/* --- LEFT COLUMN: EDITOR --- */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white border-r border-gray-200">
+      <div className="flex-1 flex flex-col min-w-0 bg-terreta-card border-r border-terreta-border">
         
         {/* Editor Tabs */}
-        <div className="flex border-b border-gray-200">
+        <div className="flex border-b border-terreta-border">
           <button 
             onClick={() => setActiveTab('content')}
-            className={`flex-1 py-4 text-xs md:text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 ${activeTab === 'content' ? 'text-[#D97706] border-b-2 border-[#D97706]' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`flex-1 py-4 text-xs md:text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 ${activeTab === 'content' ? 'text-terreta-accent border-b-2 border-terreta-accent' : 'text-terreta-secondary hover:text-terreta-dark'}`}
           >
             <Layout size={18} /> <span className="hidden sm:inline">Contenido</span>
           </button>
           <button 
             onClick={() => setActiveTab('appearance')}
-            className={`flex-1 py-4 text-xs md:text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 ${activeTab === 'appearance' ? 'text-[#D97706] border-b-2 border-[#D97706]' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`flex-1 py-4 text-xs md:text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 ${activeTab === 'appearance' ? 'text-terreta-accent border-b-2 border-terreta-accent' : 'text-terreta-secondary hover:text-terreta-dark'}`}
           >
             <Palette size={18} /> <span className="hidden sm:inline">Apariencia</span>
           </button>
           <button 
             onClick={() => setActiveTab('stats')}
-            className={`flex-1 py-4 text-xs md:text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 ${activeTab === 'stats' ? 'text-[#D97706] border-b-2 border-[#D97706]' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`flex-1 py-4 text-xs md:text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 ${activeTab === 'stats' ? 'text-terreta-accent border-b-2 border-terreta-accent' : 'text-terreta-secondary hover:text-terreta-dark'}`}
           >
             <BarChart3 size={18} /> <span className="hidden sm:inline">Estadísticas</span>
           </button>
@@ -856,13 +856,13 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
               {/* Identity Section */}
               <section className="space-y-4">
                 <h3 className="font-serif text-xl text-terreta-dark">Identidad</h3>
-                <div className="flex flex-col md:flex-row gap-6 items-start bg-gray-50 p-6 rounded-xl border border-gray-100">
+                <div className="flex flex-col md:flex-row gap-6 items-start bg-terreta-bg p-6 rounded-xl border border-terreta-border">
                   
                   {/* Avatar Upload */}
                   <div className="flex flex-col items-center gap-3">
                     <div 
                       onClick={() => fileInputRef.current?.click()}
-                      className="relative w-20 h-20 rounded-full bg-gray-200 overflow-hidden cursor-pointer group border-2 border-white shadow-sm hover:border-[#D97706] transition-colors"
+                      className="relative w-20 h-20 rounded-full bg-terreta-sidebar overflow-hidden cursor-pointer group border-2 border-terreta-card shadow-sm hover:border-terreta-accent transition-colors"
                     >
                       <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -871,7 +871,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                     </div>
                     <button 
                       onClick={() => fileInputRef.current?.click()}
-                      className="text-xs font-bold text-[#D97706] hover:underline flex items-center gap-1"
+                      className="text-xs font-bold text-terreta-accent hover:underline flex items-center gap-1"
                     >
                       <Upload size={12} /> Cambiar foto
                     </button>
@@ -886,21 +886,21 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
 
                   <div className="flex-1 space-y-3 w-full">
                     <div>
-                      <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">Nombre Visible</label>
+                      <label className="block text-xs font-bold text-terreta-secondary mb-1 uppercase">Nombre Visible</label>
                       <input 
                         type="text" 
                         value={profile.displayName}
                         onChange={e => setProfile({...profile, displayName: e.target.value})}
-                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-serif placeholder-gray-400 focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none"
+                        className="w-full bg-terreta-card border border-terreta-border rounded-lg px-3 py-2 text-sm font-serif text-terreta-dark placeholder-terreta-secondary focus:border-terreta-accent focus:ring-1 focus:ring-terreta-accent outline-none"
                         placeholder="Tu Nombre"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">Biografía</label>
+                      <label className="block text-xs font-bold text-terreta-secondary mb-1 uppercase">Biografía</label>
                       <textarea 
                         value={profile.bio}
                         onChange={e => setProfile({...profile, bio: e.target.value})}
-                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none placeholder-gray-400 focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none"
+                        className="w-full bg-terreta-card border border-terreta-border rounded-lg px-3 py-2 text-sm resize-none text-terreta-dark placeholder-terreta-secondary focus:border-terreta-accent focus:ring-1 focus:ring-terreta-accent outline-none"
                         rows={2}
                         placeholder="Cuéntale al mundo quién eres..."
                       />
@@ -956,20 +956,20 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
               {/* Community Visibility Section */}
               <section className="space-y-4">
                 <h3 className="font-serif text-xl text-terreta-dark">Visibilidad</h3>
-                <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
+                <div className="bg-terreta-bg p-6 rounded-xl border border-terreta-border">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <p className="font-bold text-sm text-terreta-dark mb-1">Aparecer en Comunidad</p>
-                      <p className="text-xs text-gray-500">Permite que otros usuarios te encuentren en la sección de Comunidad</p>
+                      <p className="text-xs text-terreta-secondary">Permite que otros usuarios te encuentren en la sección de Comunidad</p>
                     </div>
                     <button
                       onClick={() => setShowInCommunity(!showInCommunity)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#D97706] focus:ring-offset-2 ${
-                        showInCommunity ? 'bg-[#D97706]' : 'bg-gray-300'
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-terreta-accent focus:ring-offset-2 ${
+                        showInCommunity ? 'bg-terreta-accent' : 'bg-terreta-border'
                       }`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        className={`inline-block h-4 w-4 transform rounded-full bg-terreta-card transition-transform ${
                           showInCommunity ? 'translate-x-6' : 'translate-x-1'
                         }`}
                       />
@@ -982,20 +982,20 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
               <section className="space-y-4">
                 <div className="flex justify-between items-center flex-wrap gap-2">
                    <h3 className="font-serif text-xl text-terreta-dark">Bloques</h3>
-                   <div className="flex gap-2 bg-gray-100 p-1 rounded-lg flex-wrap">
-                      <button onClick={() => addBlock('link')} className="p-2 bg-white text-terreta-dark rounded shadow-sm hover:shadow text-xs flex items-center gap-1 font-bold border border-gray-200"><Plus size={14}/> Link</button>
-                      <button onClick={() => addBlock('header')} className="p-2 bg-transparent text-gray-600 rounded hover:bg-gray-200 text-xs flex items-center gap-1"><Type size={14}/> Título</button>
-                      <button onClick={() => addBlock('text')} className="p-2 bg-transparent text-gray-600 rounded hover:bg-gray-200 text-xs flex items-center gap-1"><Layout size={14}/> Texto</button>
-                      <button onClick={() => addBlock('video')} className="p-2 bg-transparent text-gray-600 rounded hover:bg-gray-200 text-xs flex items-center gap-1"><Video size={14}/> Video</button>
-                      <button onClick={() => addBlock('music')} className="p-2 bg-transparent text-gray-600 rounded hover:bg-gray-200 text-xs flex items-center gap-1"><Music size={14}/> Música</button>
-                      <button onClick={() => addBlock('gallery')} className="p-2 bg-transparent text-gray-600 rounded hover:bg-gray-200 text-xs flex items-center gap-1"><Images size={14}/> Galería</button>
-                      <button onClick={() => addBlock('cv')} className="p-2 bg-transparent text-gray-600 rounded hover:bg-gray-200 text-xs flex items-center gap-1"><FileText size={14}/> Currículum</button>
+                   <div className="flex gap-2 bg-terreta-bg p-1 rounded-lg flex-wrap">
+                      <button onClick={() => addBlock('link')} className="p-2 bg-terreta-card text-terreta-dark rounded shadow-sm hover:shadow text-xs flex items-center gap-1 font-bold border border-terreta-border"><Plus size={14}/> Link</button>
+                      <button onClick={() => addBlock('header')} className="p-2 bg-transparent text-terreta-secondary rounded hover:bg-terreta-bg text-xs flex items-center gap-1"><Type size={14}/> Título</button>
+                      <button onClick={() => addBlock('text')} className="p-2 bg-transparent text-terreta-secondary rounded hover:bg-terreta-bg text-xs flex items-center gap-1"><Layout size={14}/> Texto</button>
+                      <button onClick={() => addBlock('video')} className="p-2 bg-transparent text-terreta-secondary rounded hover:bg-terreta-bg text-xs flex items-center gap-1"><Video size={14}/> Video</button>
+                      <button onClick={() => addBlock('music')} className="p-2 bg-transparent text-terreta-secondary rounded hover:bg-terreta-bg text-xs flex items-center gap-1"><Music size={14}/> Música</button>
+                      <button onClick={() => addBlock('gallery')} className="p-2 bg-transparent text-terreta-secondary rounded hover:bg-terreta-bg text-xs flex items-center gap-1"><Images size={14}/> Galería</button>
+                      <button onClick={() => addBlock('cv')} className="p-2 bg-transparent text-terreta-secondary rounded hover:bg-terreta-bg text-xs flex items-center gap-1"><FileText size={14}/> Currículum</button>
                    </div>
                 </div>
 
                 <div className="space-y-3">
                    {profile.blocks.length === 0 && (
-                     <div className="text-center py-10 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+                     <div className="text-center py-10 text-terreta-secondary border-2 border-dashed border-terreta-border rounded-xl bg-terreta-bg/50">
                         <p className="mb-2">Aún no has añadido contenido.</p>
                         <p className="text-xs">Usa los botones de arriba para agregar bloques.</p>
                      </div>
@@ -1003,18 +1003,18 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                    {profile.blocks.map((block, index) => (
                       <div 
                         key={block.id} 
-                        className={`bg-white border border-gray-200 rounded-lg p-4 shadow-sm group transition-all duration-200 ${draggedBlockIndex === index ? 'opacity-50 ring-2 ring-[#D97706] border-[#D97706]' : ''}`}
+                        className={`bg-terreta-card border border-terreta-border rounded-lg p-4 shadow-sm group transition-all duration-200 ${draggedBlockIndex === index ? 'opacity-50 ring-2 ring-terreta-accent border-terreta-accent' : ''}`}
                         draggable
                         onDragStart={() => handleDragStart(index)}
                         onDragOver={(e) => handleDragOver(e, index)}
                         onDragEnd={handleDragEnd}
                       >
                          <div className="flex justify-between items-start mb-3 cursor-move">
-                            <div className="flex items-center gap-2 text-xs font-bold uppercase text-gray-400 select-none">
-                               <GripVertical size={16} className="text-gray-300 group-hover:text-gray-500" />
+                            <div className="flex items-center gap-2 text-xs font-bold uppercase text-terreta-secondary select-none">
+                               <GripVertical size={16} className="text-terreta-border group-hover:text-terreta-dark" />
                                {block.type === 'header' ? 'Sección' : block.type === 'gallery' ? 'Galería' : block.type}
                             </div>
-                            <button onClick={() => removeBlock(block.id)} className="p-1 text-red-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><Trash2 size={16}/></button>
+                            <button onClick={() => removeBlock(block.id)} className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"><Trash2 size={16}/></button>
                          </div>
                          
                          <div className="space-y-3 pl-6">
@@ -1022,14 +1022,14 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                               <div className="flex gap-2">
                                 <input 
                                   type="text"
-                                  className="flex-1 border-b border-gray-200 focus:border-[#D97706] outline-none py-1 font-medium bg-transparent placeholder-gray-300"
+                                  className="flex-1 border-b border-terreta-border focus:border-terreta-accent outline-none py-1 font-medium bg-transparent text-terreta-dark placeholder-terreta-secondary"
                                   placeholder={block.type === 'header' ? 'Nombre de la sección' : 'Título del bloque'}
                                   value={block.title || ''}
                                   onChange={e => updateBlock(block.id, { title: e.target.value })}
                                 />
                                 {block.type === 'link' && (
                                   <select 
-                                    className="text-sm border-b border-gray-200 bg-transparent text-gray-500 outline-none"
+                                    className="text-sm border-b border-terreta-border bg-transparent text-terreta-secondary outline-none"
                                     value={block.icon || 'none'}
                                     onChange={(e) => updateBlock(block.id, { icon: e.target.value })}
                                   >
@@ -1047,7 +1047,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                             {(block.type === 'link' || block.type === 'video' || block.type === 'music') && (
                               <input 
                                 type="url"
-                                className="w-full bg-gray-50 border border-gray-200 rounded px-2 py-2 text-sm text-gray-600 focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none"
+                                className="w-full bg-terreta-bg border border-terreta-border rounded px-2 py-2 text-sm text-terreta-dark placeholder-terreta-secondary focus:border-terreta-accent focus:ring-1 focus:ring-terreta-accent outline-none"
                                 placeholder={block.type === 'video' ? 'https://youtube.com/... o https://vimeo.com/...' : 'https://...'}
                                 value={block.url || ''}
                                 onChange={e => updateBlock(block.id, { url: e.target.value })}
@@ -1055,7 +1055,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                             )}
                              {block.type === 'text' && (
                               <textarea 
-                                className="w-full bg-gray-50 border border-gray-200 rounded px-2 py-2 text-sm text-gray-600 resize-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none"
+                                className="w-full bg-terreta-bg border border-terreta-border rounded px-2 py-2 text-sm text-terreta-dark placeholder-terreta-secondary resize-none focus:border-terreta-accent focus:ring-1 focus:ring-terreta-accent outline-none"
                                 rows={3}
                                 placeholder="Escribe tu contenido aquí..."
                                 value={block.content || ''}
@@ -1066,7 +1066,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                               <div className="space-y-3">
                                 <div className="flex flex-wrap gap-2">
                                    {block.images?.map((img, idx) => (
-                                      <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden group shadow-sm bg-gray-100">
+                                      <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden group shadow-sm bg-terreta-bg">
                                          <img src={img} className="w-full h-full object-cover" alt="Gallery thumbnail" />
                                          <button 
                                             onClick={() => removeGalleryImage(block.id, idx)}
@@ -1076,7 +1076,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                                          </button>
                                       </div>
                                    ))}
-                                   <label className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#D97706] hover:text-[#D97706] transition-colors bg-gray-50">
+                                   <label className="w-16 h-16 rounded-lg border-2 border-dashed border-terreta-border flex flex-col items-center justify-center cursor-pointer hover:border-terreta-accent hover:text-terreta-accent transition-colors bg-terreta-bg">
                                       <Plus size={16} />
                                       <span className="text-[9px] uppercase font-bold mt-1">Add</span>
                                       <input 
@@ -1092,23 +1092,23 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                             )}
                              {block.type === 'cv' && (
                               <div className="space-y-3">
-                                <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                                   <div className="h-10 w-10 rounded-lg bg-orange-50 flex items-center justify-center text-[#D97706]">
+                                <div className="flex items-center gap-3 bg-terreta-bg p-3 rounded-lg border border-terreta-border">
+                                   <div className="h-10 w-10 rounded-lg bg-terreta-accent/10 flex items-center justify-center text-terreta-accent">
                                       <FileText size={20} />
                                    </div>
                                    <div className="flex-1 overflow-hidden">
                                       {block.url ? (
                                         <div className="flex flex-col">
-                                          <span className="text-xs font-bold text-gray-700 truncate">CV Cargado</span>
-                                          <a href={block.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#D97706] hover:underline truncate">
+                                          <span className="text-xs font-bold text-terreta-dark truncate">CV Cargado</span>
+                                          <a href={block.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-terreta-accent hover:underline truncate">
                                             Ver archivo
                                           </a>
                                         </div>
                                       ) : (
-                                        <span className="text-xs text-gray-400">No hay archivo seleccionado</span>
+                                        <span className="text-xs text-terreta-secondary">No hay archivo seleccionado</span>
                                       )}
                                    </div>
-                                   <label className="cursor-pointer bg-white border border-gray-200 hover:border-[#D97706] text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1">
+                                   <label className="cursor-pointer bg-terreta-card border border-terreta-border hover:border-terreta-accent text-terreta-dark px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1">
                                       <Upload size={12} />
                                       <span>{block.url ? 'Cambiar' : 'Subir'}</span>
                                       <input 
@@ -1154,15 +1154,15 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                  
                  {/* Background Controls */}
                  <div className="space-y-4 mb-8">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block">Fondo del Perfil</label>
+                    <label className="text-xs font-bold text-terreta-secondary uppercase tracking-wide block">Fondo del Perfil</label>
                     
                     {/* Background Type Toggle */}
-                    <div className="flex bg-gray-100 p-1 rounded-lg w-fit mb-4">
+                    <div className="flex bg-terreta-bg p-1 rounded-lg w-fit mb-4">
                       <button 
                         onClick={() => {
                           setProfile(p => ({...p, theme: {...p.theme, bgType: 'color', bgColor: gradientStart, id: 'custom'}}));
                         }}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${profile.theme.bgType === 'color' ? 'bg-white shadow text-[#D97706]' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${profile.theme.bgType === 'color' ? 'bg-terreta-card shadow text-terreta-accent' : 'text-terreta-secondary hover:text-terreta-dark'}`}
                       >
                         Sólido
                       </button>
@@ -1170,7 +1170,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                          onClick={() => {
                           updateGradient(gradientStart, gradientEnd);
                         }}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${profile.theme.bgType === 'gradient' ? 'bg-white shadow text-[#D97706]' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${profile.theme.bgType === 'gradient' ? 'bg-terreta-card shadow text-terreta-accent' : 'text-terreta-secondary hover:text-terreta-dark'}`}
                       >
                         Gradiente
                       </button>
@@ -1205,58 +1205,58 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
 
                  {/* Button Style Selector (Visual Radio) */}
                  <div className="space-y-4 mb-8">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block">Estilo de Botones</label>
+                    <label className="text-xs font-bold text-terreta-secondary uppercase tracking-wide block">Estilo de Botones</label>
                     <div className="grid grid-cols-3 gap-3">
                        {/* Option: Solid */}
                        <button 
                           onClick={() => setProfile({...profile, theme: {...profile.theme, buttonStyle: 'solid'}})}
-                          className={`relative p-3 border rounded-xl flex flex-col items-center gap-3 hover:bg-gray-50 transition-all ${profile.theme.buttonStyle === 'solid' ? 'border-[#D97706] bg-orange-50/50 ring-1 ring-[#D97706]' : 'border-gray-200'}`}
+                          className={`relative p-3 border rounded-xl flex flex-col items-center gap-3 hover:bg-terreta-bg transition-all ${profile.theme.buttonStyle === 'solid' ? 'border-terreta-accent bg-terreta-accent/10 ring-1 ring-terreta-accent' : 'border-terreta-border'}`}
                        >
                           {/* Radio Indicator */}
-                          <div className={`absolute top-2 right-2 w-4 h-4 rounded-full border flex items-center justify-center ${profile.theme.buttonStyle === 'solid' ? 'border-[#D97706]' : 'border-gray-300'}`}>
-                             {profile.theme.buttonStyle === 'solid' && <div className="w-2 h-2 bg-[#D97706] rounded-full" />}
+                          <div className={`absolute top-2 right-2 w-4 h-4 rounded-full border flex items-center justify-center ${profile.theme.buttonStyle === 'solid' ? 'border-terreta-accent' : 'border-terreta-border'}`}>
+                             {profile.theme.buttonStyle === 'solid' && <div className="w-2 h-2 bg-terreta-accent rounded-full" />}
                           </div>
 
                           {/* Visual Preview */}
                           <div className="w-full h-8 bg-gray-800 rounded shadow-sm mt-2"></div>
-                          <span className={`text-xs font-bold ${profile.theme.buttonStyle === 'solid' ? 'text-[#D97706]' : 'text-gray-500'}`}>Sólido</span>
+                          <span className={`text-xs font-bold ${profile.theme.buttonStyle === 'solid' ? 'text-terreta-accent' : 'text-terreta-secondary'}`}>Sólido</span>
                        </button>
 
                        {/* Option: Rounded (Soft) */}
                        <button 
                           onClick={() => setProfile({...profile, theme: {...profile.theme, buttonStyle: 'soft'}})}
-                          className={`relative p-3 border rounded-xl flex flex-col items-center gap-3 hover:bg-gray-50 transition-all ${profile.theme.buttonStyle === 'soft' ? 'border-[#D97706] bg-orange-50/50 ring-1 ring-[#D97706]' : 'border-gray-200'}`}
+                          className={`relative p-3 border rounded-xl flex flex-col items-center gap-3 hover:bg-terreta-bg transition-all ${profile.theme.buttonStyle === 'soft' ? 'border-terreta-accent bg-terreta-accent/10 ring-1 ring-terreta-accent' : 'border-terreta-border'}`}
                        >
                            {/* Radio Indicator */}
-                           <div className={`absolute top-2 right-2 w-4 h-4 rounded-full border flex items-center justify-center ${profile.theme.buttonStyle === 'soft' ? 'border-[#D97706]' : 'border-gray-300'}`}>
-                             {profile.theme.buttonStyle === 'soft' && <div className="w-2 h-2 bg-[#D97706] rounded-full" />}
+                           <div className={`absolute top-2 right-2 w-4 h-4 rounded-full border flex items-center justify-center ${profile.theme.buttonStyle === 'soft' ? 'border-terreta-accent' : 'border-terreta-border'}`}>
+                             {profile.theme.buttonStyle === 'soft' && <div className="w-2 h-2 bg-terreta-accent rounded-full" />}
                           </div>
 
                           {/* Visual Preview */}
                           <div className="w-full h-8 bg-gray-800 rounded-lg shadow-sm mt-2"></div>
-                          <span className={`text-xs font-bold ${profile.theme.buttonStyle === 'soft' ? 'text-[#D97706]' : 'text-gray-500'}`}>Redondeado</span>
+                          <span className={`text-xs font-bold ${profile.theme.buttonStyle === 'soft' ? 'text-terreta-accent' : 'text-terreta-secondary'}`}>Redondeado</span>
                        </button>
 
                        {/* Option: Outline */}
                        <button 
                           onClick={() => setProfile({...profile, theme: {...profile.theme, buttonStyle: 'outline'}})}
-                          className={`relative p-3 border rounded-xl flex flex-col items-center gap-3 hover:bg-gray-50 transition-all ${profile.theme.buttonStyle === 'outline' ? 'border-[#D97706] bg-orange-50/50 ring-1 ring-[#D97706]' : 'border-gray-200'}`}
+                          className={`relative p-3 border rounded-xl flex flex-col items-center gap-3 hover:bg-terreta-bg transition-all ${profile.theme.buttonStyle === 'outline' ? 'border-terreta-accent bg-terreta-accent/10 ring-1 ring-terreta-accent' : 'border-terreta-border'}`}
                        >
                            {/* Radio Indicator */}
-                           <div className={`absolute top-2 right-2 w-4 h-4 rounded-full border flex items-center justify-center ${profile.theme.buttonStyle === 'outline' ? 'border-[#D97706]' : 'border-gray-300'}`}>
-                             {profile.theme.buttonStyle === 'outline' && <div className="w-2 h-2 bg-[#D97706] rounded-full" />}
+                           <div className={`absolute top-2 right-2 w-4 h-4 rounded-full border flex items-center justify-center ${profile.theme.buttonStyle === 'outline' ? 'border-terreta-accent' : 'border-terreta-border'}`}>
+                             {profile.theme.buttonStyle === 'outline' && <div className="w-2 h-2 bg-terreta-accent rounded-full" />}
                           </div>
 
                           {/* Visual Preview */}
                           <div className="w-full h-8 border-2 border-gray-800 rounded shadow-sm mt-2 bg-transparent"></div>
-                          <span className={`text-xs font-bold ${profile.theme.buttonStyle === 'outline' ? 'text-[#D97706]' : 'text-gray-500'}`}>Outline</span>
+                          <span className={`text-xs font-bold ${profile.theme.buttonStyle === 'outline' ? 'text-terreta-accent' : 'text-terreta-secondary'}`}>Outline</span>
                        </button>
                     </div>
                  </div>
 
                  {/* Button Colors */}
                  <div className="space-y-4">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block">Colores</label>
+                    <label className="text-xs font-bold text-terreta-secondary uppercase tracking-wide block">Colores</label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                        <HexColorPicker 
                           label="Fondo Botón" 
@@ -1285,26 +1285,26 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
               
               {loadingStats ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D97706]"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-terreta-accent"></div>
                 </div>
               ) : (
                 <>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                       <p className="text-xs font-bold text-gray-400 uppercase">Vistas Totales</p>
+                    <div className="bg-terreta-card p-4 rounded-xl border border-terreta-border shadow-sm">
+                       <p className="text-xs font-bold text-terreta-secondary uppercase">Vistas Totales</p>
                        <p className="text-3xl font-bold text-terreta-dark mt-1">
                          {viewsStats?.total_views.toLocaleString() || '0'}
                        </p>
-                       <p className="text-xs text-gray-500 mt-2">
+                       <p className="text-xs text-terreta-secondary mt-2">
                          {viewsStats?.views_this_month || 0} este mes
                        </p>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                       <p className="text-xs font-bold text-gray-400 uppercase">Clicks en Enlaces</p>
+                    <div className="bg-terreta-card p-4 rounded-xl border border-terreta-border shadow-sm">
+                       <p className="text-xs font-bold text-terreta-secondary uppercase">Clicks en Enlaces</p>
                        <p className="text-3xl font-bold text-terreta-dark mt-1">
                          {clicksStats?.total_clicks.toLocaleString() || '0'}
                        </p>
-                       <p className="text-xs text-gray-500 mt-2">
+                       <p className="text-xs text-terreta-secondary mt-2">
                          {clicksStats?.clicks_this_month || 0} este mes
                        </p>
                     </div>
@@ -1312,8 +1312,8 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
 
                   {/* Devices Card */}
                   {viewsStats && (viewsStats.mobile_views > 0 || viewsStats.desktop_views > 0 || viewsStats.tablet_views > 0) && (
-                    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
-                       <h4 className="font-bold text-gray-500 text-xs uppercase mb-4 flex items-center gap-2">
+                    <div className="bg-terreta-card p-5 rounded-xl border border-terreta-border shadow-sm">
+                       <h4 className="font-bold text-terreta-secondary text-xs uppercase mb-4 flex items-center gap-2">
                           <Smartphone size={14} /> Dispositivos
                        </h4>
                        <div className="space-y-4">
@@ -1326,8 +1326,8 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                                     <span className="flex items-center gap-1"><Smartphone size={12}/> Móvil</span>
                                     <span className="font-bold">{percentage}%</span>
                                  </div>
-                                 <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                                    <div className="bg-[#D97706] h-full rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
+                                 <div className="w-full bg-terreta-bg rounded-full h-2.5 overflow-hidden">
+                                    <div className="bg-terreta-accent h-full rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
                                  </div>
                               </div>
                             );
@@ -1341,8 +1341,8 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                                     <span className="flex items-center gap-1"><Monitor size={12}/> Escritorio</span>
                                     <span className="font-bold">{percentage}%</span>
                                  </div>
-                                 <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                                    <div className="bg-gray-400 h-full rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
+                                 <div className="w-full bg-terreta-bg rounded-full h-2.5 overflow-hidden">
+                                    <div className="bg-terreta-secondary h-full rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
                                  </div>
                               </div>
                             );
@@ -1356,8 +1356,8 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                                     <span className="flex items-center gap-1"><Smartphone size={12}/> Tablet</span>
                                     <span className="font-bold">{percentage}%</span>
                                  </div>
-                                 <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                                    <div className="bg-gray-500 h-full rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
+                                 <div className="w-full bg-terreta-bg rounded-full h-2.5 overflow-hidden">
+                                    <div className="bg-terreta-secondary h-full rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
                                  </div>
                               </div>
                             );
@@ -1367,10 +1367,10 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                   )}
 
                   {clicksStats && clicksStats.top_link_clicks > 0 && (
-                    <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
-                      <h4 className="font-bold text-[#D97706] mb-2 text-sm uppercase">Enlace más popular</h4>
+                    <div className="bg-terreta-accent/10 p-4 rounded-xl border border-terreta-accent/20">
+                      <h4 className="font-bold text-terreta-accent mb-2 text-sm uppercase">Enlace más popular</h4>
                       <p className="font-serif text-lg text-terreta-dark">{clicksStats.top_link_title || 'Sin título'}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-terreta-secondary">
                         {clicksStats.top_link_clicks} Clicks
                         {clicksStats.total_clicks > 0 && (
                           ` (${Math.round((clicksStats.top_link_clicks / clicksStats.total_clicks) * 100)}%)`
@@ -1381,9 +1381,9 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
 
                   {(!viewsStats || viewsStats.total_views === 0) && (!clicksStats || clicksStats.total_clicks === 0) && (
                     <div className="text-center p-8 opacity-50">
-                       <BarChart3 className="w-12 h-12 mx-auto text-gray-300 mb-2" />
-                       <p className="text-sm text-gray-400">Aún no hay estadísticas disponibles</p>
-                       <p className="text-xs text-gray-400 mt-1">Las estadísticas aparecerán cuando tu perfil reciba visitas</p>
+                       <BarChart3 className="w-12 h-12 mx-auto text-terreta-border mb-2" />
+                       <p className="text-sm text-terreta-secondary">Aún no hay estadísticas disponibles</p>
+                       <p className="text-xs text-terreta-secondary mt-1">Las estadísticas aparecerán cuando tu perfil reciba visitas</p>
                     </div>
                   )}
                 </>
@@ -1393,11 +1393,11 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-gray-200 bg-white">
+        <div className="p-4 border-t border-terreta-border bg-terreta-card">
           {!isPublished ? (
             <button 
               onClick={() => setIsPublishModalOpen(true)}
-              className="w-full bg-[#D97706] text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-[#B45309] transition-colors"
+              className="w-full bg-terreta-accent text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-colors"
             >
               <Globe size={18} /> Publicar Perfil
             </button>
@@ -1405,18 +1405,18 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
             <>
               <button 
                 onClick={handleSave}
-                className="w-full bg-[#D97706] text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-[#B45309] transition-colors mb-2"
+                className="w-full bg-terreta-accent text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-colors mb-2"
               >
                 {saving ? 'Guardando...' : <><Save size={18} /> Guardar Cambios</>}
               </button>
               {customSlug && (
                 <div className="text-center">
-                  <p className="text-xs text-gray-500 mb-1">Tu perfil está publicado en:</p>
+                  <p className="text-xs text-terreta-secondary mb-1">Tu perfil está publicado en:</p>
                   <a 
                     href={`/p/${customSlug}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-[#D97706] hover:underline font-mono"
+                    className="text-sm text-terreta-accent hover:underline font-mono"
                   >
                     terretahub.com/p/{customSlug}
                   </a>
@@ -1507,8 +1507,8 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
       </div>
 
       {/* --- RIGHT COLUMN: PREVIEW --- */}
-      <div className="hidden lg:flex flex-1 bg-gray-100 items-center justify-center p-8 relative">
-          <div className="absolute top-8 right-8 text-xs font-bold text-gray-400 uppercase tracking-widest">Vista Previa Móvil</div>
+      <div className="hidden lg:flex flex-1 bg-terreta-bg items-center justify-center p-8 relative">
+          <div className="absolute top-8 right-8 text-xs font-bold text-terreta-secondary uppercase tracking-widest">Vista Previa Móvil</div>
           
           {/* Phone Frame */}
           <div className="w-[340px] h-[680px] bg-black rounded-[3rem] p-3 shadow-2xl border-[6px] border-gray-800 relative overflow-hidden ring-4 ring-gray-900/10">

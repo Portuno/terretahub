@@ -88,7 +88,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
 
       {/* Modal Content */}
       <div
-        className={`relative bg-[#F9F6F0] w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-in-out ${
+        className={`relative bg-terreta-card w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-in-out ${
           isVisible 
             ? 'scale-100 translate-y-0 opacity-100' 
             : 'scale-95 translate-y-8 opacity-0'
@@ -98,7 +98,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 bg-white/90 backdrop-blur-sm text-terreta-dark/60 hover:text-terreta-dark p-2 rounded-full transition-colors shadow-lg"
+          className="absolute top-4 right-4 z-10 bg-terreta-card/90 backdrop-blur-sm text-terreta-dark/60 hover:text-terreta-dark p-2 rounded-full transition-colors shadow-lg border border-terreta-border"
         >
           <X size={20} />
         </button>
@@ -117,7 +117,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
               />
             </div>
           ) : project.images && project.images.length > 0 ? (
-            <div className="relative w-full h-64 bg-gray-100 overflow-hidden">
+            <div className="relative w-full h-64 bg-terreta-bg overflow-hidden">
               <img
                 src={project.images[currentImageIndex]}
                 alt={project.name}
@@ -127,13 +127,13 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
                 <>
                   <button
                     onClick={prevImage}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm text-terreta-dark p-2 rounded-full hover:bg-white transition-colors"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-terreta-card/90 backdrop-blur-sm text-terreta-dark p-2 rounded-full hover:bg-terreta-card transition-colors border border-terreta-border"
                   >
                     ←
                   </button>
                   <button
                     onClick={nextImage}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm text-terreta-dark p-2 rounded-full hover:bg-white transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-terreta-card/90 backdrop-blur-sm text-terreta-dark p-2 rounded-full hover:bg-terreta-card transition-colors border border-terreta-border"
                   >
                     →
                   </button>
@@ -143,7 +143,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
                         key={idx}
                         onClick={() => setCurrentImageIndex(idx)}
                         className={`w-2 h-2 rounded-full transition-all ${
-                          idx === currentImageIndex ? 'bg-white w-6' : 'bg-white/50'
+                          idx === currentImageIndex ? 'bg-terreta-card w-6' : 'bg-terreta-card/50'
                         }`}
                       />
                     ))}
@@ -152,8 +152,8 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
               )}
             </div>
           ) : (
-            <div className="relative w-full h-64 bg-gradient-to-br from-[#F5F0E6] to-[#EBE5DA] flex items-center justify-center">
-              <ImageIcon size={64} className="text-[#D97706]/30" />
+            <div className="relative w-full h-64 bg-gradient-to-br from-terreta-bg to-terreta-sidebar flex items-center justify-center">
+              <ImageIcon size={64} className="text-terreta-accent/30" />
             </div>
           )}
 
@@ -165,16 +165,16 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
                 <div className="flex-1">
                   <h1 className="font-serif text-3xl text-terreta-dark mb-2">{project.name}</h1>
                   {project.slogan && (
-                    <p className="text-lg text-gray-600 italic mb-4">{project.slogan}</p>
+                    <p className="text-lg text-terreta-secondary italic mb-4">{project.slogan}</p>
                   )}
                 </div>
-                <span className="px-4 py-2 bg-[#D97706] text-white text-sm font-bold rounded-full whitespace-nowrap ml-4">
+                <span className="px-4 py-2 bg-terreta-accent text-white text-sm font-bold rounded-full whitespace-nowrap ml-4">
                   {project.phase}
                 </span>
               </div>
 
               {/* Author & Date */}
-              <div className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-gray-200">
+              <div className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-terreta-border">
                 <div
                   className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => {
@@ -187,7 +187,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
                   <img
                     src={project.author.avatar}
                     alt={project.author.name}
-                    className="w-10 h-10 rounded-full object-cover border border-gray-200"
+                    className="w-10 h-10 rounded-full object-cover border border-terreta-border"
                     onError={(e) => {
                       // Si falla la carga, usar el fallback de dicebear
                       const target = e.target as HTMLImageElement;
@@ -196,10 +196,10 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
                   />
                   <div>
                     <p className="font-bold text-terreta-dark">{project.author.name}</p>
-                    <p className="text-sm text-gray-500">@{project.author.username}</p>
+                    <p className="text-sm text-terreta-secondary">@{project.author.username}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="flex items-center gap-2 text-sm text-terreta-secondary">
                   <Calendar size={16} />
                   <span>
                     {new Date(project.created_at).toLocaleDateString('es-ES', {
@@ -215,7 +215,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
             {/* Description */}
             <div className="mb-6">
               <h2 className="font-serif text-xl text-terreta-dark mb-3">Sobre el Proyecto</h2>
-              <p className="text-gray-700 leading-relaxed whitespace-pre-line mb-4">{project.description}</p>
+              <p className="text-terreta-dark leading-relaxed whitespace-pre-line mb-4">{project.description}</p>
               
               {/* Website Link */}
               {project.website && (
@@ -224,7 +224,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
                     href={project.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#D97706] text-white rounded-lg hover:bg-[#B45309] transition-colors font-bold text-sm shadow-sm"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-terreta-accent text-white rounded-lg hover:opacity-90 transition-colors font-bold text-sm shadow-sm"
                   >
                     <ExternalLink size={16} />
                     Visitar Sitio Web
@@ -244,7 +244,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
                     {project.categories.map((cat, idx) => (
                       <span
                         key={idx}
-                        className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
+                        className="px-3 py-1 bg-terreta-bg text-terreta-dark text-sm rounded-full border border-terreta-border"
                       >
                         {cat}
                       </span>
@@ -262,7 +262,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
                     {project.technologies.map((tech, idx) => (
                       <span
                         key={idx}
-                        className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full"
+                        className="px-3 py-1 bg-terreta-accent/20 text-terreta-accent text-sm rounded-full border border-terreta-accent/30"
                       >
                         {tech}
                       </span>
@@ -285,8 +285,8 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
                       onClick={() => setCurrentImageIndex(idx)}
                       className={`relative aspect-video rounded-lg overflow-hidden border-2 transition-all ${
                         idx === currentImageIndex
-                          ? 'border-[#D97706] ring-2 ring-[#D97706]/20'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-terreta-accent ring-2 ring-terreta-accent/20'
+                          : 'border-terreta-border hover:border-terreta-accent/50'
                       }`}
                     >
                       <img src={img} alt={`${project.name} ${idx + 1}`} className="w-full h-full object-cover" />
@@ -297,12 +297,12 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 pt-6 border-t border-gray-200">
+            <div className="flex gap-3 pt-6 border-t border-terreta-border">
               <a
                 href={projectUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 bg-terreta-dark text-white font-bold py-3 rounded-lg hover:bg-[#2C1E1A] transition-all flex items-center justify-center gap-2"
+                className="flex-1 bg-terreta-dark text-white font-bold py-3 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2"
               >
                 <ExternalLink size={18} />
                 Ver Página Pública
