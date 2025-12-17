@@ -10,14 +10,32 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Semantic colors mapped to CSS variables
         terreta: {
-          bg: '#F9F6F0',
-          dark: '#3E2723',
-          deep: '#231715',
-          olive: '#556B2F',
-          gold: '#D4AF37',
-          accent: '#8D6E63',
-          card: '#FFFFFF',
+          bg: 'var(--bg-main)',
+          sidebar: 'var(--sidebar-bg)', // Added for sidebar
+          dark: 'var(--text-main)',
+          secondary: 'var(--text-secondary)',
+          deep: '#231715', // Keep specific if needed, or map to nav-bg for dark themes?
+          olive: '#556B2F', // Keep fixed
+          gold: '#D4AF37', // Keep fixed
+          accent: 'var(--accent)',
+          card: 'var(--card-bg)',
+          border: 'var(--border-color)',
+        },
+        // Requested extensions
+        bg: {
+          main: 'var(--bg-main)',
+          nav: 'var(--nav-bg)',
+        },
+        text: {
+          primary: 'var(--text-main)',
+          secondary: 'var(--text-secondary)',
+          accent: 'var(--accent)',
+        },
+        border: {
+          primary: 'var(--border-color)',
+          accent: 'var(--accent)',
         }
       },
       fontFamily: {
@@ -32,4 +50,3 @@ export default {
   },
   plugins: [],
 }
-

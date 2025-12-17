@@ -192,8 +192,8 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D97706] mb-4"></div>
-        <p className="text-gray-500">Cargando proyectos...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-terreta-accent mb-4"></div>
+        <p className="text-terreta-secondary">Cargando proyectos...</p>
       </div>
     );
   }
@@ -205,19 +205,19 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
             <h3 className="font-serif text-3xl text-terreta-dark mb-2">Galería de Innovación</h3>
-            <p className="text-gray-500">
+            <p className="text-terreta-secondary">
               {filteredProjects.length} {filteredProjects.length === 1 ? 'proyecto encontrado' : 'proyectos encontrados'}
             </p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-terreta-card border border-terreta-border rounded-lg hover:bg-terreta-bg transition-colors text-terreta-dark"
             >
               <Filter size={18} />
               <span>Filtros</span>
               {hasActiveFilters && (
-                <span className="w-5 h-5 bg-[#D97706] text-white text-xs rounded-full flex items-center justify-center">
+                <span className="w-5 h-5 bg-terreta-accent text-white text-xs rounded-full flex items-center justify-center">
                   {[searchQuery ? 1 : 0, selectedCategories.length, selectedTechnologies.length, selectedPhase ? 1 : 0].reduce((a, b) => a + b, 0)}
                 </span>
               )}
@@ -225,7 +225,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
             {onCreateProject && (
               <button
                 onClick={onCreateProject}
-                className="bg-[#D97706] text-white px-6 py-2 rounded-full font-bold flex items-center gap-2 hover:bg-[#B45309] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                className="bg-terreta-accent text-white px-6 py-2 rounded-full font-bold flex items-center gap-2 hover:brightness-90 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
               >
                 <Plus size={20} /> <span className="hidden sm:inline">Subir Proyecto</span>
               </button>
@@ -236,19 +236,19 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
         {/* Search Bar */}
         <div className="relative mb-6 group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="text-gray-400 group-focus-within:text-[#D97706] transition-colors" size={20} />
+            <Search className="text-terreta-secondary/50 group-focus-within:text-terreta-accent transition-colors" size={20} />
           </div>
           <input
             type="text"
             placeholder="Buscar proyectos por nombre, descripción, categorías, tecnologías o autor..."
-            className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none transition-all bg-white shadow-sm hover:shadow-md text-terreta-dark font-sans placeholder-gray-400"
+            className="w-full pl-12 pr-4 py-4 rounded-xl border border-terreta-border focus:border-terreta-accent focus:ring-1 focus:ring-terreta-accent outline-none transition-all bg-terreta-card shadow-sm hover:shadow-md text-terreta-dark font-sans placeholder-terreta-secondary/50"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-terreta-secondary hover:text-terreta-dark"
             >
               <X size={18} />
             </button>
@@ -257,13 +257,13 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
 
         {/* Filters Panel */}
         {showFilters && (
-          <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 shadow-sm">
+          <div className="bg-terreta-card border border-terreta-border rounded-xl p-6 mb-6 shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <h4 className="font-bold text-terreta-dark">Filtros</h4>
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="text-sm text-[#D97706] hover:text-[#B45309] font-bold"
+                  className="text-sm text-terreta-accent hover:text-terreta-accent/80 font-bold"
                 >
                   Limpiar filtros
                 </button>
@@ -283,8 +283,8 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
                       onClick={() => setSelectedPhase(selectedPhase === phase ? null : phase)}
                       className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
                         selectedPhase === phase
-                          ? 'bg-[#D97706] text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          ? 'bg-terreta-accent text-white'
+                          : 'bg-terreta-bg text-terreta-secondary hover:bg-terreta-border'
                       }`}
                     >
                       {phase}
@@ -306,8 +306,8 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
                         onClick={() => handleCategoryToggle(category)}
                         className={`px-3 py-1 rounded-full text-sm transition-all ${
                           selectedCategories.includes(category)
-                            ? 'bg-[#D97706] text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-terreta-accent text-white'
+                            : 'bg-terreta-bg text-terreta-secondary hover:bg-terreta-border'
                         }`}
                       >
                         {category}
@@ -330,8 +330,8 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
                         onClick={() => handleTechnologyToggle(technology)}
                         className={`px-3 py-1 rounded-full text-sm transition-all ${
                           selectedTechnologies.includes(technology)
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            ? 'bg-terreta-accent/80 text-white'
+                            : 'bg-terreta-bg text-terreta-secondary hover:bg-terreta-border'
                         }`}
                       >
                         {technology}
@@ -347,13 +347,13 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
         {/* Projects Grid */}
         {filteredProjects.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-20 h-20 bg-[#F5F0E6] rounded-full flex items-center justify-center mb-6">
-              <FolderKanban size={40} className="text-[#D97706]" />
+            <div className="w-20 h-20 bg-terreta-bg rounded-full flex items-center justify-center mb-6">
+              <FolderKanban size={40} className="text-terreta-accent" />
             </div>
             <h4 className="font-serif text-2xl text-terreta-dark mb-2">
               {projects.length === 0 ? 'Aún no hay proyectos públicos' : 'No se encontraron proyectos'}
             </h4>
-            <p className="max-w-md text-gray-500 mb-4">
+            <p className="max-w-md text-terreta-secondary mb-4">
               {projects.length === 0
                 ? 'Sé el primero en compartir tu idea con la comunidad. Los proyectos aprobados aparecerán aquí.'
                 : 'Intenta ajustar tus filtros de búsqueda para encontrar más proyectos.'}
@@ -361,7 +361,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="text-[#D97706] hover:text-[#B45309] font-bold"
+                className="text-terreta-accent hover:text-terreta-accent/80 font-bold"
               >
                 Limpiar filtros
               </button>
@@ -372,7 +372,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
             {filteredProjects.map((project) => (
               <div
                 key={project.id}
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                className="bg-terreta-card border border-terreta-border rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer"
                 onClick={() => {
                   setSelectedProject(project);
                   setIsModalOpen(true);
@@ -380,23 +380,23 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
               >
                 {/* Imagen principal */}
                 {project.images && project.images.length > 0 ? (
-                  <div className="relative h-48 bg-gray-100 overflow-hidden">
+                  <div className="relative h-48 bg-terreta-bg overflow-hidden">
                     <img
                       src={project.images[0]}
                       alt={project.name}
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute top-3 right-3">
-                      <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-[#D97706] text-xs font-bold rounded-full">
+                      <span className="px-3 py-1 bg-terreta-card/90 backdrop-blur-sm text-terreta-accent text-xs font-bold rounded-full">
                         {project.phase}
                       </span>
                     </div>
                   </div>
                 ) : (
-                  <div className="relative h-48 bg-gradient-to-br from-[#F5F0E6] to-[#EBE5DA] flex items-center justify-center">
-                    <FolderKanban size={48} className="text-[#D97706]/50" />
+                  <div className="relative h-48 bg-gradient-to-br from-terreta-bg to-terreta-sidebar flex items-center justify-center">
+                    <FolderKanban size={48} className="text-terreta-accent/50" />
                     <div className="absolute top-3 right-3">
-                      <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-[#D97706] text-xs font-bold rounded-full">
+                      <span className="px-3 py-1 bg-terreta-card/90 backdrop-blur-sm text-terreta-accent text-xs font-bold rounded-full">
                         {project.phase}
                       </span>
                     </div>
@@ -409,7 +409,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
                     {project.name}
                   </h3>
                   {project.slogan && (
-                    <p className="text-sm text-gray-500 italic mb-4 line-clamp-1">
+                    <p className="text-sm text-terreta-secondary italic mb-4 line-clamp-1">
                       {project.slogan}
                     </p>
                   )}
@@ -420,13 +420,13 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
                       {project.categories.slice(0, 3).map((cat, idx) => (
                         <span
                           key={idx}
-                          className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                          className="px-2 py-1 bg-terreta-bg text-terreta-secondary text-xs rounded-full border border-terreta-border/50"
                         >
                           {cat}
                         </span>
                       ))}
                       {project.categories.length > 3 && (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
+                        <span className="px-2 py-1 bg-terreta-bg text-terreta-secondary text-xs rounded-full border border-terreta-border/50">
                           +{project.categories.length - 3}
                         </span>
                       )}
@@ -439,13 +439,13 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
                       {project.technologies.slice(0, 3).map((tech, idx) => (
                         <span
                           key={idx}
-                          className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full"
+                          className="px-2 py-1 bg-terreta-accent/10 text-terreta-accent text-xs rounded-full"
                         >
                           {tech}
                         </span>
                       ))}
                       {project.technologies.length > 3 && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                        <span className="px-2 py-1 bg-terreta-accent/10 text-terreta-accent text-xs rounded-full">
                           +{project.technologies.length - 3}
                         </span>
                       )}
@@ -453,7 +453,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
                   )}
 
                   {/* Autor y fecha */}
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between pt-4 border-t border-terreta-border">
                     <div
                       className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={() => onViewProfile && onViewProfile(project.author.username)}
@@ -465,10 +465,10 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
                       />
                       <div>
                         <p className="text-xs font-bold text-terreta-dark">{project.author.name}</p>
-                        <p className="text-xs text-gray-500">@{project.author.username}</p>
+                        <p className="text-xs text-terreta-secondary">@{project.author.username}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-gray-400">
+                    <div className="flex items-center gap-1 text-xs text-terreta-secondary/70">
                       <Calendar size={14} />
                       <span>{new Date(project.created_at).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}</span>
                     </div>

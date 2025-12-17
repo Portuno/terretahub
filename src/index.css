@@ -10,6 +10,65 @@ html {
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+:root {
+  /* Default Theme (Tierra) */
+  --bg-main: #F3EFE7;
+  --nav-bg: #FFFFFF;
+  --sidebar-bg: #EAE3D5;
+  --text-main: #3E2723;
+  --text-secondary: #5D4037;
+  --accent: #D97706;
+  --card-bg: #FFFFFF;
+  --border-color: #D1C9BC;
+}
+
+.theme-tierra {
+  --bg-main: #F3EFE7;
+  --nav-bg: #FFFFFF;
+  --sidebar-bg: #EAE3D5;
+  --text-main: #3E2723;
+  --text-secondary: #5D4037;
+  --accent: #D97706;
+  --card-bg: #FFFFFF;
+  --border-color: #D1C9BC;
+}
+
+.theme-aire {
+  --bg-main: #F8FAFC;
+  --nav-bg: #FFFFFF;
+  --sidebar-bg: #F1F5F9;
+  --text-main: #0F172A;
+  --text-secondary: #475569;
+  --accent: #0EA5E9;
+  --card-bg: #FFFFFF;
+  --border-color: #E2E8F0;
+}
+
+.theme-fuego {
+  --bg-main: #1C1917;
+  --nav-bg: #292524;
+  --sidebar-bg: #0C0A09;
+  --text-main: #FAFAF9;
+  --text-secondary: #A8A29E;
+  --accent: #F97316;
+  --card-bg: #292524;
+  --border-color: #44403C;
+}
+
+.theme-agua {
+  --bg-main: #0F172A;
+  --nav-bg: #1E293B;
+  --sidebar-bg: #020617;
+  --text-main: #F0F9FF;
+  --text-secondary: #94A3B8;
+  --accent: #22D3EE;
+  --card-bg: #1E293B;
+  --border-color: #334155;
 }
 
 /* Animations */
@@ -47,4 +106,3 @@ body {
 .ease-out-expo {
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
-

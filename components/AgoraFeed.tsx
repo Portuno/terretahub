@@ -370,7 +370,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     <div className="max-w-3xl mx-auto px-4 py-8 animate-fade-in">
       
       {/* Create Post Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8 relative overflow-hidden">
+      <div className="bg-terreta-card rounded-xl shadow-sm border border-terreta-border p-6 mb-8 relative overflow-hidden">
         
         {/* Anti-Paste Warning Overlay */}
         {showPasteWarning && (
@@ -381,18 +381,18 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         )}
 
         <div className="flex gap-4">
-           <div className="w-12 h-12 rounded-full bg-[#EBE5DA] flex-shrink-0 flex items-center justify-center overflow-hidden border border-gray-200">
-             {user ? <img src={user.avatar} className="w-full h-full object-cover"/> : <User className="text-gray-400" />}
+           <div className="w-12 h-12 rounded-full bg-terreta-sidebar flex-shrink-0 flex items-center justify-center overflow-hidden border border-terreta-border">
+             {user ? <img src={user.avatar} className="w-full h-full object-cover"/> : <User className="text-terreta-secondary" />}
            </div>
            
            <div className="flex-1">
              {user ? (
                <form onSubmit={handleCreatePost}>
-                 <div className="relative border-b border-gray-100 mb-2">
+                 <div className="relative border-b border-terreta-border mb-2">
                     <textarea
                         ref={textareaRef}
                         placeholder="¿Qué estás cocinando hoy?"
-                        className="w-full bg-transparent border-none focus:ring-0 text-lg placeholder-gray-400 resize-none h-24 p-0 font-sans"
+                        className="w-full bg-transparent border-none focus:ring-0 text-lg placeholder-terreta-secondary/50 resize-none h-24 p-0 font-sans text-terreta-dark"
                         value={newPostContent}
                         onChange={(e) => setNewPostContent(e.target.value)}
                         onPaste={handlePaste}
@@ -403,7 +403,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                         <button 
                             type="button"
                             onClick={() => handleFormat('bold')}
-                            className="p-1.5 text-gray-400 hover:text-terreta-dark hover:bg-gray-100 rounded transition-colors"
+                            className="p-1.5 text-terreta-secondary hover:text-terreta-dark hover:bg-terreta-bg rounded transition-colors"
                             title="Negrita"
                         >
                             <Bold size={16} />
@@ -411,7 +411,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                         <button 
                             type="button"
                             onClick={() => handleFormat('italic')}
-                            className="p-1.5 text-gray-400 hover:text-terreta-dark hover:bg-gray-100 rounded transition-colors"
+                            className="p-1.5 text-terreta-secondary hover:text-terreta-dark hover:bg-terreta-bg rounded transition-colors"
                             title="Cursiva"
                         >
                             <Italic size={16} />
@@ -420,11 +420,11 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                  </div>
 
                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-xs font-bold text-[#D97706] uppercase tracking-wide">Público</span>
+                    <span className="text-xs font-bold text-terreta-accent uppercase tracking-wide">Público</span>
                     <button 
                       type="submit" 
                       disabled={!newPostContent.trim()}
-                      className="bg-terreta-dark text-white px-6 py-2 rounded-full font-bold text-sm hover:bg-[#2C1E1A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="bg-terreta-dark text-terreta-bg px-6 py-2 rounded-full font-bold text-sm hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       <span>Publicar</span>
                       <Send size={14} />
@@ -436,7 +436,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                   onClick={onOpenAuth} 
                   className="h-full flex flex-col justify-center cursor-pointer group"
                 >
-                  <p className="text-gray-400 text-lg group-hover:text-[#D97706] transition-colors">Inicia sesión para compartir tus ideas con la comunidad...</p>
+                  <p className="text-terreta-secondary text-lg group-hover:text-terreta-accent transition-colors">Inicia sesión para compartir tus ideas con la comunidad...</p>
                </div>
              )}
            </div>
@@ -446,11 +446,11 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
       {/* Feed List */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D97706] mb-4"></div>
-          <p className="text-gray-500">Cargando posts...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-terreta-accent mb-4"></div>
+          <p className="text-terreta-secondary">Cargando posts...</p>
         </div>
       ) : posts.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-terreta-secondary">
           <p className="text-lg mb-2">Aún no hay posts</p>
           <p className="text-sm">Sé el primero en compartir algo con la comunidad</p>
         </div>

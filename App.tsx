@@ -18,6 +18,7 @@ import { AdminProjectsPanel } from './components/AdminProjectsPanel';
 import { ProfileEditor } from './components/ProfileEditor';
 import { PlaceholderPage } from './components/PlaceholderPage';
 import { isAdmin } from './lib/userRoles';
+import { ThemeProvider } from './context/ThemeContext';
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -279,10 +280,10 @@ const AppContent: React.FC = () => {
   // Mostrar loading mientras se verifica la sesión
   if (isLoadingSession) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-terreta-bg">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D97706] mx-auto mb-4"></div>
-          <p className="text-gray-500">Cargando...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-terreta-accent mx-auto mb-4"></div>
+          <p className="text-terreta-dark">Cargando...</p>
         </div>
       </div>
     );
@@ -335,7 +336,9 @@ const AppContent: React.FC = () => {
 export default function App() {
   return (
     <BrowserRouter>
-      <AppContent />
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

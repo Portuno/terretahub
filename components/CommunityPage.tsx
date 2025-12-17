@@ -129,12 +129,12 @@ export const CommunityPage: React.FC = () => {
         {/* Search Bar */}
         <div className="relative mb-10 group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="text-gray-400 group-focus-within:text-[#D97706] transition-colors" size={20} />
+            <Search className="text-terreta-secondary/60 group-focus-within:text-terreta-accent transition-colors" size={20} />
           </div>
           <input 
             type="text"
             placeholder="Buscar talento por nombre, rol, usuario o tags..."
-            className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none transition-all bg-white shadow-sm hover:shadow-md text-terreta-dark font-sans placeholder-gray-400"
+            className="w-full pl-12 pr-4 py-4 rounded-xl border border-terreta-border focus:border-terreta-accent focus:ring-1 focus:ring-terreta-accent outline-none transition-all bg-terreta-card shadow-sm hover:shadow-md text-terreta-dark font-sans placeholder-terreta-secondary/50"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -143,8 +143,8 @@ export const CommunityPage: React.FC = () => {
         {/* Loading State */}
         {loadingUsers ? (
           <div className="text-center py-20">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#D97706]"></div>
-            <p className="mt-4 text-gray-500">Cargando comunidad...</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-terreta-accent"></div>
+            <p className="mt-4 text-terreta-secondary">Cargando comunidad...</p>
           </div>
         ) : (
           <>
