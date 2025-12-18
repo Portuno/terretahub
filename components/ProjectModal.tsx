@@ -302,7 +302,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
                 href={projectUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 bg-terreta-dark text-white font-bold py-3 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                className="flex-1 bg-terreta-accent text-white font-bold py-3 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-md"
               >
                 <ExternalLink size={18} />
                 Ver Página Pública

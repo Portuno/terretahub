@@ -246,7 +246,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-terreta-dark text-white font-bold py-3 rounded-lg hover:bg-[#2C1E1A] transition-all flex items-center justify-center gap-2 mt-2 shadow-md"
+                className="w-full bg-terreta-accent text-white font-bold py-3 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 mt-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Enviando...' : (
                   <>
@@ -345,7 +345,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-terreta-dark text-white font-bold py-3 rounded-lg hover:bg-[#2C1E1A] transition-all flex items-center justify-center gap-2 mt-2 shadow-md"
+                  className="w-full bg-terreta-accent text-white font-bold py-3 rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 mt-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Procesando...' : (
                     <>

@@ -281,15 +281,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
          ) : (
             <button 
               onClick={onOpenAuth}
-              className="w-full flex items-center justify-center gap-2 bg-terreta-dark text-white py-3 rounded-lg hover:bg-opacity-90 transition-colors shadow-sm"
+              className="w-full flex items-center justify-center gap-2 bg-terreta-accent text-white py-3 rounded-lg hover:opacity-90 transition-all shadow-md hover:shadow-lg font-bold"
             >
-               <LogIn size={16} />
+               <LogIn size={16} className="stroke-[2.5]" />
                <span className="text-xs font-bold uppercase tracking-wider">Ingresar</span>
             </button>
          )}
          
          <div className="text-center mt-4">
-            <p className="text-[10px] uppercase tracking-widest text-terreta-dark/40 font-bold">
+            <p className="text-[10px] uppercase tracking-widest text-terreta-secondary/70 font-bold">
                Terreta Hub v1.0
             </p>
          </div>
