@@ -87,7 +87,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
   const title = getPageTitle();
 
   return (
-    <div className="flex min-h-screen bg-terreta-bg transition-colors duration-500">
+  <div className="flex h-screen overflow-hidden bg-terreta-bg transition-colors duration-500">
       
       {/* Sidebar - Fixed */}
       <Sidebar 
@@ -98,7 +98,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-h-screen transition-all duration-300">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300">
         
         {/* Top Navbar - Only show if not on Landing Page (index) */}
         {location.pathname !== '/' && (
