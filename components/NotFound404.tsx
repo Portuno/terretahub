@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Compass, TreePine, MapPin, Lock, User } from 'lucide-react';
-import { PillarsModal } from './PillarsModal';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Compass } from 'lucide-react';
 
 type NotFoundVariant = 'generic' | 'profile' | 'project-not-found' | 'project-pending';
 
@@ -12,101 +11,40 @@ interface NotFound404Props {
 
 export const NotFound404: React.FC<NotFound404Props> = ({ variant = 'generic', profileName }) => {
   const navigate = useNavigate();
-  const { extension } = useParams<{ extension?: string }>();
-  const [isPillarsOpen, setIsPillarsOpen] = useState(false);
 
-  // Determinar el nombre del perfil desde la URL si no se proporciona
-  const displayProfileName = profileName || extension || 'usuario';
-
-  const renderContent = () => {
-    switch (variant) {
-      case 'profile':
-        return {
-          icon: <TreePine className="w-24 h-24 text-[#A65D46]" />,
-          title: '¡Talento No Encontrado!',
-          message: `Buscamos por toda la Terreta, pero el perfil @${displayProfileName} no está registrado en nuestra red. Quizás todavía están cocinando su idea.`,
-          primaryAction: {
-            label: 'Buscar Talentos Similares',
-            onClick: () => navigate('/comunidad'),
-            path: '/comunidad',
-          },
-          secondaryAction: {
-            label: 'Ver los Pilares del Hub',
-            onClick: () => setIsPillarsOpen(true),
-          },
-        };
-
-      case 'project-not-found':
-        return {
-          icon: <MapPin className="w-24 h-24 text-[#A65D46]" />,
-          title: 'Proyecto Perdido en el Mapa',
-          message:
-            'Este proyecto ya no se encuentra en nuestra incubadora. Puede que haya escalado a otro nivel o haya sido archivado.',
-          primaryAction: {
-            label: 'Explorar Proyectos Destacados',
-            onClick: () => navigate('/proyectos'),
-            path: '/proyectos',
-          },
-          secondaryAction: {
-            label: 'Subir mi Propio Proyecto',
-            onClick: () => navigate('/proyectos'),
-          },
-        };
-
-      case 'project-pending':
-        return {
-          icon: <Lock className="w-24 h-24 text-[#A65D46]" />,
-          title: '¡Disculpe! Proyecto en Revisión.',
-          message:
-            'Este proyecto ya existe, pero está esperando la validación final de nuestro equipo. Queremos asegurarnos de que todo esté perfecto antes de publicarlo.',
-          primaryAction: {
-            label: 'Volver a la Galería de Proyectos',
-            onClick: () => navigate('/proyectos'),
-            path: '/proyectos',
-          },
-          secondaryAction: {
-            label: 'Conoce el Proceso de Aprobación',
-            onClick: () => {
-              // Aquí podrías abrir un modal con información sobre el proceso
-              alert(
-                'Proceso de Aprobación:\n\n1. Envías tu proyecto para revisión\n2. Nuestro equipo lo revisa (1-3 días)\n3. Si cumple los criterios, se publica\n4. Recibirás una notificación cuando esté listo'
-              );
-            },
-          },
-        };
-
-      default: // generic
-        return {
-          icon: <Compass className="w-24 h-24 text-[#A65D46]" />,
-          title: '404 – Error de la Terreta',
-          message:
-            'Parece que nos hemos desviado un poco del camino. Esta URL no está en nuestros mapas.',
-          primaryAction: {
-            label: 'Ir al Ágora Comunitario',
-            onClick: () => navigate('/agora'),
-            path: '/agora',
-          },
-          secondaryAction: {
-            label: 'Volver al Inicio',
-            onClick: () => navigate('/'),
-            path: '/',
-          },
-        };
-    }
+  // Aunque aceptamos variant/profileName para no romper usos existentes,
+  // todas las variantes comparten la misma experiencia 404 temática "Tierra".
+  const content = {
+    icon: <Compass className="w-24 h-24 text-[#A65D46]" />,
+    title: '404 – Este rincón de la Terreta no existe',
+    message:
+      'La página que buscas se ha perdido entre montes, mar y huertas. Puede que el enlace haya cambiado o nunca haya existido.',
+    primaryAction: {
+      label: 'Volver al inicio',
+      onClick: () => navigate('/'),
+      path: '/',
+    },
+    secondaryAction: {
+      label: 'Explorar la comunidad',
+      onClick: () => navigate('/comunidad'),
+      path: '/comunidad',
+    },
   };
-
-  const content = renderContent();
 
   return (
     <>
-      <div className="min-h-screen bg-[#F5E8D8] flex items-center justify-center p-6">
-        <div className="max-w-2xl w-full text-center">
+      <div
+        className="min-h-screen bg-[#F5E8D8] flex items-center justify-center p-6"
+        role="main"
+        aria-label="Página no encontrada"
+      >
+        <div className="max-w-2xl w-full text-center bg-[#F9F2E8]/80 backdrop-blur-sm rounded-3xl shadow-xl px-8 py-10 border border-[#D2B9A0]/60">
           {/* Icon */}
           <div className="mb-8 flex justify-center">{content.icon}</div>
 
           {/* 404 Number */}
           <div className="mb-6">
-            <span className="font-serif text-8xl text-[#A65D46] font-light">404</span>
+            <span className="font-serif text-8xl text-[#A65D46] font-light drop-shadow-sm">404</span>
           </div>
 
           {/* Title */}
@@ -123,24 +61,21 @@ export const NotFound404: React.FC<NotFound404Props> = ({ variant = 'generic', p
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={content.primaryAction.onClick}
-              className="px-8 py-3 bg-[#A65D46] text-white font-bold rounded-lg hover:bg-[#8B4A3A] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+              className="px-8 py-3 bg-[#A65D46] text-white font-bold rounded-lg hover:bg-[#8B4A3A] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#A65D46]"
+              aria-label={content.primaryAction.label}
             >
               {content.primaryAction.label}
             </button>
             <button
               onClick={content.secondaryAction.onClick}
-              className="px-8 py-3 bg-transparent border-2 border-[#A65D46] text-[#A65D46] font-bold rounded-lg hover:bg-[#A65D46] hover:text-white transition-all"
+              className="px-8 py-3 bg-transparent border-2 border-[#A65D46] text-[#A65D46] font-bold rounded-lg hover:bg-[#A65D46] hover:text-white transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#A65D46]"
+              aria-label={content.secondaryAction.label}
             >
               {content.secondaryAction.label}
             </button>
           </div>
         </div>
       </div>
-
-      {/* Pillars Modal (solo para variante de perfil) */}
-      {variant === 'profile' && (
-        <PillarsModal isOpen={isPillarsOpen} onClose={() => setIsPillarsOpen(false)} />
-      )}
     </>
   );
 };
