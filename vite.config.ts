@@ -54,14 +54,8 @@ export default defineConfig(({ mode }) => {
         cssCodeSplit: true,
         // Enable source maps only in development
         sourcemap: false,
-        // Minify more aggressively
-        minify: 'terser',
-        terserOptions: {
-          compress: {
-            drop_console: false, // Keep console in dev, remove in production if needed
-            drop_debugger: true
-          }
-        },
+        // Use esbuild for minification (faster and included with Vite)
+        minify: 'esbuild',
         // Optimize CSS
         cssMinify: true
       }
