@@ -27,67 +27,134 @@ const AppContent: React.FC = () => {
   const navigate = useNavigate();
   const userRef = useRef<AuthUser | null>(null); // Ref para verificar usuario sin causar re-renders
 
-  // Función helper para cargar el perfil del usuario (con timeout aumentado)
-  const loadUserProfile = async (userId: string): Promise<AuthUser | null> => {
+  // Función helper para cargar el perfil del usuario (con retry y mejor manejo de timeout)
+  const loadUserProfile = async (userId: string, retryCount = 0): Promise<AuthUser | null> => {
+    const MAX_RETRIES = 2;
+    const INITIAL_TIMEOUT = 8000; // 8 segundos iniciales
+    const RETRY_TIMEOUT = 10000; // 10 segundos en retries
+    
     try {
-      console.log('[App] Loading profile for user:', userId);
+      console.log('[App] Loading profile for user:', userId, retryCount > 0 ? `(retry ${retryCount}/${MAX_RETRIES})` : '');
       const queryStartTime = Date.now();
       
-      // Agregar timeout a la consulta (aumentado a 15 segundos para conexiones lentas)
+      // Usar timeout más corto con retries en lugar de un timeout largo
+      const timeoutDuration = retryCount === 0 ? INITIAL_TIMEOUT : RETRY_TIMEOUT;
+      
       const profileQuery = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
       
-      const profileQueryWithTimeout = Promise.race([
-        profileQuery,
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Profile query timeout')), 15000)
-        )
-      ]) as Promise<{ data: any; error: any }>;
+      // Crear una promesa con timeout que puede ser cancelada
+      let timeoutId: NodeJS.Timeout | null = null;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error(`Profile query timeout after ${timeoutDuration}ms`));
+        }, timeoutDuration);
+      });
       
-      const { data: profile, error: profileError } = await profileQueryWithTimeout;
-      const queryDuration = Date.now() - queryStartTime;
-      console.log('[App] Profile query completed', { duration: `${queryDuration}ms`, hasError: !!profileError });
+      try {
+        const { data: profile, error: profileError } = await Promise.race([
+          profileQuery,
+          timeoutPromise
+        ]) as { data: any; error: any };
+        
+        // Limpiar timeout si la query completó
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        
+        const queryDuration = Date.now() - queryStartTime;
+        console.log('[App] Profile query completed', { duration: `${queryDuration}ms`, hasError: !!profileError, retryCount });
 
-      if (profileError) {
-        console.error('[App] Error al cargar perfil:', profileError);
-        // No retornar null inmediatamente - verificar si la sesión aún es válida
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          console.log('[App] Session expired during profile load');
+        if (profileError) {
+          // Errores que no deberían retry (errores de autenticación, no encontrado, etc.)
+          const nonRetryableErrors = ['PGRST116', '23505', '42501'];
+          const isRetryable = !nonRetryableErrors.some(code => 
+            profileError.code === code || profileError.message?.includes(code)
+          );
+          
+          if (isRetryable && retryCount < MAX_RETRIES) {
+            console.log('[App] Retryable error, attempting retry...', { 
+              error: profileError.message, 
+              code: profileError.code,
+              retryCount: retryCount + 1 
+            });
+            // Esperar un poco antes de retry (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+            return loadUserProfile(userId, retryCount + 1);
+          }
+          
+          console.error('[App] Error al cargar perfil:', profileError);
+          // Verificar si la sesión aún es válida
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            console.log('[App] Session expired during profile load');
+            return null;
+          }
+          // Si la sesión sigue válida pero hay error, retornar null pero no perder la sesión
           return null;
         }
-        // Si la sesión sigue válida pero hay error, retornar null pero no perder la sesión
-        return null;
-      }
 
-      if (profile) {
-        return {
-          id: profile.id,
-          name: profile.name,
-          username: profile.username,
-          email: profile.email,
-          avatar: profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`,
-          role: (profile.role as 'normal' | 'admin') || 'normal',
-        };
+        if (profile) {
+          return {
+            id: profile.id,
+            name: profile.name,
+            username: profile.username,
+            email: profile.email,
+            avatar: profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`,
+            role: (profile.role as 'normal' | 'admin') || 'normal',
+          };
+        }
+        return null;
+      } catch (raceError: any) {
+        // Limpiar timeout si aún está activo
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        throw raceError;
       }
-      return null;
     } catch (err: any) {
       console.error('[App] Error en loadUserProfile:', err);
-      if (err.message?.includes('timeout')) {
-        console.error('[App] Profile query timed out after 15 seconds');
-        // Verificar si la sesión aún es válida antes de retornar null
+      
+        if (err.message?.includes('timeout')) {
+        console.error(`[App] Profile query timed out after ${retryCount === 0 ? INITIAL_TIMEOUT : RETRY_TIMEOUT}ms`);
+        
+        // Intentar retry si aún tenemos intentos disponibles
+        if (retryCount < MAX_RETRIES) {
+          console.log('[App] Timeout occurred, attempting retry...', { retryCount: retryCount + 1 });
+          // Esperar un poco antes de retry (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+          return loadUserProfile(userId, retryCount + 1);
+        }
+        
+        // Si ya agotamos los retries, verificar si la sesión aún es válida
+        // NO perder la sesión solo por un timeout de query
         try {
-          const { data: { session } } = await supabase.auth.getSession();
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          if (sessionError) {
+            console.error('[App] Error checking session after timeout:', sessionError);
+            // Si hay error al verificar sesión, podría ser un problema de red
+            // Mantener el usuario si ya estaba cargado
+            return userRef.current;
+          }
+          
           if (session?.user?.id === userId) {
             console.log('[App] Session still valid despite timeout, keeping user');
             // La sesión sigue válida, no perder el usuario si ya estaba cargado
             return userRef.current; // Retornar el usuario actual si existe
+          } else {
+            // La sesión expiró realmente
+            console.log('[App] Session expired, returning null');
+            return null;
           }
         } catch (sessionErr) {
           console.error('[App] Error checking session after timeout:', sessionErr);
+          // En caso de error, mantener el usuario si existe para no perder la sesión incorrectamente
+          return userRef.current;
         }
       }
       return null;

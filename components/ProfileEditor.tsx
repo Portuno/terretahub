@@ -185,6 +185,13 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
   const hasLoadedRef = useRef(false);
   const isLoadingRef = useRef(false);
   
+  // Autosave state
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const autosaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const profileSnapshotRef = useRef<string>('');
+  
   // Stats state
   const [viewsStats, setViewsStats] = useState<{
     total_views: number;
@@ -238,6 +245,41 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
         isLoading: isLoadingRef.current 
       });
       return;
+    }
+    
+    // Verificar si hay un backup en localStorage
+    try {
+      const backupKey = `profile_backup_${user.id}`;
+      const backupData = localStorage.getItem(backupKey);
+      if (backupData) {
+        const backup = JSON.parse(backupData);
+        const backupDate = new Date(backup.timestamp);
+        const hoursSinceBackup = (Date.now() - backupDate.getTime()) / (1000 * 60 * 60);
+        
+        // Si el backup es reciente (menos de 24 horas), preguntar al usuario
+        if (hoursSinceBackup < 24) {
+          const restore = confirm(
+            `Se encontró un backup de tus cambios del ${backupDate.toLocaleString()}.\n\n` +
+            '¿Deseas restaurarlo? (Si no, se cargará desde el servidor)'
+          );
+          
+          if (restore) {
+            console.log('[ProfileEditor] Restoring from backup');
+            setProfile(backup.profile);
+            profileSnapshotRef.current = JSON.stringify(backup.profile);
+            setHasUnsavedChanges(true);
+            // No eliminar el backup todavía, por si acaso
+          } else {
+            // Eliminar backup si el usuario no quiere restaurarlo
+            localStorage.removeItem(backupKey);
+          }
+        } else {
+          // Eliminar backups antiguos
+          localStorage.removeItem(backupKey);
+        }
+      }
+    } catch (backupError) {
+      console.error('[ProfileEditor] Error checking backup:', backupError);
     }
     
     hasLoadedRef.current = true;
@@ -359,10 +401,16 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
           }
           
           console.log('[ProfileEditor] Profile loaded successfully');
+          // Guardar snapshot inicial para autosave
+          profileSnapshotRef.current = JSON.stringify(loadedProfile);
+          setHasUnsavedChanges(false);
         } else {
           console.log('[ProfileEditor] No profile found, using initial profile');
           // Si no existe, usar el perfil inicial
-          setProfile(getInitialProfile(user));
+          const initialProfile = getInitialProfile(user);
+          setProfile(initialProfile);
+          profileSnapshotRef.current = JSON.stringify(initialProfile);
+          setHasUnsavedChanges(false);
           setIsPublished(false);
           setCustomSlug(null);
           
@@ -438,6 +486,120 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
     loadStats();
   }, [activeTab, user.id, loading]);
 
+  // Autosave effect - guarda automáticamente después de 3 segundos de inactividad
+  useEffect(() => {
+    // No autosave si está cargando, guardando manualmente, o no hay cambios
+    if (loading || saving || !hasLoadedRef.current) {
+      return;
+    }
+
+    const currentSnapshot = JSON.stringify(profile);
+    
+    // Si no hay cambios desde el último snapshot, no hacer nada
+    if (currentSnapshot === profileSnapshotRef.current) {
+      setHasUnsavedChanges(false);
+      return;
+    }
+
+    // Marcar que hay cambios sin guardar
+    setHasUnsavedChanges(true);
+
+    // Limpiar timeout anterior
+    if (autosaveTimeoutRef.current) {
+      clearTimeout(autosaveTimeoutRef.current);
+    }
+
+    // Crear nuevo timeout para autosave (3 segundos de inactividad)
+    autosaveTimeoutRef.current = setTimeout(async () => {
+      await performAutoSave();
+    }, 3000);
+
+    return () => {
+      if (autosaveTimeoutRef.current) {
+        clearTimeout(autosaveTimeoutRef.current);
+      }
+    };
+  }, [profile, loading, saving]);
+
+  // Función de autosave (sin mostrar toast)
+  const performAutoSave = async (): Promise<boolean> => {
+    if (loading || saving || autoSaving) {
+      return false;
+    }
+
+    try {
+      setAutoSaving(true);
+      console.log('[ProfileEditor] Auto-saving profile...');
+
+      // Verificar sesión antes de guardar
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.warn('[ProfileEditor] No session found, skipping autosave');
+        setAutoSaving(false);
+        return false;
+      }
+
+      // Verificar si existe un perfil
+      const { data: existing, error: checkError } = await supabase
+        .from('link_bio_profiles')
+        .select('id, is_published, custom_slug')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('[ProfileEditor] Error checking profile for autosave:', checkError);
+        setAutoSaving(false);
+        return false;
+      }
+
+      const profileData: any = {
+        user_id: user.id,
+        username: profile.username,
+        display_name: profile.displayName,
+        bio: profile.bio,
+        avatar: profile.avatar,
+        socials: profile.socials,
+        blocks: profile.blocks,
+        theme: profile.theme,
+        is_published: existing && existing.is_published ? existing.is_published : isPublished,
+        custom_slug: existing && existing.custom_slug ? existing.custom_slug : customSlug
+      };
+
+      let saveError = null;
+      
+      if (existing) {
+        const { error } = await supabase
+          .from('link_bio_profiles')
+          .update(profileData)
+          .eq('user_id', user.id);
+        saveError = error;
+      } else {
+        const { error } = await supabase
+          .from('link_bio_profiles')
+          .insert(profileData);
+        saveError = error;
+      }
+
+      if (saveError) {
+        console.error('[ProfileEditor] Autosave error:', saveError);
+        setAutoSaving(false);
+        return false;
+      }
+
+      // Actualizar snapshot y estado
+      profileSnapshotRef.current = JSON.stringify(profile);
+      setHasUnsavedChanges(false);
+      setLastSaved(new Date());
+      console.log('[ProfileEditor] Autosave successful');
+      return true;
+    } catch (error: any) {
+      console.error('[ProfileEditor] Autosave exception:', error);
+      return false;
+    } finally {
+      setAutoSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     console.log('[ProfileEditor] handleSave started');
     setSaving(true);
@@ -488,34 +650,54 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
       if (existing) {
         // Existe, actualizar
         console.log('[ProfileEditor] Actualizando perfil existente', { profileId: existing.id });
-        let { data, error: updateError } = await supabase
-          .from('link_bio_profiles')
-          .update(profileData)
-          .eq('user_id', user.id)
-          .select()
-          .single();
-
-        if (updateError) {
-          console.error('[ProfileEditor] Error al actualizar:', updateError);
-          
-          // Reintentar una vez más
-          console.log('[ProfileEditor] Reintentando actualización...');
-          const { data: retryData, error: retryError } = await supabase
+        
+        // Verificar sesión antes de guardar
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          alert('Tu sesión ha expirado. Por favor, recarga la página e inicia sesión nuevamente.');
+          setSaving(false);
+          return;
+        }
+        
+        let data;
+        let updateError;
+        let retries = 0;
+        const MAX_RETRIES = 2;
+        
+        // Intentar guardar con retries
+        while (retries <= MAX_RETRIES) {
+          const result = await supabase
             .from('link_bio_profiles')
             .update(profileData)
             .eq('user_id', user.id)
             .select()
             .single();
-
-          if (retryError) {
-            console.error('[ProfileEditor] Error en reintento:', retryError);
-            alert('Error al actualizar el perfil: ' + (retryError.message || 'Error desconocido'));
+          
+          data = result.data;
+          updateError = result.error;
+          
+          if (!updateError) {
+            break; // Éxito
+          }
+          
+          // Si es un error de sesión, no reintentar
+          if (updateError.code === 'PGRST301' || updateError.message?.includes('session') || updateError.message?.includes('auth')) {
+            alert('Tu sesión ha expirado. Por favor, recarga la página e inicia sesión nuevamente.');
             setSaving(false);
             return;
           }
           
-          console.log('[ProfileEditor] Reintento exitoso');
-          data = retryData;
+          retries++;
+          if (retries <= MAX_RETRIES) {
+            console.log(`[ProfileEditor] Reintentando actualización... (intento ${retries + 1}/${MAX_RETRIES + 1})`);
+            // Esperar antes de reintentar (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+          }
+        }
+        
+        if (updateError) {
+          console.error('[ProfileEditor] Error al actualizar después de todos los reintentos:', updateError);
+          throw updateError;
         }
         
         console.log('[ProfileEditor] Perfil actualizado exitosamente', { 
@@ -563,32 +745,53 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
       } else {
         // No existe, crear nuevo
         console.log('[ProfileEditor] Creando nuevo perfil');
-        let { data, error: insertError } = await supabase
-          .from('link_bio_profiles')
-          .insert(profileData)
-          .select()
-          .single();
-
-        if (insertError) {
-          console.error('[ProfileEditor] Error al insertar:', insertError);
-          
-          // Reintentar una vez más
-          console.log('[ProfileEditor] Reintentando inserción...');
-          const { data: retryData, error: retryError } = await supabase
+        
+        // Verificar sesión antes de guardar
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          alert('Tu sesión ha expirado. Por favor, recarga la página e inicia sesión nuevamente.');
+          setSaving(false);
+          return;
+        }
+        
+        let data;
+        let insertError;
+        let retries = 0;
+        const MAX_RETRIES = 2;
+        
+        // Intentar guardar con retries
+        while (retries <= MAX_RETRIES) {
+          const result = await supabase
             .from('link_bio_profiles')
             .insert(profileData)
             .select()
             .single();
-
-          if (retryError) {
-            console.error('[ProfileEditor] Error en reintento:', retryError);
-            alert('Error al guardar el perfil: ' + (retryError.message || 'Error desconocido'));
+          
+          data = result.data;
+          insertError = result.error;
+          
+          if (!insertError) {
+            break; // Éxito
+          }
+          
+          // Si es un error de sesión, no reintentar
+          if (insertError.code === 'PGRST301' || insertError.message?.includes('session') || insertError.message?.includes('auth')) {
+            alert('Tu sesión ha expirado. Por favor, recarga la página e inicia sesión nuevamente.');
             setSaving(false);
             return;
           }
           
-          console.log('[ProfileEditor] Reintento exitoso');
-          data = retryData;
+          retries++;
+          if (retries <= MAX_RETRIES) {
+            console.log(`[ProfileEditor] Reintentando inserción... (intento ${retries + 1}/${MAX_RETRIES + 1})`);
+            // Esperar antes de reintentar (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+          }
+        }
+        
+        if (insertError) {
+          console.error('[ProfileEditor] Error al insertar después de todos los reintentos:', insertError);
+          throw insertError;
         }
         
         console.log('[ProfileEditor] Perfil creado exitosamente', { 
@@ -621,12 +824,46 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
         }
       }
       
+      // Actualizar snapshot después de guardar exitosamente
+      profileSnapshotRef.current = JSON.stringify(profile);
+      setHasUnsavedChanges(false);
+      setLastSaved(new Date());
+      
+      // Eliminar backup si existe (ya se guardó exitosamente)
+      try {
+        const backupKey = `profile_backup_${user.id}`;
+        localStorage.removeItem(backupKey);
+        console.log('[ProfileEditor] Backup eliminado después de guardar exitosamente');
+      } catch (backupError) {
+        console.error('[ProfileEditor] Error eliminando backup:', backupError);
+      }
+      
       // Mostrar toast de éxito
       console.log('[ProfileEditor] Mostrando toast de éxito');
       setShowToast(true);
     } catch (error: any) {
       console.error('[ProfileEditor] Error completo al guardar:', error);
-      alert(error.message || 'Error al guardar el perfil. Intenta nuevamente.');
+      
+      // Verificar si es un error de sesión
+      if (error.message?.includes('session') || error.message?.includes('auth') || error.code === 'PGRST301') {
+        alert('Tu sesión ha expirado. Por favor, recarga la página e inicia sesión nuevamente.');
+        // No hacer nada más, dejar que el usuario recargue
+        return;
+      }
+      
+      // Para otros errores, intentar guardar en localStorage como backup
+      try {
+        const backupKey = `profile_backup_${user.id}`;
+        localStorage.setItem(backupKey, JSON.stringify({
+          profile,
+          timestamp: new Date().toISOString()
+        }));
+        console.log('[ProfileEditor] Guardado backup en localStorage');
+      } catch (backupError) {
+        console.error('[ProfileEditor] Error guardando backup:', backupError);
+      }
+      
+      alert('Error al guardar el perfil: ' + (error.message || 'Error desconocido') + '\n\nSe ha guardado un backup local. Intenta guardar nuevamente.');
     } finally {
       console.log('[ProfileEditor] handleSave finally - setting saving to false');
       setSaving(false);
@@ -1405,10 +1642,28 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
             <>
               <button 
                 onClick={handleSave}
-                className="w-full bg-terreta-accent text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-colors mb-2"
+                disabled={saving || autoSaving}
+                className="w-full bg-terreta-accent text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-colors mb-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? 'Guardando...' : <><Save size={18} /> Guardar Cambios</>}
               </button>
+              
+              {/* Estado de guardado automático */}
+              <div className="text-center text-xs text-terreta-secondary mb-2">
+                {autoSaving ? (
+                  <span className="flex items-center justify-center gap-1">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b border-terreta-accent"></div>
+                    Guardando automáticamente...
+                  </span>
+                ) : hasUnsavedChanges ? (
+                  <span className="text-amber-600">● Cambios sin guardar</span>
+                ) : lastSaved ? (
+                  <span className="text-green-600 flex items-center justify-center gap-1">
+                    <CheckCircle size={12} />
+                    Guardado {lastSaved.toLocaleTimeString()}
+                  </span>
+                ) : null}
+              </div>
               {customSlug && (
                 <div className="text-center">
                   <p className="text-xs text-terreta-secondary mb-1">Tu perfil está publicado en:</p>
