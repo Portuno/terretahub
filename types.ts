@@ -19,6 +19,7 @@ export interface UserProfile {
   handle: string;
   avatar: string;
   tags: string[];
+  hasLinkBio?: boolean; // Indica si el perfil tiene link in bio configurado
 }
 
 export type AppView = 'landing' | 'app' | 'public_profile';

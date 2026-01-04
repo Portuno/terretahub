@@ -53,6 +53,23 @@ const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
         });
       }
       
+      // Verificar si tienen link_bio_profile para el fallback
+      const profileIdsForLinkBio = fallbackProfiles.map((p: any) => p.id);
+      const linkBioResult = await executeQueryWithRetry(
+        async () => await supabase
+          .from('link_bio_profiles')
+          .select('user_id')
+          .in('user_id', profileIdsForLinkBio),
+        'load link bio profiles (fallback)'
+      );
+      
+      const hasLinkBioSet = new Set<string>();
+      if (linkBioResult.data && !linkBioResult.error) {
+        linkBioResult.data.forEach((item: { user_id: string }) => {
+          hasLinkBioSet.add(item.user_id);
+        });
+      }
+      
       return fallbackProfiles.map((profile: any) => {
         const tags = (tagsByUser.get(profile.id) || []).slice(0, 5);
         const displayRole = profile.role === 'admin' ? 'ADMIN' : 'MIEMBRO';
@@ -62,7 +79,8 @@ const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
           role: displayRole,
           handle: `@${profile.username}`,
           avatar: profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`,
-          tags: tags.length > 0 ? tags : ['Terreta Hub']
+          tags: tags.length > 0 ? tags : ['Terreta Hub'],
+          hasLinkBio: hasLinkBioSet.has(profile.id)
         };
       });
     }
@@ -124,8 +142,8 @@ const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
     }
 
     // Procesar usuarios con los datos ya cargados
-    // Note: get_community_profiles already returns optimized avatars, so we don't need to load link_bio_profiles
-    const usersWithTags = profiles.map((profile) => {
+    // Note: get_community_profiles already returns optimized avatars and has_link_bio flag
+    const usersWithTags = profiles.map((profile: any) => {
       // Obtener tags agregados directamente de la función
       const tags = (tagsByUser.get(profile.id) || []).slice(0, 5); // Limitar a 5 tags
 
@@ -141,7 +159,8 @@ const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
         role: displayRole,
         handle: `@${profile.username}`,
         avatar: finalAvatar,
-        tags: tags.length > 0 ? tags : ['Terreta Hub']
+        tags: tags.length > 0 ? tags : ['Terreta Hub'],
+        hasLinkBio: profile.has_link_bio || false
       };
     });
 
@@ -168,12 +187,20 @@ export const CommunityPage: React.FC = () => {
     loadUsers();
   }, []);
 
-  const filteredUsers = communityUsers.filter(user => 
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.handle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Filtrar usuarios manteniendo el orden: primero los que tienen link in bio
+  const filteredUsers = communityUsers
+    .filter(user => 
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.handle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+    // Mantener el orden: perfiles con link in bio primero
+    .sort((a, b) => {
+      const aHasLinkBio = a.hasLinkBio ? 1 : 0;
+      const bHasLinkBio = b.hasLinkBio ? 1 : 0;
+      return bHasLinkBio - aHasLinkBio; // TRUE (1) primero, FALSE (0) después
+    });
 
   const handleViewProfile = (handle: string) => {
     navigateToProfile(handle);

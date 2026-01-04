@@ -36,12 +36,18 @@ export const UserCard: React.FC<UserCardProps> = ({ user, onViewProfile }) => {
         {user.handle}
       </p>
       
-      <button 
-        onClick={() => onViewProfile && onViewProfile(user.handle)}
-        className="w-full bg-terreta-bg hover:bg-opacity-80 text-terreta-dark font-sans font-medium py-3 rounded-lg transition-colors text-sm border border-terreta-border"
-      >
-        Ver Perfil
-      </button>
+      {user.hasLinkBio ? (
+        <button 
+          onClick={() => onViewProfile && onViewProfile(user.handle)}
+          className="w-full bg-terreta-bg hover:bg-opacity-80 text-terreta-dark font-sans font-medium py-3 rounded-lg transition-colors text-sm border border-terreta-border"
+        >
+          Ver Perfil
+        </button>
+      ) : (
+        <div className="w-full bg-terreta-bg text-terreta-secondary font-sans font-medium py-3 rounded-lg text-sm border border-terreta-border text-center">
+          Perfil en Construcción
+        </div>
+      )}
     </div>
   );
 };
