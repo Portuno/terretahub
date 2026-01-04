@@ -22,6 +22,12 @@ const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
 
     if (profilesError) {
       console.error('[CommunityPage] Error al cargar perfiles:', profilesError);
+      // Si es un error de red después de todos los reintentos, mostrar mensaje útil
+      if (profilesError.message?.includes('Failed to fetch') || 
+          profilesError.message?.includes('connection') ||
+          profilesError.message?.includes('network')) {
+        console.warn('[CommunityPage] Network error after retries, returning empty array');
+      }
       return [];
     }
 
