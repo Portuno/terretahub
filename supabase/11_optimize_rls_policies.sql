@@ -26,10 +26,25 @@ CREATE POLICY "Users can insert own profile"
 -- 2. OPTIMIZAR POLÍTICAS DE LINK_BIO_PROFILES
 -- ============================================
 
+-- La política "Link bio profiles are viewable by everyone" ya existe para SELECT
+-- Necesitamos crear políticas separadas para INSERT, UPDATE y DELETE
+-- para evitar tener múltiples políticas permisivas para SELECT
 DROP POLICY IF EXISTS "Users can manage own link bio profile" ON link_bio_profiles;
+DROP POLICY IF EXISTS "Users can insert own link bio profile" ON link_bio_profiles;
+DROP POLICY IF EXISTS "Users can update own link bio profile" ON link_bio_profiles;
+DROP POLICY IF EXISTS "Users can delete own link bio profile" ON link_bio_profiles;
 
-CREATE POLICY "Users can manage own link bio profile"
-  ON link_bio_profiles FOR ALL
+-- Políticas separadas para cada operación (SELECT ya está cubierto por "viewable by everyone")
+CREATE POLICY "Users can insert own link bio profile"
+  ON link_bio_profiles FOR INSERT
+  WITH CHECK ((select auth.uid()) = user_id);
+
+CREATE POLICY "Users can update own link bio profile"
+  ON link_bio_profiles FOR UPDATE
+  USING ((select auth.uid()) = user_id);
+
+CREATE POLICY "Users can delete own link bio profile"
+  ON link_bio_profiles FOR DELETE
   USING ((select auth.uid()) = user_id);
 
 -- ============================================
@@ -49,14 +64,12 @@ CREATE POLICY "Users can update own posts"
   ON agora_posts FOR UPDATE
   USING ((select auth.uid()) = author_id);
 
-CREATE POLICY "Users can delete own posts"
-  ON agora_posts FOR DELETE
-  USING ((select auth.uid()) = author_id);
-
-CREATE POLICY "Admins can delete any post"
+-- Combinar DELETE: usuarios pueden eliminar sus propios posts O admins pueden eliminar cualquier post
+CREATE POLICY "Users and admins can delete posts"
   ON agora_posts FOR DELETE
   USING (
-    EXISTS (
+    (select auth.uid()) = author_id
+    OR EXISTS (
       SELECT 1 FROM profiles 
       WHERE id = (select auth.uid()) AND role = 'admin'
     )
@@ -86,6 +99,22 @@ CREATE POLICY "Users can delete own comments"
 -- 5. OPTIMIZAR POLÍTICAS DE PROJECTS
 -- ============================================
 
+-- Optimizar política de visibilidad (SELECT)
+DROP POLICY IF EXISTS "Projects visibility policy" ON projects;
+DROP POLICY IF EXISTS "Published projects are viewable by everyone" ON projects;
+
+CREATE POLICY "Projects visibility policy"
+  ON projects FOR SELECT
+  USING (
+    status = 'published' 
+    OR (select auth.uid()) = author_id 
+    OR EXISTS (
+      SELECT 1 FROM profiles 
+      WHERE id = (select auth.uid()) AND role = 'admin'
+    )
+  );
+
+-- Políticas combinadas para evitar múltiples políticas permisivas
 DROP POLICY IF EXISTS "Authenticated users can create projects" ON projects;
 DROP POLICY IF EXISTS "Users can update own projects" ON projects;
 DROP POLICY IF EXISTS "Admins can update any project" ON projects;
@@ -96,27 +125,23 @@ CREATE POLICY "Authenticated users can create projects"
   ON projects FOR INSERT
   WITH CHECK ((select auth.uid()) IS NOT NULL);
 
-CREATE POLICY "Users can update own projects"
-  ON projects FOR UPDATE
-  USING ((select auth.uid()) = author_id);
-
-CREATE POLICY "Admins can update any project"
+-- Combinar UPDATE: usuarios pueden actualizar sus propios proyectos O admins pueden actualizar cualquier proyecto
+CREATE POLICY "Users and admins can update projects"
   ON projects FOR UPDATE
   USING (
-    EXISTS (
+    (select auth.uid()) = author_id
+    OR EXISTS (
       SELECT 1 FROM profiles 
       WHERE id = (select auth.uid()) AND role = 'admin'
     )
   );
 
-CREATE POLICY "Users can delete own projects"
-  ON projects FOR DELETE
-  USING ((select auth.uid()) = author_id);
-
-CREATE POLICY "Admins can delete any project"
+-- Combinar DELETE: usuarios pueden eliminar sus propios proyectos O admins pueden eliminar cualquier proyecto
+CREATE POLICY "Users and admins can delete projects"
   ON projects FOR DELETE
   USING (
-    EXISTS (
+    (select auth.uid()) = author_id
+    OR EXISTS (
       SELECT 1 FROM profiles 
       WHERE id = (select auth.uid()) AND role = 'admin'
     )
@@ -143,19 +168,14 @@ DROP POLICY IF EXISTS "Users can view own profile views" ON profile_views;
 
 CREATE POLICY "Users can view own profile views"
   ON profile_views FOR SELECT
-  USING ((select auth.uid()) = profile_id);
+  USING ((select auth.uid()) = profile_user_id);
 
 -- Link clicks
 DROP POLICY IF EXISTS "Users can view own link clicks" ON link_clicks;
 
 CREATE POLICY "Users can view own link clicks"
   ON link_clicks FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM link_bio_profiles
-      WHERE user_id = (select auth.uid()) AND id = link_clicks.link_bio_profile_id
-    )
-  );
+  USING ((select auth.uid()) = profile_user_id);
 
 -- Feedback messages
 DROP POLICY IF EXISTS "Authenticated users can view feedback messages" ON feedback_messages;
