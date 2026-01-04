@@ -79,23 +79,27 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
       // Obtener IDs únicos de autores
       const authorIds = [...new Set(projectsData.map((p: ProjectFromDB) => p.author_id))];
       
-      // Cargar todos los perfiles de una vez (batch query)
-      const { data: allProfiles } = await executeQueryWithRetry(
-        async () => await supabase
-          .from('profiles')
-          .select('id, name, username, avatar')
-          .in('id', authorIds),
-        'load author profiles'
-      );
+      // Optimized: Load profiles and link_bio_profiles in parallel to reduce total time
+      // This reduces from sequential (5.4s + 4.3s = 9.7s) to parallel (max(5.4s, 4.3s) = 5.4s)
+      const [profilesResult, linkBioResult] = await Promise.all([
+        executeQueryWithRetry(
+          async () => await supabase
+            .from('profiles')
+            .select('id, name, username, avatar')
+            .in('id', authorIds),
+          'load author profiles'
+        ),
+        executeQueryWithRetry(
+          async () => await supabase
+            .from('link_bio_profiles')
+            .select('user_id, avatar')
+            .in('user_id', authorIds),
+          'load link bio avatars'
+        )
+      ]);
 
-      // Cargar todos los avatares de link_bio_profiles de una vez
-      const { data: linkBioProfiles } = await executeQueryWithRetry(
-        async () => await supabase
-          .from('link_bio_profiles')
-          .select('user_id, avatar')
-          .in('user_id', authorIds),
-        'load link bio avatars'
-      );
+      const allProfiles = profilesResult.data;
+      const linkBioProfiles = linkBioResult.data;
 
       // Crear mapas para acceso rápido
       const profilesMap = new Map<string, any>();

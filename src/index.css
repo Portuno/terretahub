@@ -19,6 +19,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: rgb(var(--bg-main));
   color: rgb(var(--text-main));
+  /* Use system fonts as fallback while custom fonts load */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 
 /* Global Smooth Theme Transitions */

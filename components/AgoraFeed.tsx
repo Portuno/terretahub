@@ -77,23 +77,26 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
       const commentAuthorIds = [...new Set((allComments || []).map((c: any) => c.author_id))];
       const allAuthorIds = [...new Set([...authorIds, ...commentAuthorIds])];
 
-      // Cargar todos los perfiles de una vez
-      const { data: allProfiles } = await executeQueryWithRetry(
-        async () => await supabase
-          .from('profiles')
-          .select('id, name, username, avatar, role')
-          .in('id', allAuthorIds),
-        'load agora author profiles'
-      );
+      // Optimized: Load profiles and link_bio_profiles in parallel
+      const [profilesResult, linkBioResult] = await Promise.all([
+        executeQueryWithRetry(
+          async () => await supabase
+            .from('profiles')
+            .select('id, name, username, avatar, role')
+            .in('id', allAuthorIds),
+          'load agora author profiles'
+        ),
+        executeQueryWithRetry(
+          async () => await supabase
+            .from('link_bio_profiles')
+            .select('user_id, avatar')
+            .in('user_id', allAuthorIds),
+          'load agora link bio avatars'
+        )
+      ]);
 
-      // Cargar todos los avatares de link_bio_profiles de una vez
-      const { data: linkBioProfiles } = await executeQueryWithRetry(
-        async () => await supabase
-          .from('link_bio_profiles')
-          .select('user_id, avatar')
-          .in('user_id', allAuthorIds),
-        'load agora link bio avatars'
-      );
+      const allProfiles = profilesResult.data;
+      const linkBioProfiles = linkBioResult.data;
 
       // Crear mapas para acceso rápido
       const profilesMap = new Map<string, any>();

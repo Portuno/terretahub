@@ -37,22 +37,27 @@ const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
 
     // Cargar todos los proyectos de una vez (más eficiente) con retry
     const profileIds = profiles.map(p => p.id);
-    const { data: allProjects } = await executeQueryWithRetry(
-      async () => await supabase
-        .from('projects')
-        .select('author_id, categories, technologies')
-        .in('author_id', profileIds),
-      'load community projects'
-    );
+    
+    // Optimized: Load projects and link_bio_profiles in parallel
+    const [projectsResult, linkBioResult] = await Promise.all([
+      executeQueryWithRetry(
+        async () => await supabase
+          .from('projects')
+          .select('author_id, categories, technologies')
+          .in('author_id', profileIds),
+        'load community projects'
+      ),
+      executeQueryWithRetry(
+        async () => await supabase
+          .from('link_bio_profiles')
+          .select('user_id, avatar')
+          .in('user_id', profileIds),
+        'load community link bio avatars'
+      )
+    ]);
 
-    // Cargar todos los avatares de link_bio_profiles de una vez con retry
-    const { data: linkBioProfiles } = await executeQueryWithRetry(
-      async () => await supabase
-        .from('link_bio_profiles')
-        .select('user_id, avatar')
-        .in('user_id', profileIds),
-      'load community link bio avatars'
-    );
+    const allProjects = projectsResult.data;
+    const linkBioProfiles = linkBioResult.data;
 
     // Crear mapas para acceso rápido
     const projectsByUser = new Map<string, any[]>();
