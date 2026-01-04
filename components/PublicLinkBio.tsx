@@ -103,12 +103,56 @@ export const PublicLinkBio: React.FC = () => {
         });
         const queryStartTime = Date.now();
         
-        // Crear AbortController para timeout de consultas individuales
-        const abortController = new AbortController();
-        const queryTimeout = setTimeout(() => {
-          console.warn('[PublicLinkBio] Individual query timeout (5s), aborting...');
-          abortController.abort();
-        }, 5000);
+        // Función helper para ejecutar query con retry
+        const executeQueryWithRetry = async (
+          queryFn: () => Promise<{ data: any; error: any }>,
+          queryName: string,
+          retryCount = 0
+        ): Promise<{ data: any; error: any }> => {
+          const MAX_RETRIES = 2;
+          const TIMEOUT = 10000; // 10 segundos por intento
+          
+          try {
+            const queryStart = Date.now();
+            console.log(`[PublicLinkBio] ${queryName} attempt ${retryCount + 1}/${MAX_RETRIES + 1}`);
+            
+            const queryPromise = queryFn();
+            const timeoutPromise = new Promise<never>((_, reject) => {
+              setTimeout(() => {
+                reject(new Error(`Query timeout: ${queryName} after ${TIMEOUT}ms`));
+              }, TIMEOUT);
+            });
+            
+            const result = await Promise.race([queryPromise, timeoutPromise]) as { data: any; error: any };
+            const queryDuration = Date.now() - queryStart;
+            
+            console.log(`[PublicLinkBio] ${queryName} completed`, {
+              duration: `${queryDuration}ms`,
+              hasData: !!result.data,
+              hasError: !!result.error,
+              retryCount
+            });
+            
+            // Si hay error y es retryable, intentar de nuevo
+            if (result.error && retryCount < MAX_RETRIES) {
+              const isRetryable = !['PGRST116', '23505', '42501'].includes(result.error.code || '');
+              if (isRetryable && !result.error.message?.includes('timeout')) {
+                console.log(`[PublicLinkBio] Retrying ${queryName}...`);
+                await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+                return executeQueryWithRetry(queryFn, queryName, retryCount + 1);
+              }
+            }
+            
+            return result;
+          } catch (err: any) {
+            if (err.message?.includes('timeout') && retryCount < MAX_RETRIES) {
+              console.log(`[PublicLinkBio] Timeout on ${queryName}, retrying...`);
+              await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+              return executeQueryWithRetry(queryFn, queryName, retryCount + 1);
+            }
+            throw err;
+          }
+        };
         
         // Primero intentar buscar por custom_slug, luego por username
         let data = null;
@@ -117,89 +161,64 @@ export const PublicLinkBio: React.FC = () => {
         try {
           // Intentar buscar por custom_slug primero
           console.log('[PublicLinkBio] Querying by custom_slug:', customSlugLower);
-          const slugQueryStart = Date.now();
           
-          const slugQuery = supabase
-            .from('link_bio_profiles')
-            .select('user_id, username, display_name, bio, avatar, socials, blocks, theme, updated_at, is_published')
-            .eq('custom_slug', customSlugLower)
-            .eq('is_published', true)
-            .maybeSingle();
-          
-          // Agregar timeout a la promesa
-          const slugQueryWithTimeout = Promise.race([
-            slugQuery,
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Query timeout: custom_slug')), 5000)
-            )
-          ]) as Promise<{ data: any; error: any }>;
-          
-          const { data: slugData, error: slugError } = await slugQueryWithTimeout;
-          const slugQueryDuration = Date.now() - slugQueryStart;
-          console.log('[PublicLinkBio] Slug query completed', {
-            duration: `${slugQueryDuration}ms`,
-            hasData: !!slugData,
-            hasError: !!slugError
-          });
-
-          if (slugData) {
-            data = slugData;
-            clearTimeout(queryTimeout);
-          } else if (!slugError || slugError.code === 'PGRST116') {
-            // Si no se encuentra por custom_slug, buscar por username
-            console.log('[PublicLinkBio] Not found by slug, querying by username:', customSlugLower);
-            const usernameQueryStart = Date.now();
-            
-            const usernameQuery = supabase
+          const slugResult = await executeQueryWithRetry(
+            () => supabase
               .from('link_bio_profiles')
               .select('user_id, username, display_name, bio, avatar, socials, blocks, theme, updated_at, is_published')
-              .eq('username', customSlugLower)
+              .eq('custom_slug', customSlugLower)
               .eq('is_published', true)
-              .maybeSingle();
+              .maybeSingle(),
+            'custom_slug query'
+          );
+          
+          if (slugResult.data) {
+            data = slugResult.data;
+            console.log('[PublicLinkBio] Profile found by custom_slug');
+          } else if (!slugResult.error || slugResult.error.code === 'PGRST116') {
+            // Si no se encuentra por custom_slug, buscar por username
+            console.log('[PublicLinkBio] Not found by slug, querying by username:', customSlugLower);
             
-            // Agregar timeout a la promesa
-            const usernameQueryWithTimeout = Promise.race([
-              usernameQuery,
-              new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Query timeout: username')), 5000)
-              )
-            ]) as Promise<{ data: any; error: any }>;
+            const usernameResult = await executeQueryWithRetry(
+              () => supabase
+                .from('link_bio_profiles')
+                .select('user_id, username, display_name, bio, avatar, socials, blocks, theme, updated_at, is_published')
+                .eq('username', customSlugLower)
+                .eq('is_published', true)
+                .maybeSingle(),
+              'username query'
+            );
             
-            const { data: usernameData, error: usernameError } = await usernameQueryWithTimeout;
-            const usernameQueryDuration = Date.now() - usernameQueryStart;
-            console.log('[PublicLinkBio] Username query completed', {
-              duration: `${usernameQueryDuration}ms`,
-              hasData: !!usernameData,
-              hasError: !!usernameError
-            });
-
-            if (usernameData) {
-              data = usernameData;
+            if (usernameResult.data) {
+              data = usernameResult.data;
+              console.log('[PublicLinkBio] Profile found by username');
             } else {
-              queryError = usernameError || slugError;
+              queryError = usernameResult.error || slugResult.error;
             }
-            clearTimeout(queryTimeout);
           } else {
-            queryError = slugError;
-            clearTimeout(queryTimeout);
+            queryError = slugResult.error;
           }
           
           // Fetch CV URL if we have profile data
           if (data) {
-             const { data: userProfile } = await supabase
-               .from('profiles')
-               .select('cv_url')
-               .eq('id', data.user_id)
-               .maybeSingle();
-             
-             if (userProfile && userProfile.cv_url) {
-               (data as any).cv_url = userProfile.cv_url;
-             }
+            try {
+              const { data: userProfile } = await supabase
+                .from('profiles')
+                .select('cv_url')
+                .eq('id', data.user_id)
+                .maybeSingle();
+              
+              if (userProfile && userProfile.cv_url) {
+                (data as any).cv_url = userProfile.cv_url;
+              }
+            } catch (cvError) {
+              console.warn('[PublicLinkBio] Error fetching CV URL:', cvError);
+              // No fallar si no se puede obtener el CV
+            }
           }
         } catch (queryErr: any) {
           console.error('[PublicLinkBio] Query error caught:', queryErr);
           queryError = queryErr;
-          clearTimeout(queryTimeout);
         }
         
         const queryDuration = Date.now() - queryStartTime;
@@ -226,8 +245,9 @@ export const PublicLinkBio: React.FC = () => {
             console.warn('[PublicLinkBio] Profile not found');
             setError('Perfil no encontrado o no está publicado');
           } else if (queryError.message?.includes('timeout') || queryError.message?.includes('Query timeout')) {
-            console.error('[PublicLinkBio] Query timeout error');
-            setError('La consulta tardó demasiado. Por favor, verifica tu conexión e intenta de nuevo.');
+            console.error('[PublicLinkBio] Query timeout error after all retries');
+            // Después de todos los reintentos, mostrar mensaje más útil
+            setError('El perfil está tardando en cargar. Por favor, intenta recargar la página o verifica tu conexión.');
           } else {
             console.error('[PublicLinkBio] Unexpected error:', queryError);
             setError('Error al cargar el perfil: ' + (queryError.message || 'Error desconocido'));
