@@ -142,12 +142,21 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
           profilesMapFinal.set(profile.id, profile);
         });
 
+        // Agrupar comentarios por post_id (necesario para el fallback)
+        const commentsByPostFallback = new Map<string, any[]>();
+        (allComments || []).forEach((comment: any) => {
+          if (!commentsByPostFallback.has(comment.post_id)) {
+            commentsByPostFallback.set(comment.post_id, []);
+          }
+          commentsByPostFallback.get(comment.post_id)!.push(comment);
+        });
+
         // Process posts with fallback profiles
         const postsWithComments = postsData.map((post: any) => {
           const authorProfile = profilesMapFinal.get(post.author_id);
           const finalAvatar = authorProfile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorProfile?.username || 'user'}`;
 
-          const postComments = (commentsByPost.get(post.id) || []).map((comment: any) => {
+          const postComments = (commentsByPostFallback.get(post.id) || []).map((comment: any) => {
             const commentAuthor = profilesMapFinal.get(comment.author_id);
             const commentAvatar = commentAuthor?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${commentAuthor?.username || 'user'}`;
 

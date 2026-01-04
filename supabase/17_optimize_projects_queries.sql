@@ -122,22 +122,42 @@ $$;
 -- 3. ÍNDICES ADICIONALES PARA OPTIMIZACIÓN
 -- ============================================
 
+-- Primero, eliminar cualquier índice problemático que incluya campos TEXT grandes
+-- Estos índices pueden causar error "index row requires X bytes, maximum size is 8191"
+DROP INDEX IF EXISTS idx_link_bio_profiles_user_avatar;
+DROP INDEX IF EXISTS idx_profiles_id_username_avatar;
+DROP INDEX IF EXISTS idx_link_bio_profiles_user_id_optimized;
+
 -- Índice compuesto para proyectos publicados ordenados por fecha
 -- Este índice es crítico para la función get_projects_with_authors
 CREATE INDEX IF NOT EXISTS idx_projects_published_created_at 
 ON projects(status, created_at DESC) 
 WHERE status = 'published';
 
--- Índice para optimizar JOINs con link_bio_profiles por user_id y avatar
--- Esto acelera la búsqueda de avatares en link_bio_profiles
-CREATE INDEX IF NOT EXISTS idx_link_bio_profiles_user_avatar 
-ON link_bio_profiles(user_id, avatar) 
-WHERE avatar IS NOT NULL;
+-- Índice para optimizar JOINs con link_bio_profiles por user_id
+-- NOTA: Solo indexamos user_id, NO incluimos avatar porque:
+-- 1. PostgreSQL tiene un límite de 8191 bytes por fila de índice
+-- 2. El campo 'avatar' es TEXT y puede contener URLs muy largas que exceden este límite
+-- 3. El índice en user_id es suficiente para hacer JOINs rápidos
+-- Verificar si ya existe un índice en user_id antes de crear uno nuevo
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes 
+    WHERE schemaname = 'public' 
+    AND tablename = 'link_bio_profiles' 
+    AND indexname = 'idx_link_bio_profiles_user_id'
+  ) THEN
+    CREATE INDEX idx_link_bio_profiles_user_id 
+    ON link_bio_profiles(user_id);
+  END IF;
+END $$;
 
--- Índice compuesto para perfiles que se usan frecuentemente en JOINs
--- Esto optimiza las consultas que buscan perfiles por ID
-CREATE INDEX IF NOT EXISTS idx_profiles_id_username_avatar 
-ON profiles(id, username, avatar);
+-- NOTA IMPORTANTE: No creamos índices que incluyan campos TEXT grandes (avatar, description, etc.) porque:
+-- 1. PostgreSQL tiene un límite de 8191 bytes por fila de índice
+-- 2. Los campos TEXT pueden contener datos muy largos que exceden este límite
+-- 3. El índice en 'id' (clave primaria) ya existe y es suficiente para JOINs rápidos
+-- 4. Los JOINs por id ya son eficientes gracias al índice primario en profiles
 
 -- ============================================
 -- 4. ACTUALIZAR ESTADÍSTICAS
