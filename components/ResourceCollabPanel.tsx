@@ -83,33 +83,62 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
     setSubmitState('loading');
     setErrorMessage('');
 
-    // Build payload - verticals is required by validation, so it should always be present
-    const payload: any = {
+    // Validate required fields
+    if (!details.trim() || details.trim().length <= 12) {
+      setSubmitState('error');
+      setErrorMessage('Por favor, proporciona más detalles sobre tu necesidad (mínimo 12 caracteres).');
+      setTimeout(() => setSubmitState('idle'), 3000);
+      return;
+    }
+
+    if (!selectedVerticals || selectedVerticals.length === 0) {
+      setSubmitState('error');
+      setErrorMessage('Por favor, selecciona al menos una vertical de interés.');
+      setTimeout(() => setSubmitState('idle'), 3000);
+      return;
+    }
+
+    // Build payload - ensure arrays are properly formatted for Supabase
+    // Supabase expects arrays as JavaScript arrays, which it converts to PostgreSQL arrays
+    const payload: {
+      details: string;
+      verticals: string[];
+      format_tags: string[];
+      need_types: string[];
+      user_id?: string;
+      placeholder_used?: string;
+      user_agent?: string;
+    } = {
       details: details.trim(),
-      verticals: Array.isArray(selectedVerticals) ? selectedVerticals : [],
-      format_tags: Array.isArray(formatTags) ? formatTags : [],
-      need_types: [] as string[]
+      verticals: Array.isArray(selectedVerticals) && selectedVerticals.length > 0 
+        ? selectedVerticals.filter(v => v && v.trim()) 
+        : [],
+      format_tags: Array.isArray(formatTags) && formatTags.length > 0
+        ? formatTags.filter(t => t && t.trim())
+        : [],
+      need_types: []
     };
 
-    // Add optional fields
+    // Add optional fields only if they have values
     if (user?.id) {
       payload.user_id = user.id;
     }
 
-    if (placeholder) {
-      payload.placeholder_used = placeholder;
+    if (placeholder && placeholder.trim()) {
+      payload.placeholder_used = placeholder.trim();
     }
 
-    if (typeof navigator !== 'undefined' && navigator.userAgent) {
-      payload.user_agent = navigator.userAgent;
+    if (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.trim()) {
+      payload.user_agent = navigator.userAgent.trim();
     }
 
     console.log('[ResourceCollabPanel] Submitting payload:', JSON.stringify(payload, null, 2));
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('resource_needs')
-        .insert(payload);
+        .insert(payload)
+        .select();
       
       if (error) {
         console.error('[ResourceCollabPanel] Error inserting resource need:', {
@@ -117,14 +146,14 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
           details: error.details,
           hint: error.hint,
           code: error.code,
-          fullError: JSON.stringify(error, null, 2)
+          fullError: error
         });
         setSubmitState('error');
-        setErrorMessage(error.message || 'No se pudo enviar tu necesidad.');
+        setErrorMessage(error.message || 'No se pudo enviar tu necesidad. Por favor, intenta nuevamente.');
         return;
       }
 
-      console.log('[ResourceCollabPanel] Resource need created successfully');
+      console.log('[ResourceCollabPanel] Resource need created successfully:', data);
       setSubmitState('success');
       setDetails('');
       setSelectedVerticals([]);
@@ -134,10 +163,10 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
       console.error('[ResourceCollabPanel] Exception during submit:', {
         message: err?.message,
         stack: err?.stack,
-        fullError: JSON.stringify(err, null, 2)
+        fullError: err
       });
       setSubmitState('error');
-      setErrorMessage(err?.message || 'No se pudo enviar tu necesidad.');
+      setErrorMessage(err?.message || 'No se pudo enviar tu necesidad. Por favor, intenta nuevamente.');
     } finally {
       setTimeout(() => setSubmitState('idle'), 3000);
     }
