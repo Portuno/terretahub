@@ -110,11 +110,12 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
       : [];
 
     // Build payload - only include fields that have values
+    // Note: Supabase requires arrays to be sent even if empty for NOT NULL fields
     const payload: Record<string, any> = {
       details: details.trim(),
-      verticals: cleanedVerticals,
-      format_tags: cleanedFormatTags,
-      need_types: [] // Always send as empty array, schema has default '{}'
+      verticals: cleanedVerticals.length > 0 ? cleanedVerticals : [],
+      format_tags: cleanedFormatTags.length > 0 ? cleanedFormatTags : [],
+      need_types: [] // Schema has DEFAULT '{}', but we send empty array to be explicit
     };
 
     // Add optional fields only if they have values (don't send null/undefined)
@@ -130,28 +131,50 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
       payload.user_agent = navigator.userAgent.trim();
     }
 
-    // Ensure arrays are never null - convert to empty array if needed
-    if (!Array.isArray(payload.verticals)) payload.verticals = [];
-    if (!Array.isArray(payload.format_tags)) payload.format_tags = [];
-    if (!Array.isArray(payload.need_types)) payload.need_types = [];
+    // Final validation: ensure arrays are always arrays (never null/undefined)
+    if (!Array.isArray(payload.verticals)) {
+      console.warn('[ResourceCollabPanel] verticals is not an array, converting');
+      payload.verticals = [];
+    }
+    if (!Array.isArray(payload.format_tags)) {
+      console.warn('[ResourceCollabPanel] format_tags is not an array, converting');
+      payload.format_tags = [];
+    }
+    if (!Array.isArray(payload.need_types)) {
+      console.warn('[ResourceCollabPanel] need_types is not an array, converting');
+      payload.need_types = [];
+    }
 
     console.log('[ResourceCollabPanel] Submitting payload:', JSON.stringify(payload, null, 2));
 
     try {
+      // Log the exact payload being sent
+      console.log('[ResourceCollabPanel] Payload before insert:', JSON.stringify(payload, null, 2));
+      console.log('[ResourceCollabPanel] Payload types:', {
+        details: typeof payload.details,
+        verticals: Array.isArray(payload.verticals) ? 'array' : typeof payload.verticals,
+        format_tags: Array.isArray(payload.format_tags) ? 'array' : typeof payload.format_tags,
+        need_types: Array.isArray(payload.need_types) ? 'array' : typeof payload.need_types,
+        hasUserId: !!payload.user_id
+      });
+
       const { data, error } = await supabase
         .from('resource_needs')
         .insert(payload)
-        .select('*');
+        .select();
       
       if (error) {
-        // Log detailed error information
-        console.error('[ResourceCollabPanel] Error inserting resource need:', {
+        // Log detailed error information with full error object
+        console.error('[ResourceCollabPanel] Full error object:', error);
+        console.error('[ResourceCollabPanel] Error details:', {
           message: error.message,
           details: error.details,
           hint: error.hint,
           code: error.code,
-          fullError: error,
-          payload: payload
+          statusCode: (error as any).status,
+          statusText: (error as any).statusText,
+          fullError: JSON.stringify(error, Object.getOwnPropertyNames(error), 2),
+          payload: JSON.stringify(payload, null, 2)
         });
         
         // Provide more specific error messages
@@ -160,10 +183,10 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
           userMessage = 'Faltan campos requeridos. Por favor, completa todos los campos necesarios.';
         } else if (error.code === '23505') {
           userMessage = 'Esta necesidad ya fue enviada anteriormente.';
-        } else if (error.code === '42501') {
+        } else if (error.code === '42501' || error.code === 'PGRST301') {
           userMessage = 'No tienes permisos para realizar esta acción.';
         } else if (error.message) {
-          userMessage = error.message;
+          userMessage = `Error: ${error.message}`;
         }
         
         setSubmitState('error');
