@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Calendar, User, ExternalLink, Video, Image as ImageIcon } from 'lucide-react';
+import { X, Calendar, User, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import { ProjectWithAuthor } from './ProjectsGallery';
 import { generateSlug, normalizeUrl } from '../lib/utils';
 
@@ -88,7 +88,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
 
       {/* Modal Content */}
       <div
-        className={`relative bg-terreta-card w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-in-out ${
+        className={`relative bg-terreta-card w-full max-w-4xl max-h-[95vh] rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-in-out flex flex-col ${
           isVisible 
             ? 'scale-100 translate-y-0 opacity-100' 
             : 'scale-95 translate-y-8 opacity-0'
@@ -104,19 +104,9 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
         </button>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto max-h-[90vh]">
-          {/* Hero Image/Video */}
-          {project.video_url ? (
-            <div className="relative w-full h-64 bg-gray-900">
-              <iframe
-                src={project.video_url}
-                className="w-full h-full"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          ) : project.images && project.images.length > 0 ? (
+        <div className="overflow-y-auto flex-1 min-h-0">
+          {/* Hero Image - Always use image as cover, never video */}
+          {project.images && project.images.length > 0 ? (
             <div className="relative w-full h-64 bg-terreta-bg overflow-hidden">
               <img
                 src={project.images[currentImageIndex]}
@@ -216,6 +206,24 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
             <div className="mb-6">
               <h2 className="font-serif text-xl text-terreta-dark mb-3">Sobre el Proyecto</h2>
               <p className="text-terreta-dark leading-relaxed whitespace-pre-line mb-4">{project.description}</p>
+              
+              {/* Video - Show video inside content, not as cover */}
+              {project.video_url && (
+                <div className="mb-4">
+                  <h3 className="font-bold text-terreta-dark mb-2 uppercase text-sm tracking-wide">
+                    Video
+                  </h3>
+                  <div className="relative w-full aspect-video bg-gray-900 rounded-lg overflow-hidden">
+                    <iframe
+                      src={project.video_url}
+                      className="w-full h-full"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                </div>
+              )}
               
               {/* Website Link */}
               {project.website && (

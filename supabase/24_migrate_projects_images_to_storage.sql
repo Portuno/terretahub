@@ -101,14 +101,14 @@ BEGIN
     SELECT id, images, author_id
     FROM projects
     WHERE images IS NOT NULL 
-      AND jsonb_array_length(images::jsonb) > 0
+      AND array_length(images, 1) > 0
   LOOP
     cleaned_images := ARRAY[]::TEXT[];
     has_large_images := false;
     
-    -- Procesar cada imagen en el array
+    -- Procesar cada imagen en el array TEXT[]
     FOR image_item IN 
-      SELECT jsonb_array_elements_text(project_record.images::jsonb)
+      SELECT unnest(project_record.images)
     LOOP
       -- Si la imagen es base64 grande, ELIMINARLA (no mantener placeholder)
       IF image_item IS NOT NULL 
@@ -132,8 +132,8 @@ BEGIN
       -- Si no quedan imágenes, poner array vacío
       UPDATE projects
       SET images = CASE 
-        WHEN array_length(cleaned_images, 1) > 0 THEN cleaned_images::jsonb
-        ELSE '[]'::jsonb
+        WHEN array_length(cleaned_images, 1) > 0 THEN cleaned_images
+        ELSE ARRAY[]::TEXT[]
       END
       WHERE id = project_record.id;
       
@@ -141,6 +141,7 @@ BEGIN
     END IF;
   END LOOP;
   
+  -- Siempre retornar una fila, incluso si no se actualizó nada
   RETURN QUERY SELECT updated_count, removed_count, size_freed;
 END;
 $$;
