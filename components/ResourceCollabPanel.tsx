@@ -84,9 +84,18 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
     setErrorMessage('');
 
     // Validate required fields
-    if (!details.trim() || details.trim().length <= 12) {
+    const trimmedDetails = details.trim();
+    if (!trimmedDetails || trimmedDetails.length <= 12) {
       setSubmitState('error');
       setErrorMessage('Por favor, proporciona más detalles sobre tu necesidad (mínimo 12 caracteres).');
+      setTimeout(() => setSubmitState('idle'), 3000);
+      return;
+    }
+
+    // Validate details length (PostgreSQL TEXT can be very long, but let's set a reasonable limit)
+    if (trimmedDetails.length > 10000) {
+      setSubmitState('error');
+      setErrorMessage('El texto es demasiado largo. Por favor, reduce la descripción a menos de 10,000 caracteres.');
       setTimeout(() => setSubmitState('idle'), 3000);
       return;
     }
@@ -165,29 +174,53 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
       
       if (error) {
         // Log detailed error information with full error object
-        console.error('[ResourceCollabPanel] Full error object:', error);
-        console.error('[ResourceCollabPanel] Error details:', {
+        // Expand all properties of the error object
+        const errorDetails: any = {
           message: error.message,
           details: error.details,
           hint: error.hint,
-          code: error.code,
-          statusCode: (error as any).status,
-          statusText: (error as any).statusText,
-          fullError: JSON.stringify(error, Object.getOwnPropertyNames(error), 2),
-          payload: JSON.stringify(payload, null, 2)
-        });
+          code: error.code
+        };
         
-        // Provide more specific error messages
-        let userMessage = 'No se pudo enviar tu necesidad. Por favor, intenta nuevamente.';
-        if (error.code === '23502') {
-          userMessage = 'Faltan campos requeridos. Por favor, completa todos los campos necesarios.';
-        } else if (error.code === '23505') {
-          userMessage = 'Esta necesidad ya fue enviada anteriormente.';
-        } else if (error.code === '42501' || error.code === 'PGRST301') {
-          userMessage = 'No tienes permisos para realizar esta acción.';
-        } else if (error.message) {
-          userMessage = `Error: ${error.message}`;
+        // Try to get additional properties
+        try {
+          if ((error as any).status) errorDetails.status = (error as any).status;
+          if ((error as any).statusText) errorDetails.statusText = (error as any).statusText;
+          if ((error as any).statusCode) errorDetails.statusCode = (error as any).statusCode;
+        } catch (e) {
+          // Ignore if properties don't exist
         }
+        
+        // Log the error in multiple ways to ensure we see it
+        console.error('[ResourceCollabPanel] ========== ERROR START ==========');
+        console.error('[ResourceCollabPanel] Error object:', error);
+        console.error('[ResourceCollabPanel] Error details:', errorDetails);
+        console.error('[ResourceCollabPanel] Error as JSON:', JSON.stringify(error, null, 2));
+        console.error('[ResourceCollabPanel] Payload that failed:', JSON.stringify(payload, null, 2));
+        console.error('[ResourceCollabPanel] ========== ERROR END ==========');
+        
+        // Provide more specific error messages based on error code
+        let userMessage = 'No se pudo enviar tu necesidad. Por favor, intenta nuevamente.';
+        
+        // Check for specific error codes
+        const errorCode = error.code || (error as any).code;
+        const errorMessage = error.message || (error as any).message || '';
+        
+        if (errorCode === '23502') {
+          userMessage = 'Faltan campos requeridos. Por favor, completa todos los campos necesarios.';
+        } else if (errorCode === '23505') {
+          userMessage = 'Esta necesidad ya fue enviada anteriormente.';
+        } else if (errorCode === '42501' || errorCode === 'PGRST301') {
+          userMessage = 'No tienes permisos para realizar esta acción.';
+        } else if (errorCode === 'PGRST116') {
+          userMessage = 'No se encontró el recurso solicitado.';
+        } else if (errorMessage) {
+          userMessage = `Error: ${errorMessage}`;
+        }
+        
+        // Also log the error code and message for debugging
+        console.error('[ResourceCollabPanel] Error code:', errorCode);
+        console.error('[ResourceCollabPanel] Error message:', errorMessage);
         
         setSubmitState('error');
         setErrorMessage(userMessage);
