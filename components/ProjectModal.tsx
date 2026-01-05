@@ -127,31 +127,33 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
 
   return (
     <div
-      className={`fixed inset-0 z-[80] flex items-center justify-center p-4 transition-all duration-300 ease-in-out ${
+      className={`fixed inset-0 z-[80] flex items-start justify-center p-4 overflow-y-auto transition-all duration-300 ease-in-out ${
         isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
       onClick={handleBackdropClick}
     >
       {/* Backdrop */}
       <div
-        className={`absolute inset-0 bg-terreta-dark/70 backdrop-blur-sm transition-opacity duration-300 ease-in-out ${
+        className={`fixed inset-0 bg-terreta-dark/70 backdrop-blur-sm transition-opacity duration-300 ease-in-out pointer-events-none ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
       />
 
       {/* Modal Content */}
       <div
-        className={`relative bg-terreta-card w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-in-out flex flex-col ${
+        className={`relative bg-terreta-card w-full max-w-4xl my-8 rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-in-out flex flex-col ${
           isVisible 
             ? 'scale-100 translate-y-0 opacity-100' 
             : 'scale-95 translate-y-8 opacity-0'
         }`}
         onClick={(e) => e.stopPropagation()}
+        style={{ maxHeight: 'calc(100vh - 4rem)' }}
       >
-        {/* Close Button */}
+        {/* Close Button - Always visible in top right corner */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 bg-terreta-card/90 backdrop-blur-sm text-terreta-dark/60 hover:text-terreta-dark p-2 rounded-full transition-colors shadow-lg border border-terreta-border"
+          className="absolute top-4 right-4 z-50 bg-terreta-card/95 backdrop-blur-sm text-terreta-dark/70 hover:text-terreta-dark p-2 rounded-full transition-colors shadow-lg border border-terreta-border hover:bg-terreta-card"
+          aria-label="Cerrar modal"
         >
           <X size={20} />
         </button>
