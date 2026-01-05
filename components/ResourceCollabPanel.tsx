@@ -120,11 +120,13 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
 
     // Build payload - only include fields that have values
     // Note: Supabase requires arrays to be sent even if empty for NOT NULL fields
+    // Omit need_types if the column doesn't exist in the database
     const payload: Record<string, any> = {
       details: details.trim(),
       verticals: cleanedVerticals.length > 0 ? cleanedVerticals : [],
-      format_tags: cleanedFormatTags.length > 0 ? cleanedFormatTags : [],
-      need_types: [] // Schema has DEFAULT '{}', but we send empty array to be explicit
+      format_tags: cleanedFormatTags.length > 0 ? cleanedFormatTags : []
+      // Note: need_types column may not exist in the database yet
+      // We'll omit it for now and let the database use its default value
     };
 
     // Add optional fields only if they have values (don't send null/undefined)
