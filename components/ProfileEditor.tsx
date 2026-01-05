@@ -101,13 +101,42 @@ const normalizeUrl = (url: string): string => {
 const getEmbedUrl = (url: string): string => {
   if (!url) return '';
   
-  // YouTube
-  if (url.includes('youtube.com/watch?v=')) {
-    return url.replace('watch?v=', 'embed/');
+  // If already in embed format, return as is (but clean any extra params)
+  if (url.includes('/embed/')) {
+    const embedMatch = url.match(/youtube\.com\/embed\/([^?&]+)/);
+    if (embedMatch && embedMatch[1]) {
+      return `https://www.youtube.com/embed/${embedMatch[1]}`;
+    }
+    return url;
   }
+  
+  if (url.includes('player.vimeo.com')) {
+    return url;
+  }
+  
+  // YouTube: watch?v= format - extract video ID and clean params
+  if (url.includes('youtube.com/watch')) {
+    const match = url.match(/[?&]v=([^&]+)/);
+    if (match && match[1]) {
+      const videoId = match[1].split('&')[0].split('#')[0];
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+  }
+  
+  // YouTube: youtu.be/ format - extract video ID and clean params
   if (url.includes('youtu.be/')) {
-    const id = url.split('youtu.be/')[1];
-    return `https://www.youtube.com/embed/${id}`;
+    const videoId = url.split('youtu.be/')[1]?.split('?')[0]?.split('&')[0]?.split('#')[0];
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+  }
+  
+  // YouTube: youtube.com/v/ format
+  if (url.includes('youtube.com/v/')) {
+    const match = url.match(/youtube\.com\/v\/([^?&]+)/);
+    if (match && match[1]) {
+      return `https://www.youtube.com/embed/${match[1]}`;
+    }
   }
   
   // Vimeo
@@ -2274,8 +2303,9 @@ export const ProfileRenderer: React.FC<{ profile: LinkBioProfile; profileUserId?
                         src={getEmbedUrl(block.url)} 
                         title="Video player" 
                         frameBorder="0" 
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
                         allowFullScreen
+                        loading="lazy"
                      ></iframe>
                   </div>
                )

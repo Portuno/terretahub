@@ -14,21 +14,41 @@ interface ProjectModalProps {
 const getEmbedUrl = (url: string): string => {
   if (!url) return '';
   
-  // If already in embed format, return as is
-  if (url.includes('/embed/') || url.includes('player.vimeo.com')) {
+  // If already in embed format, return as is (but clean any extra params)
+  if (url.includes('/embed/')) {
+    const embedMatch = url.match(/youtube\.com\/embed\/([^?&]+)/);
+    if (embedMatch && embedMatch[1]) {
+      return `https://www.youtube.com/embed/${embedMatch[1]}`;
+    }
     return url;
   }
   
-  // YouTube: watch?v= format
-  if (url.includes('youtube.com/watch?v=')) {
-    return url.replace('watch?v=', 'embed/');
+  if (url.includes('player.vimeo.com')) {
+    return url;
   }
   
-  // YouTube: youtu.be/ format
+  // YouTube: watch?v= format - extract video ID and clean params
+  if (url.includes('youtube.com/watch')) {
+    const match = url.match(/[?&]v=([^&]+)/);
+    if (match && match[1]) {
+      const videoId = match[1].split('&')[0].split('#')[0];
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+  }
+  
+  // YouTube: youtu.be/ format - extract video ID and clean params
   if (url.includes('youtu.be/')) {
-    const videoId = url.split('youtu.be/')[1]?.split('?')[0]?.split('&')[0];
+    const videoId = url.split('youtu.be/')[1]?.split('?')[0]?.split('&')[0]?.split('#')[0];
     if (videoId) {
       return `https://www.youtube.com/embed/${videoId}`;
+    }
+  }
+  
+  // YouTube: youtube.com/v/ format
+  if (url.includes('youtube.com/v/')) {
+    const match = url.match(/youtube\.com\/v\/([^?&]+)/);
+    if (match && match[1]) {
+      return `https://www.youtube.com/embed/${match[1]}`;
     }
   }
   
@@ -250,9 +270,11 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
                     <iframe
                       src={getEmbedUrl(project.video_url)}
                       className="w-full h-full"
+                      title="Video player"
                       frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
+                      loading="lazy"
                     />
                   </div>
                 </div>

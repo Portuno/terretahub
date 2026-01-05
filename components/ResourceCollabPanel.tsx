@@ -83,38 +83,59 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
     setSubmitState('loading');
     setErrorMessage('');
 
-    // Ensure arrays are always arrays and not null/undefined
-    const payload = {
-      user_id: user?.id || null,
-      need_types: [] as string[],
-      format_tags: Array.isArray(formatTags) ? formatTags : [],
-      verticals: Array.isArray(selectedVerticals) ? selectedVerticals : [],
+    // Build payload - verticals is required by validation, so it should always be present
+    const payload: any = {
       details: details.trim(),
-      placeholder_used: placeholder || null,
-      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null
+      verticals: Array.isArray(selectedVerticals) ? selectedVerticals : [],
+      format_tags: Array.isArray(formatTags) ? formatTags : [],
+      need_types: [] as string[]
     };
 
+    // Add optional fields
+    if (user?.id) {
+      payload.user_id = user.id;
+    }
+
+    if (placeholder) {
+      payload.placeholder_used = placeholder;
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.userAgent) {
+      payload.user_agent = navigator.userAgent;
+    }
+
+    console.log('[ResourceCollabPanel] Submitting payload:', JSON.stringify(payload, null, 2));
+
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('resource_needs')
-        .insert(payload)
-        .select();
+        .insert(payload);
       
       if (error) {
-        console.error('[ResourceCollabPanel] Error inserting resource need:', error);
+        console.error('[ResourceCollabPanel] Error inserting resource need:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          fullError: JSON.stringify(error, null, 2)
+        });
         setSubmitState('error');
         setErrorMessage(error.message || 'No se pudo enviar tu necesidad.');
         return;
       }
 
-      console.log('[ResourceCollabPanel] Resource need created successfully:', data);
+      console.log('[ResourceCollabPanel] Resource need created successfully');
       setSubmitState('success');
       setDetails('');
       setSelectedVerticals([]);
       setFormatTags([]);
       rotatePlaceholder();
     } catch (err: any) {
-      console.error('[ResourceCollabPanel] Exception during submit:', err);
+      console.error('[ResourceCollabPanel] Exception during submit:', {
+        message: err?.message,
+        stack: err?.stack,
+        fullError: JSON.stringify(err, null, 2)
+      });
       setSubmitState('error');
       setErrorMessage(err?.message || 'No se pudo enviar tu necesidad.');
     } finally {
