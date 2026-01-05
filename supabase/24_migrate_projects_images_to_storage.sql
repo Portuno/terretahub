@@ -68,22 +68,33 @@ USING (
 );
 
 -- ============================================
--- 3. FUNCIÓN PARA LIMPIAR IMÁGENES BASE64 GRANDES
+-- 3. FUNCIÓN PARA LIMPIAR IMÁGENES BASE64 GRANDES DE LA BASE DE DATOS
 -- ============================================
--- Esta función reemplaza imágenes base64 grandes en el array images con placeholders
--- Útil para limpiar datos existentes sin migración inmediata
+-- Esta función ELIMINA imágenes base64 grandes del array images
+-- Esto reduce inmediatamente el tamaño de la base de datos
+-- Las imágenes se pueden migrar a Storage después usando el script TypeScript
+
+-- Eliminar función existente si existe (porque cambiamos el tipo de retorno)
+DROP FUNCTION IF EXISTS clean_large_base64_project_images();
 
 CREATE OR REPLACE FUNCTION clean_large_base64_project_images()
-RETURNS INTEGER
+RETURNS TABLE (
+  projects_updated INTEGER,
+  images_removed INTEGER,
+  total_size_freed BIGINT
+)
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
   updated_count INTEGER := 0;
+  removed_count INTEGER := 0;
+  size_freed BIGINT := 0;
   project_record RECORD;
   cleaned_images TEXT[];
   image_item TEXT;
   has_large_images BOOLEAN;
+  image_size BIGINT;
 BEGIN
   -- Iterar sobre todos los proyectos que tienen imágenes
   FOR project_record IN 
@@ -99,13 +110,16 @@ BEGIN
     FOR image_item IN 
       SELECT jsonb_array_elements_text(project_record.images::jsonb)
     LOOP
-      -- Si la imagen es base64 grande, reemplazarla con placeholder
+      -- Si la imagen es base64 grande, ELIMINARLA (no mantener placeholder)
       IF image_item IS NOT NULL 
          AND length(image_item) > 500 
          AND image_item LIKE 'data:image%' THEN
-        -- Reemplazar con placeholder (puedes usar una URL de placeholder o eliminar)
-        cleaned_images := array_append(cleaned_images, 'https://via.placeholder.com/800x600?text=Image+Too+Large');
+        -- Contar tamaño y eliminar
+        image_size := length(image_item);
+        size_freed := size_freed + image_size;
+        removed_count := removed_count + 1;
         has_large_images := true;
+        -- NO agregar a cleaned_images (eliminarla)
       ELSE
         -- Mantener la imagen si es pequeña o ya es una URL
         cleaned_images := array_append(cleaned_images, image_item);
@@ -114,15 +128,20 @@ BEGIN
     
     -- Actualizar el proyecto si tenía imágenes grandes
     IF has_large_images THEN
+      -- Si quedan imágenes, actualizar con el array limpio
+      -- Si no quedan imágenes, poner array vacío
       UPDATE projects
-      SET images = cleaned_images::jsonb
+      SET images = CASE 
+        WHEN array_length(cleaned_images, 1) > 0 THEN cleaned_images::jsonb
+        ELSE '[]'::jsonb
+      END
       WHERE id = project_record.id;
       
       updated_count := updated_count + 1;
     END IF;
   END LOOP;
   
-  RETURN updated_count;
+  RETURN QUERY SELECT updated_count, removed_count, size_freed;
 END;
 $$;
 
@@ -238,21 +257,40 @@ $$;
 -- 6. COMENTARIOS
 -- ============================================
 
-COMMENT ON FUNCTION clean_large_base64_project_images IS 'Limpia imágenes base64 grandes del campo images en proyectos. Reemplaza con placeholders para reducir payload.';
+COMMENT ON FUNCTION clean_large_base64_project_images IS 'Elimina imágenes base64 grandes del campo images en proyectos. Retorna estadísticas de limpieza (proyectos actualizados, imágenes eliminadas, tamaño liberado).';
 COMMENT ON FUNCTION filter_large_base64_images IS 'Filtra imágenes base64 grandes de un array JSONB. Retorna solo URLs o base64 pequeños.';
 COMMENT ON FUNCTION get_projects_with_authors IS 'Obtiene proyectos con información del autor. Filtra imágenes base64 grandes para reducir payload significativamente.';
 
 -- ============================================
--- 7. NOTAS IMPORTANTES
+-- 7. EJECUTAR LIMPIEZA INMEDIATA
+-- ============================================
+-- Esta función ELIMINA las imágenes base64 grandes de la base de datos
+-- Ejecuta esto para reducir inmediatamente el tamaño de la DB
+--
+-- IMPORTANTE: Esta función ELIMINA permanentemente las imágenes base64 grandes.
+-- Si quieres migrarlas a Storage primero, hazlo antes de ejecutar esta función.
+--
+-- Para ejecutar la limpieza:
+-- SELECT * FROM clean_large_base64_project_images();
+--
+-- Esto retornará:
+-- - projects_updated: número de proyectos actualizados
+-- - images_removed: número de imágenes eliminadas
+-- - total_size_freed: tamaño total liberado en bytes
+
+-- ============================================
+-- 8. NOTAS IMPORTANTES
 -- ============================================
 -- 
--- Para migrar las imágenes existentes a Storage, necesitarás:
--- 1. Ejecutar este script SQL
--- 2. Crear una función en el frontend/backend que:
---    - Lea las imágenes base64 de cada proyecto
---    - Convierta base64 a Blob
---    - Suba cada imagen a Storage en: {author_id}/{project_id}/{image_index}.jpg
---    - Actualice el campo images con las URLs de Storage
+-- ADVERTENCIA: La función clean_large_base64_project_images() ELIMINA las imágenes
+-- base64 grandes de la base de datos. Si quieres migrarlas a Storage primero:
+-- 
+-- 1. Usa el script de migración TypeScript (lib/projectImageUtils.ts):
+--    - migrateProjectImagesToStorage() para migrar imágenes base64 a Storage
+-- 2. Luego ejecuta: SELECT * FROM clean_large_base64_project_images();
+-- 
+-- Si ejecutas la limpieza sin migrar primero, las imágenes base64 grandes
+-- se perderán permanentemente (pero esto reducirá inmediatamente el tamaño de la DB).
 -- 
 -- Ejemplo de estructura en Storage:
 -- projects/
