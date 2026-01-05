@@ -9,6 +9,9 @@
 -- 1. MODIFICAR get_community_profiles
 -- ============================================
 -- Agregar campo has_link_bio y ordenar por este campo primero
+-- Primero eliminamos la función existente porque estamos cambiando el tipo de retorno
+
+DROP FUNCTION IF EXISTS get_community_profiles(INTEGER);
 
 CREATE OR REPLACE FUNCTION get_community_profiles(limit_count INTEGER DEFAULT 50)
 RETURNS TABLE (

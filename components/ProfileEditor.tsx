@@ -217,6 +217,10 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
   } | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   
+  // Mobile preview modal state
+  const [isMobilePreviewOpen, setIsMobilePreviewOpen] = useState(false);
+  const [isBlocksExpanded, setIsBlocksExpanded] = useState(true);
+  
   // File input ref for avatar
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1083,13 +1087,22 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] flex flex-col lg:flex-row bg-terreta-bg overflow-hidden">
+    <div className="h-[calc(100vh-80px)] flex flex-col lg:flex-row bg-terreta-bg overflow-hidden relative">
+      
+      {/* Mobile Preview Button - Only visible on mobile */}
+      <button
+        onClick={() => setIsMobilePreviewOpen(true)}
+        className="lg:hidden fixed bottom-6 right-6 z-50 bg-terreta-accent text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all flex items-center gap-2 font-bold text-sm"
+      >
+        <Smartphone size={20} />
+        <span>Preview</span>
+      </button>
       
       {/* --- LEFT COLUMN: EDITOR --- */}
-      <div className="flex-1 flex flex-col min-w-0 bg-terreta-card border-r border-terreta-border">
+      <div className="flex-1 flex flex-col min-w-0 bg-terreta-card border-r border-terreta-border overflow-hidden">
         
         {/* Editor Tabs */}
-        <div className="flex border-b border-terreta-border">
+        <div className="flex border-b border-terreta-border shrink-0">
           <button 
             onClick={() => setActiveTab('content')}
             className={`flex-1 py-4 text-xs md:text-sm font-bold uppercase tracking-wide flex items-center justify-center gap-2 ${activeTab === 'content' ? 'text-terreta-accent border-b-2 border-terreta-accent' : 'text-terreta-secondary hover:text-terreta-dark'}`}
@@ -1110,8 +1123,8 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
           </button>
         </div>
 
-        {/* Scrollable Form Area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+        {/* Scrollable Form Area - Improved mobile scroll */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 space-y-6 md:space-y-8" style={{ WebkitOverflowScrolling: 'touch' }}>
           
           {activeTab === 'content' ? (
             <>
@@ -1243,7 +1256,17 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
               {/* Blocks Section */}
               <section className="space-y-4">
                 <div className="flex justify-between items-center flex-wrap gap-2">
-                   <h3 className="font-serif text-xl text-terreta-dark">Bloques</h3>
+                   <div className="flex items-center gap-2">
+                     <h3 className="font-serif text-xl text-terreta-dark">Bloques</h3>
+                     {/* Mobile Toggle Button - Only visible on mobile */}
+                     <button
+                       onClick={() => setIsBlocksExpanded(!isBlocksExpanded)}
+                       className="lg:hidden p-2 text-terreta-secondary hover:text-terreta-dark transition-colors"
+                       aria-label={isBlocksExpanded ? 'Colapsar bloques' : 'Expandir bloques'}
+                     >
+                       {isBlocksExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                     </button>
+                   </div>
                    <div className="flex gap-2 bg-terreta-bg p-1 rounded-lg flex-wrap">
                       <button onClick={() => addBlock('link')} className="p-2 bg-terreta-card text-terreta-dark rounded shadow-sm hover:shadow text-xs flex items-center gap-1 font-bold border border-terreta-border"><Plus size={14}/> Link</button>
                       <button onClick={() => addBlock('header')} className="p-2 bg-transparent text-terreta-secondary rounded hover:bg-terreta-bg text-xs flex items-center gap-1"><Type size={14}/> Título</button>
@@ -1255,7 +1278,8 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                    </div>
                 </div>
 
-                <div className="space-y-3">
+                {/* Collapsible Blocks Container - Mobile only */}
+                <div className={`space-y-3 lg:block ${isBlocksExpanded ? 'block' : 'hidden'}`}>
                    {profile.blocks.length === 0 && (
                      <div className="text-center py-10 text-terreta-secondary border-2 border-dashed border-terreta-border rounded-xl bg-terreta-bg/50">
                         <p className="mb-2">Aún no has añadido contenido.</p>
@@ -1807,6 +1831,39 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-black rounded-b-xl z-20"></div>
           </div>
       </div>
+
+      {/* Mobile Preview Modal */}
+      {isMobilePreviewOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setIsMobilePreviewOpen(false)}
+        >
+          <div 
+            className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-terreta-card">
+              <h3 className="font-bold text-terreta-dark">Vista Previa</h3>
+              <button
+                onClick={() => setIsMobilePreviewOpen(false)}
+                className="p-2 text-terreta-secondary hover:text-terreta-dark transition-colors"
+                aria-label="Cerrar preview"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            {/* Preview Content - Scrollable */}
+            <div className="h-[calc(100vh-120px)] overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <ProfileRenderer profile={profile} />
+              <div className="pb-6 pt-8 text-center bg-transparent">
+                <span className="text-[10px] font-bold opacity-30 uppercase tracking-widest" style={{ color: profile.theme.textColor }}>Terreta Hub</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
