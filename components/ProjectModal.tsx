@@ -10,6 +10,39 @@ interface ProjectModalProps {
   onViewProfile?: (handle: string) => void;
 }
 
+// Helper to convert YouTube/Vimeo URLs to embed format
+const getEmbedUrl = (url: string): string => {
+  if (!url) return '';
+  
+  // If already in embed format, return as is
+  if (url.includes('/embed/') || url.includes('player.vimeo.com')) {
+    return url;
+  }
+  
+  // YouTube: watch?v= format
+  if (url.includes('youtube.com/watch?v=')) {
+    return url.replace('watch?v=', 'embed/');
+  }
+  
+  // YouTube: youtu.be/ format
+  if (url.includes('youtu.be/')) {
+    const videoId = url.split('youtu.be/')[1]?.split('?')[0]?.split('&')[0];
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+  }
+  
+  // Vimeo
+  if (url.includes('vimeo.com/')) {
+    const matches = url.match(/vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|video\/|)(\d+)(?:$|\/|\?)/);
+    if (matches && matches[1]) {
+      return `https://player.vimeo.com/video/${matches[1]}`;
+    }
+  }
+  
+  return url;
+};
+
 export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onClose, onViewProfile }) => {
   const [shouldRender, setShouldRender] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -215,7 +248,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
                   </h3>
                   <div className="relative w-full aspect-video bg-gray-900 rounded-lg overflow-hidden">
                     <iframe
-                      src={project.video_url}
+                      src={getEmbedUrl(project.video_url)}
                       className="w-full h-full"
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
