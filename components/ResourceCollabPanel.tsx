@@ -100,26 +100,24 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
 
     // Build payload - ensure arrays are properly formatted for Supabase
     // Supabase expects arrays as JavaScript arrays, which it converts to PostgreSQL arrays
-    const payload: {
-      details: string;
-      verticals: string[];
-      format_tags: string[];
-      need_types: string[];
-      user_id?: string;
-      placeholder_used?: string;
-      user_agent?: string;
-    } = {
+    // Filter out empty strings and ensure arrays are never null
+    const cleanedVerticals = Array.isArray(selectedVerticals) 
+      ? selectedVerticals.filter(v => v && typeof v === 'string' && v.trim().length > 0)
+      : [];
+    
+    const cleanedFormatTags = Array.isArray(formatTags)
+      ? formatTags.filter(t => t && typeof t === 'string' && t.trim().length > 0)
+      : [];
+
+    // Build payload - only include fields that have values
+    const payload: Record<string, any> = {
       details: details.trim(),
-      verticals: Array.isArray(selectedVerticals) && selectedVerticals.length > 0 
-        ? selectedVerticals.filter(v => v && v.trim()) 
-        : [],
-      format_tags: Array.isArray(formatTags) && formatTags.length > 0
-        ? formatTags.filter(t => t && t.trim())
-        : [],
-      need_types: []
+      verticals: cleanedVerticals,
+      format_tags: cleanedFormatTags,
+      need_types: [] // Always send as empty array, schema has default '{}'
     };
 
-    // Add optional fields only if they have values
+    // Add optional fields only if they have values (don't send null/undefined)
     if (user?.id) {
       payload.user_id = user.id;
     }
@@ -132,24 +130,44 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }
       payload.user_agent = navigator.userAgent.trim();
     }
 
+    // Ensure arrays are never null - convert to empty array if needed
+    if (!Array.isArray(payload.verticals)) payload.verticals = [];
+    if (!Array.isArray(payload.format_tags)) payload.format_tags = [];
+    if (!Array.isArray(payload.need_types)) payload.need_types = [];
+
     console.log('[ResourceCollabPanel] Submitting payload:', JSON.stringify(payload, null, 2));
 
     try {
       const { data, error } = await supabase
         .from('resource_needs')
         .insert(payload)
-        .select();
+        .select('*');
       
       if (error) {
+        // Log detailed error information
         console.error('[ResourceCollabPanel] Error inserting resource need:', {
           message: error.message,
           details: error.details,
           hint: error.hint,
           code: error.code,
-          fullError: error
+          fullError: error,
+          payload: payload
         });
+        
+        // Provide more specific error messages
+        let userMessage = 'No se pudo enviar tu necesidad. Por favor, intenta nuevamente.';
+        if (error.code === '23502') {
+          userMessage = 'Faltan campos requeridos. Por favor, completa todos los campos necesarios.';
+        } else if (error.code === '23505') {
+          userMessage = 'Esta necesidad ya fue enviada anteriormente.';
+        } else if (error.code === '42501') {
+          userMessage = 'No tienes permisos para realizar esta acción.';
+        } else if (error.message) {
+          userMessage = error.message;
+        }
+        
         setSubmitState('error');
-        setErrorMessage(error.message || 'No se pudo enviar tu necesidad. Por favor, intenta nuevamente.');
+        setErrorMessage(userMessage);
         return;
       }
 
