@@ -70,9 +70,13 @@ const generateHTML = (
   <meta name="twitter:description" content="${escapeHtml(description)}" />
   <meta name="twitter:image" content="${escapeHtml(image)}" />
   
-  <!-- Redirect to actual page for non-bots -->
+  <!-- Redirect to actual page for non-bots (solo si no es bot) -->
   <script>
-    window.location.href = "${escapeHtml(url)}";
+    // Solo redirect si no es un bot (los bots no ejecutan JS)
+    const isBot = /bot|crawler|spider|crawling/i.test(navigator.userAgent);
+    if (!isBot) {
+      window.location.href = "${escapeHtml(url)}";
+    }
   </script>
 </head>
 <body>
@@ -208,7 +212,11 @@ export default async function handler(
       const defaultTitle = 'Terreta Hub | Red Social Valenciana';
       const defaultDescription = 'Bienvenido al Epicentre de Terreta Hub. Reserva tu link personalizado, proyecta tus ideas en nuestro laboratorio digital y forma parte de la vanguardia valenciana.';
       const defaultImage = 'https://terretahub.com/og-image.jpg';
-      const currentUrl = `https://terretahub.com/p/${extension}`;
+      
+      // Obtener la URL completa del request
+      const host = req.headers.host || 'terretahub.com';
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const currentUrl = `${protocol}://${host}/p/${extension}`;
       
       res.setHeader('Content-Type', 'text/html');
       return res.send(generateHTML(defaultTitle, defaultDescription, defaultImage, currentUrl));
@@ -220,13 +228,27 @@ export default async function handler(
       ? profileData.bio.substring(0, 160)
       : `Perfil de ${profileData.display_name || profileData.username} en Terreta Hub`;
     const avatarUrl = getPublicAvatarUrl(profileData.avatar, profileData.user_id, supabaseUrl);
-    const currentUrl = `https://terretahub.com/p/${extension}`;
+    
+    // Obtener la URL completa del request (respetar www o no-www según el dominio original)
+    const host = req.headers.host || 'terretahub.com';
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const currentUrl = `${protocol}://${host}/p/${extension}`;
 
     // Generar HTML con meta tags
     const html = generateHTML(profileTitle, profileDescription, avatarUrl, currentUrl);
     
-    res.setHeader('Content-Type', 'text/html');
+    // Headers importantes para evitar redirects y asegurar que los bots vean el contenido
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow'); // Solo para bots, no indexar esta versión
+    
+    console.log('[API] Generated HTML for bot:', {
+      extension,
+      title: profileTitle,
+      image: avatarUrl,
+      url: currentUrl
+    });
+    
     return res.send(html);
 
   } catch (error: any) {
@@ -236,7 +258,11 @@ export default async function handler(
     const defaultTitle = 'Terreta Hub | Red Social Valenciana';
     const defaultDescription = 'Bienvenido al Epicentre de Terreta Hub. Reserva tu link personalizado, proyecta tus ideas en nuestro laboratorio digital y forma parte de la vanguardia valenciana.';
     const defaultImage = 'https://terretahub.com/og-image.jpg';
-    const currentUrl = `https://terretahub.com/p/${extension}`;
+    
+    // Obtener la URL completa del request
+    const host = req.headers.host || 'terretahub.com';
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const currentUrl = `${protocol}://${host}/p/${extension}`;
     
     res.setHeader('Content-Type', 'text/html');
     return res.send(generateHTML(defaultTitle, defaultDescription, defaultImage, currentUrl));
