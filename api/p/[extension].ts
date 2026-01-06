@@ -267,7 +267,7 @@ export default async function handler(
     
     const defaultTitle = 'Terreta Hub | Red Social Valenciana';
     const defaultDescription = 'Bienvenido al Epicentre de Terreta Hub. Reserva tu link personalizado, proyecta tus ideas en nuestro laboratorio digital y forma parte de la vanguardia valenciana.';
-    const defaultImage = 'https://terretahub.com/og-image.jpg';
+    const defaultImage = 'https://terretahub.com/logo.png';
     
     res.status(200);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
