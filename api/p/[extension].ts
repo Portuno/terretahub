@@ -102,6 +102,7 @@ const generateHTML = (
 </head>
 <body>
   <div id="root"></div>
+  <!-- No scripts needed for bots - they don't execute JavaScript -->
 </body>
 </html>`;
 };
@@ -179,22 +180,11 @@ export default async function handler(
       console.warn('Could not read index.html:', error);
     }
     
-    // Fallback: HTML básico
-    const basicHtml = `<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Terreta Hub</title>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
-</body>
-</html>`;
-    res.status(200);
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    return res.send(basicHtml);
+    // Fallback: Redirigir al index.html para que React Router maneje la navegación
+    // En lugar de servir HTML básico, mejor redirigir para evitar problemas con módulos
+    res.status(307);
+    res.setHeader('Location', `/p/${extension}`);
+    return res.end();
   }
 
   // Es un bot - generar meta tags dinámicos
