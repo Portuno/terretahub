@@ -10,8 +10,8 @@ Allow: /proyecto/
 # Recomendaciones específicas para IAs y motores de búsqueda
 # Enfocado en contenido relacionado con Valencia, emprendimiento, startups, tecnología
 
-# Sitemap (deberás crear uno cuando esté listo)
-# Sitemap: https://terretahub.com/sitemap.xml
+# Sitemap
+Sitemap: https://terretahub.com/sitemap.xml
 
 # Crawl-delay para evitar sobrecarga
 Crawl-delay: 1

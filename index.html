@@ -96,14 +96,22 @@
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "Terreta Hub",
+      "alternateName": "Terreta Hub Valencia",
       "url": "https://terretahub.com",
       "logo": "https://terretahub.com/logo.png",
-      "description": "Comunidad de emprendedores, desarrolladores y creativos en Valencia, España",
+      "description": "Plataforma comunitaria líder para emprendedores, desarrolladores y creativos en Valencia. Ecosistema emprendedor que conecta talento local, promueve proyectos innovadores y facilita networking en la Comunidad Valenciana.",
+      "foundingDate": "2024",
       "address": {
         "@type": "PostalAddress",
         "addressLocality": "Valencia",
         "addressRegion": "Comunidad Valenciana",
         "addressCountry": "ES"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "Customer Service",
+        "areaServed": "ES",
+        "availableLanguage": ["Spanish", "Valencian"]
       },
       "sameAs": [
         "https://twitter.com/terretahub",
@@ -112,7 +120,28 @@
       ],
       "areaServed": {
         "@type": "City",
-        "name": "Valencia"
+        "name": "Valencia",
+        "containedIn": {
+          "@type": "State",
+          "name": "Comunidad Valenciana"
+        }
+      },
+      "knowsAbout": [
+        "Emprendimiento",
+        "Startups",
+        "Tecnología",
+        "Innovación",
+        "Networking",
+        "Desarrollo de Software",
+        "Diseño",
+        "Creatividad",
+        "Inversión",
+        "Aceleradoras",
+        "Incubadoras"
+      ],
+      "audience": {
+        "@type": "Audience",
+        "audienceType": "Emprendedores, Desarrolladores, Creativos, Inversores"
       }
     }
     </script>
@@ -135,39 +164,67 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "LocalBusiness",
-      "name": "Terreta Hub",
-      "image": "https://terretahub.com/logo.png",
+      "@type": "CreativeWork",
       "@id": "https://terretahub.com",
+      "name": "Terreta Hub",
+      "description": "Plataforma digital comunitaria para el ecosistema emprendedor y creativo de Valencia. Conecta emprendedores, desarrolladores y creativos en un espacio colaborativo.",
       "url": "https://terretahub.com",
-      "telephone": "",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "",
-        "addressLocality": "Valencia",
-        "addressRegion": "Comunidad Valenciana",
-        "postalCode": "",
-        "addressCountry": "ES"
+      "image": "https://terretahub.com/logo.png",
+      "inLanguage": "es-ES",
+      "about": {
+        "@type": "Thing",
+        "name": "Ecosistema Emprendedor Valencia"
       },
-      "geo": {
-        "@type": "GeoCoordinates",
-        "latitude": 39.4699,
-        "longitude": -0.3763
-      },
-      "openingHoursSpecification": {
-        "@type": "OpeningHoursSpecification",
-        "dayOfWeek": [
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday",
-          "Saturday",
-          "Sunday"
-        ],
-        "opens": "00:00",
-        "closes": "23:59"
+      "keywords": "Valencia emprendimiento, startups Valencia, networking Valencia, ecosistema emprendedor, innovación tecnológica",
+      "spatialCoverage": {
+        "@type": "Place",
+        "name": "Valencia",
+        "containedIn": {
+          "@type": "State",
+          "name": "Comunidad Valenciana"
+        }
       }
+    }
+    </script>
+    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": "Pilares de Terreta Hub",
+      "description": "Los seis pilares fundamentales que definen la identidad de Terreta Hub",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Tecnología"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Arte & Educación"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Finanzas"
+        },
+        {
+          "@type": "ListItem",
+          "position": 4,
+          "name": "Legal"
+        },
+        {
+          "@type": "ListItem",
+          "position": 5,
+          "name": "Comunidad"
+        },
+        {
+          "@type": "ListItem",
+          "position": 6,
+          "name": "Salud"
+        }
+      ]
     }
     </script>
 </head>
@@ -176,7 +233,47 @@
     <!-- Load fonts asynchronously fallback script -->
     <script>
       /*! loadCSS. [c]2017 Filament Group, Inc. MIT License */
-      (function(w){"use strict";if(!w.loadCSS){w.loadCSS=function(href,media,rel){var link=w.document.createElement("link");var ref;if(rel){ref=rel}else{ref=w.document.getElementsByTagName("style")[0]}media=media||"all";link.rel="stylesheet";link.href=href;link.media="only x";ref.parentNode.insertBefore(link,ref);var onloadcssdefined=function(cb){var resolvedHref=link.href;var i=w.document.styleSheets;for(var x=i.length;x--;){if(i[x].href===resolvedHref){return cb()}}setTimeout(function(){onloadcssdefined(cb)})};link.onloadcssdefined=onloadcssdefined;onloadcssdefined(function(){link.media=media});return link}};if(typeof exports!=="undefined"){exports.loadCSS=loadCSS}else{w.loadCSS=loadCSS}}}(typeof global!=="undefined"?global:this));
+      (function(w) {
+        "use strict";
+        if (!w.loadCSS) {
+          var loadCSS = function(href, media, rel) {
+            var link = w.document.createElement("link");
+            var ref;
+            if (rel) {
+              ref = rel;
+            } else {
+              ref = w.document.getElementsByTagName("style")[0];
+            }
+            media = media || "all";
+            link.rel = "stylesheet";
+            link.href = href;
+            link.media = "only x";
+            ref.parentNode.insertBefore(link, ref);
+            var onloadcssdefined = function(cb) {
+              var resolvedHref = link.href;
+              var i = w.document.styleSheets;
+              for (var x = i.length; x--;) {
+                if (i[x].href === resolvedHref) {
+                  return cb();
+                }
+              }
+              setTimeout(function() {
+                onloadcssdefined(cb);
+              });
+            };
+            link.onloadcssdefined = onloadcssdefined;
+            onloadcssdefined(function() {
+              link.media = media;
+            });
+            return link;
+          };
+          if (typeof exports !== "undefined") {
+            exports.loadCSS = loadCSS;
+          } else {
+            w.loadCSS = loadCSS;
+          }
+        }
+      })(typeof global !== "undefined" ? global : this);
     </script>
     <script type="module" src="/index.tsx"></script>
   </body>
