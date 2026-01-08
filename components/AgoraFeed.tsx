@@ -1,10 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, User, Bold, Italic, AlertTriangle } from 'lucide-react';
+import { Send, User, AlertTriangle, Image as ImageIcon, Video, Link as LinkIcon, X } from 'lucide-react';
 import { AgoraPost as AgoraPostComponent } from './AgoraPost';
 import { AgoraPost, AuthUser } from '../types';
 import { supabase } from '../lib/supabase';
 import { executeQueryWithRetry, executeBatchedQuery } from '../lib/supabaseHelpers';
 import { isAdmin } from '../lib/userRoles';
+import { uploadAgoraMedia, validateAgoraMedia, validateLinkUrl } from '../lib/agoraMediaUtils';
+import { useMentions } from '../hooks/useMentions';
+import { MentionSuggestions } from './MentionSuggestions';
+import { createMentionNotifications } from '../lib/mentionUtils';
 
 // Helper para formatear timestamps
 const formatTimestamp = (dateString: string): string => {
@@ -33,6 +37,26 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
   const [pasteCount, setPasteCount] = useState(0);
   const [showPasteWarning, setShowPasteWarning] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Mentions
+  const {
+    mentionState,
+    suggestions,
+    loading: mentionsLoading,
+    insertMention,
+    handleTextChange: handleMentionTextChange,
+    handleKeyDown: handleMentionKeyDown
+  } = useMentions(textareaRef, newPostContent, setNewPostContent);
+
+  // Media State
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const linkInputRef = useRef<HTMLInputElement>(null);
 
   // Función para recargar posts (útil cuando se actualiza un avatar)
   const loadPosts = async () => {
@@ -70,6 +94,9 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         },
         content: post.content,
         timestamp: formatTimestamp(post.created_at),
+        imageUrls: post.image_urls || [],
+        videoUrl: post.video_url || null,
+        linkUrl: post.link_url || null,
         comments: (post.comments || []).map((comment: any) => ({
           id: comment.id,
           author: {
@@ -99,7 +126,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
       const { data: postsData, error: postsError } = await executeQueryWithRetry(
         async () => await supabase
           .from('agora_posts')
-          .select('*')
+          .select('id, author_id, content, image_urls, video_url, link_url, created_at, updated_at')
           .order('created_at', { ascending: false })
           .limit(50), // Limit initial load
         'load agora posts'
@@ -239,6 +266,9 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
             },
             content: post.content,
             timestamp: formatTimestamp(post.created_at),
+            imageUrls: post.image_urls || [],
+            videoUrl: post.video_url || null,
+            linkUrl: post.link_url || null,
             comments: postComments
           };
         });
@@ -286,19 +316,22 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
           };
         });
 
-        return {
-          id: post.id,
-          authorId: post.author_id,
-          author: {
-            name: authorProfile?.name || 'Usuario',
-            handle: `@${authorProfile?.username || 'usuario'}`,
-            avatar: finalAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorProfile?.username || 'user'}`,
-            role: authorProfile?.role === 'admin' ? 'Admin' : 'Miembro'
-          },
-          content: post.content,
-          timestamp: formatTimestamp(post.created_at),
-          comments: postComments
-        };
+          return {
+            id: post.id,
+            authorId: post.author_id,
+            author: {
+              name: authorProfile?.name || 'Usuario',
+              handle: `@${authorProfile?.username || 'usuario'}`,
+              avatar: finalAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorProfile?.username || 'user'}`,
+              role: authorProfile?.role === 'admin' ? 'Admin' : 'Miembro'
+            },
+            content: post.content,
+            timestamp: formatTimestamp(post.created_at),
+            imageUrls: post.image_urls || [],
+            videoUrl: post.video_url || null,
+            linkUrl: post.link_url || null,
+            comments: postComments
+          };
       });
 
       setPosts(postsWithComments);
@@ -315,17 +348,105 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     loadPosts();
   }, []);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // Filtrar solo imágenes
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    if (imageFiles.length === 0) {
+      setMediaError('Por favor selecciona solo archivos de imagen.');
+      return;
+    }
+
+    const allFiles = [...selectedFiles, ...imageFiles];
+    const validation = validateAgoraMedia(allFiles);
+
+    if (!validation.ok) {
+      setMediaError(validation.error || 'Error al validar archivos');
+      return;
+    }
+
+    setSelectedFiles(allFiles);
+    setMediaError(null);
+  };
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // Filtrar solo videos
+    const videoFiles = files.filter(file => file.type.startsWith('video/'));
+    if (videoFiles.length === 0) {
+      setMediaError('Por favor selecciona solo archivos de video.');
+      return;
+    }
+
+    // Solo permitir un video
+    if (videoFiles.length > 1) {
+      setMediaError('Solo puedes subir un video por post.');
+      return;
+    }
+
+    const allFiles = [...selectedFiles, ...videoFiles];
+    const validation = validateAgoraMedia(allFiles);
+
+    if (!validation.ok) {
+      setMediaError(validation.error || 'Error al validar archivos');
+      return;
+    }
+
+    setSelectedFiles(allFiles);
+    setMediaError(null);
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setMediaError(null);
+  };
+
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !newPostContent.trim()) return;
+    if (!user || (!newPostContent.trim() && selectedFiles.length === 0 && !linkUrl.trim())) {
+      alert('El post debe tener contenido, media o un enlace.');
+      return;
+    }
+
+    // Validar media antes de subir
+    if (selectedFiles.length > 0) {
+      const validation = validateAgoraMedia(selectedFiles);
+      if (!validation.ok) {
+        setMediaError(validation.error || 'Error al validar archivos');
+        return;
+      }
+    }
+
+    // Validar link
+    const cleanedLinkUrl = validateLinkUrl(linkUrl);
+
+    setIsUploading(true);
+    setMediaError(null);
 
     try {
+      let imageUrls: string[] = [];
+      let videoUrl: string | null = null;
+
+      // Subir media si hay archivos
+      if (selectedFiles.length > 0) {
+        const mediaResult = await uploadAgoraMedia(user.id, selectedFiles, null);
+        imageUrls = mediaResult.imageUrls;
+        videoUrl = mediaResult.videoUrl;
+      }
+
       // Crear post en Supabase
       const { data: newPost, error: postError } = await supabase
         .from('agora_posts')
         .insert({
           author_id: user.id,
-          content: newPostContent.trim()
+          content: newPostContent.trim() || '',
+          image_urls: imageUrls,
+          video_url: videoUrl,
+          link_url: cleanedLinkUrl
         })
         .select('*')
         .single();
@@ -342,6 +463,17 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         .select('id, name, username, avatar, role')
         .eq('id', user.id)
         .single();
+
+      // Crear notificaciones para usuarios mencionados
+      if (newPostContent.trim()) {
+        await createMentionNotifications(
+          newPostContent,
+          user.id,
+          updatedProfile?.name || user.name,
+          newPost.id,
+          'post'
+        );
+      }
 
       // Intentar obtener el avatar de link_bio_profiles si existe
       let finalAvatar = updatedProfile?.avatar || user.avatar;
@@ -369,17 +501,34 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         },
         content: newPost.content,
         timestamp: formatTimestamp(newPost.created_at),
+        imageUrls: newPost.image_urls || [],
+        videoUrl: newPost.video_url || null,
+        linkUrl: newPost.link_url || null,
         comments: []
       };
 
       // Agregar al inicio de la lista
       setPosts(prev => [formattedPost, ...prev]);
       setNewPostContent('');
+      setSelectedFiles([]);
+      setLinkUrl('');
+      setShowLinkInput(false);
       setPasteCount(0);
       setShowPasteWarning(false);
+      setMediaError(null);
+      
+      // Limpiar inputs de archivos
+      if (imageInputRef.current) {
+        imageInputRef.current.value = '';
+      }
+      if (videoInputRef.current) {
+        videoInputRef.current.value = '';
+      }
     } catch (err) {
       console.error('Error al crear post:', err);
       alert('Error al publicar. Intenta nuevamente.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -410,6 +559,17 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         .select('id, name, username, avatar')
         .eq('id', user.id)
         .single();
+
+      // Crear notificaciones para usuarios mencionados en el comentario
+      if (content.trim()) {
+        await createMentionNotifications(
+          content,
+          user.id,
+          updatedProfile?.name || user.name,
+          newComment.id,
+          'comment'
+        );
+      }
 
       // Intentar obtener el avatar de link_bio_profiles si existe
       let finalAvatar = updatedProfile?.avatar || user.avatar;
@@ -499,27 +659,6 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     }
   };
 
-  const handleFormat = (type: 'bold' | 'italic') => {
-    if (!textareaRef.current) return;
-
-    const start = textareaRef.current.selectionStart;
-    const end = textareaRef.current.selectionEnd;
-    const text = newPostContent;
-    
-    // Define wrappers
-    const wrapper = type === 'bold' ? '**' : '_';
-    
-    // Insert text
-    const before = text.substring(0, start);
-    const selected = text.substring(start, end);
-    const after = text.substring(end);
-    
-    const newText = `${before}${wrapper}${selected || 'texto'}${wrapper}${after}`;
-    setNewPostContent(newText);
-    
-    // Restore focus
-    textareaRef.current.focus();
-  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 animate-fade-in">
@@ -544,45 +683,171 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
              {user ? (
                <form onSubmit={handleCreatePost}>
                  <div className="relative border-b border-terreta-border mb-2">
-                    <textarea
-                        ref={textareaRef}
-                        placeholder="¿Qué estás cocinando hoy?"
-                        className="w-full bg-transparent border-none focus:ring-0 text-lg placeholder-terreta-secondary/50 resize-none h-24 p-0 font-sans text-terreta-dark"
-                        value={newPostContent}
-                        onChange={(e) => setNewPostContent(e.target.value)}
-                        onPaste={handlePaste}
-                    />
-                    
-                    {/* Formatting Toolbar */}
-                    <div className="flex gap-2 pb-2">
-                        <button 
-                            type="button"
-                            onClick={() => handleFormat('bold')}
-                            className="p-1.5 text-terreta-secondary hover:text-terreta-dark hover:bg-terreta-bg rounded transition-colors"
-                            title="Negrita"
-                        >
-                            <Bold size={16} />
-                        </button>
-                        <button 
-                            type="button"
-                            onClick={() => handleFormat('italic')}
-                            className="p-1.5 text-terreta-secondary hover:text-terreta-dark hover:bg-terreta-bg rounded transition-colors"
-                            title="Cursiva"
-                        >
-                            <Italic size={16} />
-                        </button>
+                    <div className="relative">
+                      <textarea
+                          ref={textareaRef}
+                          placeholder="Comparte algo con la comunidad"
+                          className="w-full bg-transparent border-none focus:ring-0 text-lg placeholder-terreta-secondary/50 resize-none h-24 p-0 pb-10 font-sans text-terreta-dark"
+                          value={newPostContent}
+                          onChange={(e) => {
+                            setNewPostContent(e.target.value);
+                            if (textareaRef.current) {
+                              handleMentionTextChange(e.target.value, textareaRef.current.selectionStart);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            handleMentionKeyDown(e);
+                          }}
+                          onPaste={handlePaste}
+                      />
+                      <MentionSuggestions
+                        suggestions={suggestions}
+                        selectedIndex={mentionState.selectedIndex}
+                        position={mentionState.position}
+                        onSelect={insertMention}
+                        loading={mentionsLoading}
+                      />
                     </div>
+                    
+                    {/* Media Icons - Bottom Left */}
+                    <div className="absolute bottom-2 left-0 flex gap-2">
+                      <input
+                        type="file"
+                        ref={imageInputRef}
+                        onChange={handleImageSelect}
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        className="hidden"
+                        id="agora-image-input"
+                      />
+                      <label
+                        htmlFor="agora-image-input"
+                        className="p-1.5 text-terreta-secondary hover:text-terreta-dark hover:bg-terreta-bg rounded transition-colors cursor-pointer"
+                        title="Agregar fotos"
+                      >
+                        <ImageIcon size={18} />
+                      </label>
+                      
+                      <input
+                        type="file"
+                        ref={videoInputRef}
+                        onChange={handleVideoSelect}
+                        accept="video/mp4,video/webm"
+                        className="hidden"
+                        id="agora-video-input"
+                      />
+                      <label
+                        htmlFor="agora-video-input"
+                        className="p-1.5 text-terreta-secondary hover:text-terreta-dark hover:bg-terreta-bg rounded transition-colors cursor-pointer"
+                        title="Agregar video"
+                      >
+                        <Video size={18} />
+                      </label>
+                      
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowLinkInput(!showLinkInput);
+                          if (!showLinkInput && linkInputRef.current) {
+                            setTimeout(() => linkInputRef.current?.focus(), 0);
+                          }
+                        }}
+                        className="p-1.5 text-terreta-secondary hover:text-terreta-dark hover:bg-terreta-bg rounded transition-colors cursor-pointer"
+                        title="Agregar enlace"
+                      >
+                        <LinkIcon size={18} />
+                      </button>
+                    </div>
+                 </div>
+
+                 {/* Media Selection */}
+                 <div className="mt-3 space-y-2">
+                   {/* Selected Files Preview */}
+                   {selectedFiles.length > 0 && (
+                     <div className="flex flex-wrap gap-2">
+                       {selectedFiles.map((file, index) => (
+                         <div key={index} className="relative group">
+                           {file.type.startsWith('image/') ? (
+                             <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-terreta-border">
+                               <img 
+                                 src={URL.createObjectURL(file)} 
+                                 alt={file.name}
+                                 className="w-full h-full object-cover"
+                               />
+                               <button
+                                 type="button"
+                                 onClick={() => handleRemoveFile(index)}
+                                 className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                 aria-label="Eliminar imagen"
+                               >
+                                 <X size={12} />
+                               </button>
+                             </div>
+                           ) : (
+                             <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-terreta-border bg-terreta-bg flex items-center justify-center">
+                               <Video size={24} className="text-terreta-secondary" />
+                               <button
+                                 type="button"
+                                 onClick={() => handleRemoveFile(index)}
+                                 className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                 aria-label="Eliminar video"
+                               >
+                                 <X size={12} />
+                               </button>
+                             </div>
+                           )}
+                         </div>
+                       ))}
+                     </div>
+                   )}
+
+                   {/* Error Message */}
+                   {mediaError && (
+                     <div className="text-red-500 text-xs flex items-center gap-1">
+                       <AlertTriangle size={12} />
+                       <span>{mediaError}</span>
+                     </div>
+                   )}
+
+                   {/* Link Input */}
+                   {(showLinkInput || linkUrl.trim()) && (
+                     <div className="relative">
+                       <LinkIcon size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-terreta-secondary" />
+                       <input
+                         ref={linkInputRef}
+                         type="text"
+                         placeholder="Agregar enlace (opcional)"
+                         value={linkUrl}
+                         onChange={(e) => setLinkUrl(e.target.value)}
+                         onBlur={() => {
+                           if (!linkUrl.trim()) {
+                             setShowLinkInput(false);
+                           }
+                         }}
+                         className="w-full bg-terreta-bg/50 border-terreta-border border rounded-lg px-10 py-2 text-sm focus:ring-1 focus:ring-terreta-accent outline-none text-terreta-dark placeholder-terreta-secondary/50"
+                       />
+                     </div>
+                   )}
                  </div>
 
                  <div className="flex justify-between items-center pt-2">
                     <span className="text-xs font-bold text-terreta-accent uppercase tracking-wide">Público</span>
                     <button 
                       type="submit" 
-                      disabled={!newPostContent.trim()}
+                      disabled={(!newPostContent.trim() && selectedFiles.length === 0 && !linkUrl.trim()) || isUploading}
                       className="bg-terreta-dark text-terreta-bg px-6 py-2 rounded-full font-bold text-sm hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                      <span>Publicar</span>
-                      <Send size={14} />
+                      {isUploading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-terreta-bg"></div>
+                          <span>Subiendo...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Publicar</span>
+                          <Send size={14} />
+                        </>
+                      )}
                     </button>
                  </div>
                </form>

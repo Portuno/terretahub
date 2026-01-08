@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, Eye, Clock, FolderKanban } from 'lucide-react';
+import { Check, X, Eye, Clock, FolderKanban, CalendarDays } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { AuthUser, Project, ProjectStatus } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -33,6 +34,7 @@ interface ProjectWithAuthor extends ProjectFromDB {
 }
 
 export const AdminProjectsPanel: React.FC<AdminProjectsPanelProps> = ({ user }) => {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<ProjectWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<ProjectWithAuthor | null>(null);
@@ -154,12 +156,19 @@ export const AdminProjectsPanel: React.FC<AdminProjectsPanelProps> = ({ user }) 
           <div className="w-12 h-12 rounded-full bg-terreta-accent flex items-center justify-center">
             <FolderKanban className="text-white" size={24} />
           </div>
-          <div>
+          <div className="flex-1">
             <h2 className="font-serif text-3xl text-terreta-dark">Panel de Administración</h2>
-            <p className="text-sm text-terreta-secondary">Gestiona proyectos pendientes de revisión</p>
+            <p className="text-sm text-terreta-dark/60">Gestiona proyectos pendientes de revisión</p>
           </div>
+          <button
+            onClick={() => navigate('/admin/eventos')}
+            className="flex items-center gap-2 px-4 py-2 bg-terreta-card hover:bg-terreta-sidebar text-terreta-dark rounded-full font-semibold transition-all border border-terreta-border"
+          >
+            <CalendarDays size={18} />
+            Eventos
+          </button>
         </div>
-        <div className="mt-4 flex items-center gap-2 text-sm text-terreta-secondary">
+        <div className="mt-4 flex items-center gap-2 text-sm text-terreta-dark/60">
           <Clock size={16} />
           <span className="font-bold text-terreta-accent">{projects.length}</span>
           <span>proyecto{projects.length !== 1 ? 's' : ''} pendiente{projects.length !== 1 ? 's' : ''}</span>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
+import { Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { executeQueryWithRetry } from '../lib/supabaseHelpers';
 import { UserProfile } from '../types';
@@ -80,7 +80,9 @@ const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
           handle: `@${profile.username}`,
           avatar: profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`,
           tags: tags.length > 0 ? tags : ['Terreta Hub'],
-          hasLinkBio: hasLinkBioSet.has(profile.id)
+          hasLinkBio: hasLinkBioSet.has(profile.id),
+          createdAt: profile.created_at,
+          profileViewsCount: 0
         };
       });
     }
@@ -153,6 +155,8 @@ const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
       // Formatear role para mostrar
       const displayRole = profile.role === 'admin' ? 'ADMIN' : 'MIEMBRO';
 
+      const viewsCount = Number(profile.profile_views_count) || 0;
+      
       return {
         id: profile.id,
         name: profile.name,
@@ -160,7 +164,9 @@ const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
         handle: `@${profile.username}`,
         avatar: finalAvatar,
         tags: tags.length > 0 ? tags : ['Terreta Hub'],
-        hasLinkBio: profile.has_link_bio || false
+        hasLinkBio: profile.has_link_bio || false,
+        createdAt: profile.created_at,
+        profileViewsCount: viewsCount
       };
     });
 
@@ -171,11 +177,16 @@ const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
   }
 };
 
+type SortType = 'registration' | 'views';
+type SortOrder = 'asc' | 'desc';
+
 export const CommunityPage: React.FC = () => {
   const navigateToProfile = useProfileNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [communityUsers, setCommunityUsers] = useState<UserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [sortType, setSortType] = useState<SortType>('registration');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -187,7 +198,7 @@ export const CommunityPage: React.FC = () => {
     loadUsers();
   }, []);
 
-  // Filtrar usuarios manteniendo el orden: primero los que tienen link in bio
+  // Filtrar y ordenar usuarios
   const filteredUsers = communityUsers
     .filter(user => 
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -195,12 +206,49 @@ export const CommunityPage: React.FC = () => {
       user.handle.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
     )
-    // Mantener el orden: perfiles con link in bio primero
     .sort((a, b) => {
+      // Primero: perfiles con link in bio primero (mantener este orden siempre)
       const aHasLinkBio = a.hasLinkBio ? 1 : 0;
       const bHasLinkBio = b.hasLinkBio ? 1 : 0;
-      return bHasLinkBio - aHasLinkBio; // TRUE (1) primero, FALSE (0) después
+      const linkBioDiff = bHasLinkBio - aHasLinkBio;
+      
+      if (linkBioDiff !== 0) {
+        return linkBioDiff;
+      }
+      
+      // Segundo: ordenar según el filtro seleccionado
+      let comparison = 0;
+      
+      if (sortType === 'registration') {
+        const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        comparison = aDate - bDate;
+      } else if (sortType === 'views') {
+        // Asegurar que los valores sean números
+        const aViews = Number(a.profileViewsCount) || 0;
+        const bViews = Number(b.profileViewsCount) || 0;
+        comparison = aViews - bViews;
+      }
+      
+      // Si hay empate, usar un criterio de desempate para mantener orden estable
+      if (comparison === 0) {
+        // Desempate por fecha de creación (más reciente primero si descendente, más antiguo primero si ascendente)
+        const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        comparison = aDate - bDate;
+      }
+      
+      // Aplicar orden ascendente/descendente
+      return sortOrder === 'asc' ? comparison : -comparison;
     });
+  
+  const handleSortTypeChange = (newSortType: SortType) => {
+    setSortType(newSortType);
+  };
+  
+  const handleSortOrderToggle = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
 
   const handleViewProfile = (handle: string) => {
     navigateToProfile(handle);
@@ -210,7 +258,7 @@ export const CommunityPage: React.FC = () => {
     <div className="w-full py-2">
       <div className="w-full animate-fade-in">
         {/* Search Bar */}
-        <div className="relative mb-10 group">
+        <div className="relative mb-6 group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="text-terreta-secondary/60 group-focus-within:text-terreta-accent transition-colors" size={20} />
           </div>
@@ -221,6 +269,53 @@ export const CommunityPage: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+        </div>
+
+        {/* Filtros de Ordenamiento */}
+        <div className="mb-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-terreta-dark">Ordenar por:</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleSortTypeChange('registration')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  sortType === 'registration'
+                    ? 'bg-terreta-accent text-white shadow-md'
+                    : 'bg-terreta-card text-terreta-secondary border border-terreta-border hover:border-terreta-accent'
+                }`}
+              >
+                Fecha de registro
+              </button>
+              <button
+                onClick={() => handleSortTypeChange('views')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  sortType === 'views'
+                    ? 'bg-terreta-accent text-white shadow-md'
+                    : 'bg-terreta-card text-terreta-secondary border border-terreta-border hover:border-terreta-accent'
+                }`}
+              >
+                Visitas al perfil
+              </button>
+            </div>
+          </div>
+          
+          <button
+            onClick={handleSortOrderToggle}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-terreta-card text-terreta-secondary border border-terreta-border hover:border-terreta-accent transition-all"
+            aria-label={`Orden ${sortOrder === 'asc' ? 'ascendente' : 'descendente'}`}
+          >
+            {sortOrder === 'asc' ? (
+              <>
+                <ArrowUp size={16} />
+                <span>Ascendente</span>
+              </>
+            ) : (
+              <>
+                <ArrowDown size={16} />
+                <span>Descendente</span>
+              </>
+            )}
+          </button>
         </div>
 
         {/* Loading State */}

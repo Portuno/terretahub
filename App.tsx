@@ -15,8 +15,13 @@ import { CommunityPage } from './components/CommunityPage';
 import { ProjectsPage } from './components/ProjectsPage';
 import { ResourceCollabPanel } from './components/ResourceCollabPanel';
 import { AdminProjectsPanel } from './components/AdminProjectsPanel';
+import { AdminEventsPanel } from './components/AdminEventsPanel';
 import { ProfileEditor } from './components/ProfileEditor';
 import { PlaceholderPage } from './components/PlaceholderPage';
+import { EventsPage } from './components/EventsPage';
+import { TermsAndConditions } from './components/TermsAndConditions';
+import { PrivacyPolicy } from './components/PrivacyPolicy';
+import { Documentation } from './components/Documentation';
 import { isAdmin } from './lib/userRoles';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -366,12 +371,15 @@ const AppContent: React.FC = () => {
           <Route path="comunidad" element={<CommunityPage />} />
           <Route path="proyectos" element={<ProjectsPage user={user} onOpenAuth={() => setIsAuthModalOpen(true)} />} />
           <Route path="recursos" element={<ResourceCollabPanel user={user} />} />
-          <Route path="eventos" element={<PlaceholderPage title="Eventos" />} />
+          <Route path="eventos" element={<EventsPage user={user} onOpenAuth={() => setIsAuthModalOpen(true)} />} />
           <Route path="perfil" element={
             user ? <ProfileEditor user={user} /> : <Navigate to="/" replace />
           } />
           <Route path="admin" element={
             user && isAdmin(user) ? <AdminProjectsPanel user={user} /> : <Navigate to="/" replace />
+          } />
+          <Route path="admin/eventos" element={
+            user && isAdmin(user) ? <AdminEventsPanel user={user} /> : <Navigate to="/" replace />
           } />
         </Route>
 
@@ -382,6 +390,18 @@ const AppContent: React.FC = () => {
         <Route 
           path="/proyecto/:slug" 
           element={<PublicProject />} 
+        />
+        <Route 
+          path="/terminos-y-condiciones" 
+          element={<TermsAndConditions />} 
+        />
+        <Route 
+          path="/politica-de-privacidad" 
+          element={<PrivacyPolicy />} 
+        />
+        <Route 
+          path="/docs" 
+          element={<Documentation />} 
         />
         <Route 
           path="*" 

@@ -20,6 +20,8 @@ export interface UserProfile {
   avatar: string;
   tags: string[];
   hasLinkBio?: boolean; // Indica si el perfil tiene link in bio configurado
+  createdAt?: string; // Fecha de creación del perfil
+  profileViewsCount?: number; // Cantidad de visitas al perfil
 }
 
 export type AppView = 'landing' | 'app' | 'public_profile';
@@ -109,6 +111,9 @@ export interface AgoraPost {
   content: string;
   timestamp: string;
   comments: AgoraComment[];
+  imageUrls?: string[]; // URLs de imágenes (máximo 4, o 3 si hay video)
+  videoUrl?: string | null; // URL del video (máximo 1)
+  linkUrl?: string | null; // URL de enlace externo opcional
 }
 
 // --- PROJECT TYPES ---
@@ -134,7 +139,7 @@ export interface Project {
 
 // --- NOTIFICATIONS TYPES ---
 
-export type NotificationType = 'comment' | 'project_approved' | 'project_rejected';
+export type NotificationType = 'comment' | 'project_approved' | 'project_rejected' | 'mention';
 
 export interface Notification {
   id: string;
@@ -146,4 +151,43 @@ export interface Notification {
   related_type: string | null;
   is_read: boolean;
   created_at: string;
+}
+
+// --- EVENTS TYPES ---
+
+export type EventStatus = 'draft' | 'review' | 'published' | 'cancelled' | 'completed';
+export type AttendanceStatus = 'registered' | 'attended' | 'cancelled';
+
+export interface Event {
+  id: string;
+  organizerId: string;
+  organizer: {
+    name: string;
+    avatar: string;
+    username: string;
+  };
+  title: string;
+  description?: string;
+  location?: string;
+  locationUrl?: string;
+  startDate: string;
+  endDate: string;
+  imageUrl?: string;
+  category?: string;
+  isOnline: boolean;
+  maxAttendees?: number;
+  registrationRequired: boolean;
+  status: EventStatus;
+  attendeeCount: number;
+  isUserRegistered: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EventAttendance {
+  id: string;
+  eventId: string;
+  userId: string;
+  status: AttendanceStatus;
+  registeredAt: string;
 }

@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar';
 import { User } from 'lucide-react';
 import { FeedbackModal } from './FeedbackModal';
 import { Notifications } from './Notifications';
+import { Footer } from './Footer';
 import { supabase } from '../lib/supabase';
 import { AuthUser } from '../types';
 
@@ -79,6 +80,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
       case '/eventos': return 'Próximos Eventos';
       case '/perfil': return 'Editor de Perfil';
       case '/admin': return 'Panel de Administración';
+      case '/admin/eventos': return 'Panel de Administración - Eventos';
       case '/': return ''; // Landing has its own hero
       default: return 'Terreta Hub';
     }
@@ -136,6 +138,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
         <div className={`flex-1 overflow-y-auto ${location.pathname !== '/' ? 'px-4 md:px-8 pb-4' : ''}`}>
           <Outlet />
         </div>
+
+        {/* Footer - Only show when not on policy pages or docs */}
+        {location.pathname !== '/terminos-y-condiciones' && location.pathname !== '/politica-de-privacidad' && location.pathname !== '/docs' && (
+          <Footer />
+        )}
       </main>
 
       <FeedbackModal 

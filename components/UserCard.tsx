@@ -16,11 +16,9 @@ export const UserCard: React.FC<UserCardProps> = ({ user, onViewProfile }) => {
           <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
         </div>
         
-        {/* Large Preview Popover */}
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 h-48 bg-terreta-card p-1.5 rounded-2xl shadow-2xl border border-terreta-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 pointer-events-none scale-75 group-hover:scale-100 origin-bottom">
+        {/* Large Preview Popover - Centered over avatar */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-terreta-card p-1.5 rounded-2xl shadow-2xl border border-terreta-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 pointer-events-none scale-75 group-hover:scale-100 origin-center">
              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover rounded-xl bg-terreta-bg" />
-             {/* Small arrow/tail */}
-             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-terreta-card rotate-45 border-r border-b border-terreta-border"></div>
         </div>
       </div>
       

@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { MessageCircle, Share2, MoreHorizontal, Send, Trash2, Shield } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { MessageCircle, Share2, MoreHorizontal, Send, Trash2, Shield, ExternalLink } from 'lucide-react';
 import { AgoraPost as AgoraPostType, AuthUser } from '../types';
 import { canDelete } from '../lib/userRoles';
 import { useProfileNavigation } from '../hooks/useProfileNavigation';
+import { useMentions } from '../hooks/useMentions';
+import { MentionSuggestions } from './MentionSuggestions';
 
 interface AgoraPostProps {
   post: AgoraPostType;
@@ -18,8 +20,20 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
   const [pasteCount, setPasteCount] = useState(0);
   const [showPasteWarning, setShowPasteWarning] = useState(false);
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
+  const [expandedImageIndex, setExpandedImageIndex] = useState<number | null>(null);
+  const replyTextareaRef = useRef<HTMLInputElement>(null);
   
   const navigateToProfile = useProfileNavigation();
+
+  // Mentions para comentarios
+  const {
+    mentionState: replyMentionState,
+    suggestions: replySuggestions,
+    loading: replyMentionsLoading,
+    insertMention: insertReplyMention,
+    handleTextChange: handleReplyMentionTextChange,
+    handleKeyDown: handleReplyMentionKeyDown
+  } = useMentions(replyTextareaRef, replyText, setReplyText);
 
   const canDeletePost = canDelete(currentUser, post.authorId);
 
@@ -146,10 +160,187 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
       </div>
 
       {/* Content */}
-      <div className="mb-5 pl-[60px]">
-        <p className="text-terreta-dark text-base leading-relaxed whitespace-pre-line font-sans">
-          {post.content}
-        </p>
+      <div className="mb-5 pl-[60px] space-y-4">
+        {post.content && (
+          <p className="text-terreta-dark text-base leading-relaxed whitespace-pre-line font-sans">
+            {post.content}
+          </p>
+        )}
+
+        {/* Media Display */}
+        {(post.imageUrls && post.imageUrls.length > 0) || post.videoUrl ? (
+          <>
+            {/* Solo Video */}
+            {post.videoUrl && (!post.imageUrls || post.imageUrls.length === 0) && (
+              <div className="rounded-lg overflow-hidden border border-terreta-border">
+                <video
+                  src={post.videoUrl}
+                  controls
+                  className="w-full max-h-[600px] object-contain bg-terreta-bg"
+                  aria-label="Video del post"
+                >
+                  Tu navegador no soporta la reproducción de video.
+                </video>
+              </div>
+            )}
+
+            {/* Grid combinado: Video + Imágenes */}
+            {((post.videoUrl && post.imageUrls && post.imageUrls.length > 0) || (post.imageUrls && post.imageUrls.length > 0)) && (
+              <div
+                className={`grid gap-2 rounded-lg overflow-hidden ${
+                  (() => {
+                    const totalItems = (post.videoUrl ? 1 : 0) + (post.imageUrls?.length || 0);
+                    if (totalItems === 1) return 'grid-cols-1 max-w-md';
+                    if (totalItems === 2) return 'grid-cols-2 max-w-2xl';
+                    if (totalItems === 3) return 'grid-cols-2 max-w-2xl';
+                    return 'grid-cols-2 max-w-2xl';
+                  })()
+                }`}
+              >
+                  {/* Video en el grid */}
+                  {post.videoUrl && (
+                    <div
+                      className={`relative ${
+                        (() => {
+                          const totalItems = 1 + (post.imageUrls?.length || 0);
+                          if (totalItems === 3) return 'row-span-2';
+                          return '';
+                        })()
+                      }`}
+                    >
+                      <div className="rounded-lg overflow-hidden border border-terreta-border h-full">
+                        <video
+                          src={post.videoUrl}
+                          controls
+                          className="w-full h-full object-cover bg-terreta-bg max-h-64"
+                          aria-label="Video del post"
+                        >
+                          Tu navegador no soporta la reproducción de video.
+                        </video>
+                      </div>
+                    </div>
+                  )}
+
+                {/* Imágenes en el grid */}
+                {post.imageUrls && post.imageUrls.map((imageUrl, index) => {
+                  // Layout específico según cantidad total de elementos
+                  let gridClass = '';
+                  const totalItems = (post.videoUrl ? 1 : 0) + post.imageUrls.length;
+                  
+                  if (totalItems === 3) {
+                    // Si hay video + 2 imágenes, o 3 imágenes sin video
+                    if (post.videoUrl) {
+                      // Video ocupa 2 filas, imágenes van a la derecha
+                      // No necesitamos row-span para imágenes en este caso
+                    } else {
+                      // 3 imágenes: primera ocupa 2 filas
+                      if (index === 0) {
+                        gridClass = 'row-span-2';
+                      }
+                    }
+                  }
+                  
+                  return (
+                    <div
+                      key={index}
+                      className={`relative ${gridClass}`}
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={`Imagen ${index + 1} del post`}
+                        className="w-full h-full object-cover rounded-lg border border-terreta-border cursor-pointer hover:opacity-90 transition-opacity max-h-64"
+                        onClick={() => setExpandedImageIndex(index)}
+                        loading="lazy"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        ) : null}
+
+        {/* Expanded Image Modal - Fuera del bloque condicional para que funcione siempre */}
+        {expandedImageIndex !== null && post.imageUrls && post.imageUrls.length > 0 && (
+          <div
+            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+            onClick={() => setExpandedImageIndex(null)}
+          >
+            <button
+              onClick={() => setExpandedImageIndex(null)}
+              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+              aria-label="Cerrar imagen"
+            >
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img
+              src={post.imageUrls[expandedImageIndex]}
+              alt={`Imagen ${expandedImageIndex + 1} expandida`}
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+            {post.imageUrls.length > 1 && (
+              <>
+                {expandedImageIndex > 0 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedImageIndex(expandedImageIndex - 1);
+                    }}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition-colors bg-black/50 rounded-full p-2"
+                    aria-label="Imagen anterior"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                )}
+                {expandedImageIndex < post.imageUrls.length - 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedImageIndex(expandedImageIndex + 1);
+                    }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 transition-colors bg-black/50 rounded-full p-2"
+                    aria-label="Imagen siguiente"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Link Display */}
+        {post.linkUrl && (
+          <a
+            href={post.linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block p-4 bg-terreta-bg/50 border border-terreta-border rounded-lg hover:bg-terreta-bg transition-colors group"
+            tabIndex={0}
+            aria-label={`Enlace externo: ${post.linkUrl}`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-terreta-sidebar flex items-center justify-center border border-terreta-border">
+                <ExternalLink size={18} className="text-terreta-accent" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-terreta-dark truncate group-hover:text-terreta-accent transition-colors">
+                  {new URL(post.linkUrl).hostname.replace('www.', '')}
+                </p>
+                <p className="text-xs text-terreta-secondary truncate">
+                  {post.linkUrl}
+                </p>
+              </div>
+            </div>
+          </a>
+        )}
       </div>
 
       {/* Actions */}
@@ -209,12 +400,28 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
                       </div>
                     )}
                     <input 
+                      ref={replyTextareaRef}
                       type="text" 
                       placeholder="Escribe una respuesta..." 
                       className="w-full bg-terreta-bg/50 border-terreta-border border rounded-full px-4 py-2 text-sm focus:ring-1 focus:ring-terreta-accent outline-none text-terreta-dark placeholder-terreta-secondary/50"
                       value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
+                      onChange={(e) => {
+                        setReplyText(e.target.value);
+                        if (replyTextareaRef.current) {
+                          handleReplyMentionTextChange(e.target.value, replyTextareaRef.current.selectionStart || 0);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        handleReplyMentionKeyDown(e);
+                      }}
                       onPaste={handlePaste}
+                    />
+                    <MentionSuggestions
+                      suggestions={replySuggestions}
+                      selectedIndex={replyMentionState.selectedIndex}
+                      position={replyMentionState.position}
+                      onSelect={insertReplyMention}
+                      loading={replyMentionsLoading}
                     />
                   </div>
                   <button 
