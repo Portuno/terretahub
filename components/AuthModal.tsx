@@ -71,10 +71,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     setError('');
 
     try {
+      // Determinar la URL de redirección correcta
+      // En producción, usar el dominio de producción
+      // En desarrollo, usar localhost
+      const getRedirectUrl = () => {
+        const hostname = window.location.hostname;
+        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0';
+        
+        if (isLocalhost) {
+          // En desarrollo, usar localhost
+          return window.location.origin;
+        } else {
+          // En producción, usar el dominio de producción
+          return 'https://www.terretahub.com';
+        }
+      };
+
       const { data, error: authError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}`,
+          redirectTo: getRedirectUrl(),
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
