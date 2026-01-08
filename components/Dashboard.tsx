@@ -139,8 +139,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
           <Outlet />
         </div>
 
-        {/* Footer - Only show when not on policy pages or docs */}
-        {location.pathname !== '/terminos-y-condiciones' && location.pathname !== '/politica-de-privacidad' && location.pathname !== '/docs' && (
+        {/* Footer - Only show on home page */}
+        {location.pathname === '/' && (
           <Footer />
         )}
       </main>

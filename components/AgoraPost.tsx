@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Share2, MoreHorizontal, Send, Trash2, Shield, ExternalLink } from 'lucide-react';
 import { AgoraPost as AgoraPostType, AuthUser } from '../types';
 import { canDelete } from '../lib/userRoles';
 import { useProfileNavigation } from '../hooks/useProfileNavigation';
 import { useMentions } from '../hooks/useMentions';
 import { MentionSuggestions } from './MentionSuggestions';
+import { ShareModal } from './ShareModal';
 
 interface AgoraPostProps {
   post: AgoraPostType;
@@ -21,9 +23,11 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
   const [showPasteWarning, setShowPasteWarning] = useState(false);
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const [expandedImageIndex, setExpandedImageIndex] = useState<number | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
   const replyTextareaRef = useRef<HTMLInputElement>(null);
   
   const navigateToProfile = useProfileNavigation();
+  const navigate = useNavigate();
 
   // Mentions para comentarios
   const {
@@ -67,8 +71,18 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
     }
   };
 
-  const handleProfileClick = () => {
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     navigateToProfile(post.author.handle);
+  };
+
+  const handlePostClick = () => {
+    navigate(`/agora/post/${post.id}`);
+  };
+
+  const handleShareClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowShareModal(true);
   };
 
   // Cerrar menú de eliminación al hacer click fuera
@@ -90,8 +104,14 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
     };
   }, [showDeleteMenu]);
 
+  const postUrl = `/agora/post/${post.id}`;
+
   return (
-    <div className="bg-terreta-card border border-terreta-border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow mb-4">
+    <>
+      <div 
+        className="bg-terreta-card border border-terreta-border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow mb-4 cursor-pointer"
+        onClick={handlePostClick}
+      >
       
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
@@ -133,7 +153,7 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
                 e.stopPropagation();
                 setShowDeleteMenu(!showDeleteMenu);
               }}
-              className="text-terreta-secondary hover:text-terreta-dark relative"
+              className="text-terreta-secondary hover:text-terreta-dark relative z-10"
             >
               <MoreHorizontal size={20} />
             </button>
@@ -192,7 +212,8 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
                     const totalItems = (post.videoUrl ? 1 : 0) + (post.imageUrls?.length || 0);
                     if (totalItems === 1) return 'grid-cols-1 max-w-md';
                     if (totalItems === 2) return 'grid-cols-2 max-w-2xl';
-                    if (totalItems === 3) return 'grid-cols-2 max-w-2xl';
+                    if (totalItems === 3 && !post.videoUrl) return 'grid-cols-2 grid-rows-2 max-w-2xl';
+                    if (totalItems === 3) return 'grid-cols-2 grid-rows-2 max-w-2xl';
                     return 'grid-cols-2 max-w-2xl';
                   })()
                 }`}
@@ -225,6 +246,7 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
                 {post.imageUrls && post.imageUrls.map((imageUrl, index) => {
                   // Layout específico según cantidad total de elementos
                   let gridClass = '';
+                  let imageClass = 'w-full h-full object-cover rounded-lg border border-terreta-border cursor-pointer hover:opacity-90 transition-opacity';
                   const totalItems = (post.videoUrl ? 1 : 0) + post.imageUrls.length;
                   
                   if (totalItems === 3) {
@@ -232,12 +254,20 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
                     if (post.videoUrl) {
                       // Video ocupa 2 filas, imágenes van a la derecha
                       // No necesitamos row-span para imágenes en este caso
+                      imageClass += ' max-h-64';
                     } else {
-                      // 3 imágenes: primera ocupa 2 filas
+                      // 3 imágenes: primera ocupa 2 filas (todo el espacio vertical)
                       if (index === 0) {
                         gridClass = 'row-span-2';
+                        // Sin limitación de altura para la primera imagen
+                      } else {
+                        // Las otras dos imágenes tienen altura limitada
+                        imageClass += ' max-h-64';
                       }
                     }
+                  } else {
+                    // Para otros casos, mantener altura limitada
+                    imageClass += ' max-h-64';
                   }
                   
                   return (
@@ -248,8 +278,11 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
                       <img
                         src={imageUrl}
                         alt={`Imagen ${index + 1} del post`}
-                        className="w-full h-full object-cover rounded-lg border border-terreta-border cursor-pointer hover:opacity-90 transition-opacity max-h-64"
-                        onClick={() => setExpandedImageIndex(index)}
+                        className={imageClass}
+                        onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedImageIndex(index);
+                      }}
                         loading="lazy"
                       />
                     </div>
@@ -346,14 +379,20 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
       {/* Actions */}
       <div className="flex items-center gap-6 pl-[60px] border-t border-terreta-border pt-3">
         <button 
-          onClick={() => setIsCommentsOpen(!isCommentsOpen)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsCommentsOpen(!isCommentsOpen);
+          }}
           className="flex items-center gap-2 text-sm font-medium text-terreta-secondary hover:text-terreta-accent transition-colors"
         >
           <MessageCircle size={18} />
           <span>{post.comments.length}</span>
         </button>
 
-        <button className="flex items-center gap-2 text-sm font-medium text-terreta-secondary hover:text-terreta-accent transition-colors ml-auto">
+        <button 
+          onClick={handleShareClick}
+          className="flex items-center gap-2 text-sm font-medium text-terreta-secondary hover:text-terreta-accent transition-colors ml-auto"
+        >
           <Share2 size={18} />
         </button>
       </div>
@@ -387,7 +426,7 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
           ))}
 
           {/* Reply Input */}
-          <form onSubmit={handleSubmitReply} className="flex gap-2 items-center mt-2 relative">
+          <form onSubmit={handleSubmitReply} className="flex gap-2 items-center mt-2 relative" onClick={(e) => e.stopPropagation()}>
              {currentUser ? (
                 <>
                   <img src={currentUser.avatar} className="w-8 h-8 rounded-full" alt="me" />
@@ -446,5 +485,15 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
       )}
 
     </div>
+
+    <ShareModal
+      isOpen={showShareModal}
+      onClose={() => setShowShareModal(false)}
+      postUrl={postUrl}
+      postContent={post.content || ''}
+      authorName={post.author.name}
+      authorHandle={post.author.handle}
+    />
+    </>
   );
 };

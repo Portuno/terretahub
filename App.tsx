@@ -22,6 +22,7 @@ import { EventsPage } from './components/EventsPage';
 import { TermsAndConditions } from './components/TermsAndConditions';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { Documentation } from './components/Documentation';
+import { AgoraPostPage } from './components/AgoraPostPage';
 import { isAdmin } from './lib/userRoles';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -402,6 +403,10 @@ const AppContent: React.FC = () => {
         <Route 
           path="/docs" 
           element={<Documentation />} 
+        />
+        <Route 
+          path="/agora/post/:id" 
+          element={<AgoraPostPage user={user} onOpenAuth={() => setIsAuthModalOpen(true)} />} 
         />
         <Route 
           path="*" 
