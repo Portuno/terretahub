@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Twitter, Facebook, Instagram } from 'lucide-react';
+import { X, Twitter, Facebook, Instagram, MessageCircle } from 'lucide-react';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -31,6 +31,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   const shareText = `${truncatedContent} - ${authorName} ${authorHandle} en Terreta Hub`;
 
   // URLs de compartir
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${fullPostUrl}`)}`;
   const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(fullPostUrl)}`;
   const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(fullPostUrl)}`;
   // Instagram Stories usa un esquema especial que abre la app
@@ -64,6 +65,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({
         }
         document.body.removeChild(linkInput);
       });
+    } else if (platform === 'whatsapp') {
+      // WhatsApp se abre directamente en la app o web
+      window.open(url, '_blank');
     } else {
       // Abrir en nueva ventana
       window.open(url, '_blank', 'width=600,height=400');
@@ -101,6 +105,14 @@ export const ShareModal: React.FC<ShareModalProps> = ({
         </div>
 
         <div className="space-y-3">
+          <button
+            onClick={() => handleShare(whatsappUrl, 'whatsapp')}
+            className="w-full flex items-center gap-3 p-4 bg-[#25D366] hover:bg-[#20ba5a] text-white rounded-lg transition-colors font-medium"
+          >
+            <MessageCircle size={24} />
+            <span>Compartir en WhatsApp</span>
+          </button>
+
           <button
             onClick={() => handleShare(twitterUrl, 'twitter')}
             className="w-full flex items-center gap-3 p-4 bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white rounded-lg transition-colors font-medium"
