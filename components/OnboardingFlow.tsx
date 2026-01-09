@@ -11,6 +11,7 @@ import { useTheme } from '../context/ThemeContext';
 import { ProfileRenderer } from './ProfileEditor';
 import { uploadAvatarToStorage } from '../lib/avatarUtils';
 import { Upload, Camera } from 'lucide-react';
+import { MascotAnimation, MascotAnimationData } from './MascotAnimation';
 
 interface ProjectPreview {
   id: string;
@@ -29,7 +30,7 @@ interface OnboardingFlowProps {
   onComplete: () => void;
 }
 
-type Acto = 'acto1' | 'acto2' | 'acto3' | 'completing' | 'completed';
+type Acto = 'acto1' | 'mascotAnimation' | 'acto2' | 'acto3' | 'completing' | 'completed';
 type Slide = 'proyectos' | 'eventos' | 'recursos' | 'agora';
 type Acto3Slide = 'avatar' | 'bio' | 'socials' | 'color';
 
@@ -79,6 +80,21 @@ const COLOR_THEMES: Record<string, BioTheme> = {
     buttonTextColor: '#000000',
     font: 'sans'
   }
+};
+
+// Datos de la animación de la mascota
+const TERRE_MASCOT_ANIMATION: MascotAnimationData = {
+  collection: "Terre",
+  items: [
+    {
+      name: "Flap wings excitedly",
+      transparent_image: "https://assets.masco.dev/e56ea2/terre-4c48/flap-wings-excitedly-64aee966.png",
+      image: "https://assets.masco.dev/e56ea2/terre-4c48/flap-wings-excitedly-d498511f.png",
+      video: "https://assets.masco.dev/e56ea2/terre-4c48/flap-wings-excitedly-17ce3c0b.mp4",
+      animation_webm: "https://assets.masco.dev/e56ea2/terre-4c48/flap-wings-excitedly-c98d3563.webm",
+      animation_mov: "https://assets.masco.dev/e56ea2/terre-4c48/flap-wings-excitedly-eea067fe.mov"
+    }
+  ]
 };
 
 export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ user, onComplete }) => {
@@ -423,10 +439,16 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ user, onComplete
         return;
       }
       
-      setCurrentActo('acto2');
+      // Mostrar animación de mascota antes de pasar a acto2
+      setCurrentActo('mascotAnimation');
     } catch (err) {
       console.error('Error al actualizar perfil:', err);
     }
+  };
+
+  // Completar animación de mascota y pasar a Acto II
+  const handleMascotAnimationComplete = () => {
+    setCurrentActo('acto2');
   };
 
   // Completar Acto II
@@ -1372,6 +1394,16 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ user, onComplete
       
       {/* Overlay sutil para mejorar legibilidad */}
       <div className="fixed inset-0 bg-[rgb(var(--bg-main))]/40 backdrop-blur-[0.5px]" />
+      
+      {/* Animación de mascota - fuera del contenedor principal para que cubra toda la pantalla */}
+      {currentActo === 'mascotAnimation' && (
+        <MascotAnimation
+          animationData={TERRE_MASCOT_ANIMATION}
+          duration={5}
+          text="Preparando presentación de Terreta Hub"
+          onComplete={handleMascotAnimationComplete}
+        />
+      )}
       
       <div className={`relative min-h-screen flex items-center justify-center py-6 px-4 ${currentActo === 'acto3' ? 'items-stretch' : ''}`}>
         <div className={`w-full animate-fade-in ${currentActo === 'acto3' ? 'max-h-full h-full' : 'max-h-[90vh] overflow-hidden'}`}>
