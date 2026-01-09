@@ -927,7 +927,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ user, onComplete
       
           {/* Contenido del slide con glassmorphism interno */}
           <div 
-            className="backdrop-blur-md bg-white/50 rounded-2xl border border-white/40 shadow-lg p-6 lg:p-8 min-h-[400px] flex flex-col"
+            className="backdrop-blur-md bg-white/50 rounded-2xl border border-white/40 shadow-lg p-4 lg:p-6 min-h-[400px] max-h-[calc(100vh-350px)] flex flex-col"
             style={{
               boxShadow: '0 4px 16px 0 rgba(31, 38, 135, 0.1) inset'
             }}
@@ -1144,43 +1144,43 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ user, onComplete
             
             {/* Slide 4: Color + URL */}
             {acto3Slide === 'color' && (
-              <div className="flex flex-col flex-1">
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-[rgb(var(--accent))]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Palette size={32} style={{ color: accentColor }} />
+              <div className="flex flex-col flex-1 min-h-0">
+                <div className="text-center mb-3 flex-shrink-0">
+                  <div className="w-12 h-12 bg-[rgb(var(--accent))]/10 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <Palette size={24} style={{ color: accentColor }} />
                   </div>
-                  <h3 className="font-serif text-2xl lg:text-3xl text-[rgb(var(--text-main))] mb-2">
+                  <h3 className="font-serif text-lg lg:text-xl text-[rgb(var(--text-main))] mb-1">
                     Personaliza tu Estilo
                   </h3>
-                  <p className="text-sm lg:text-base text-[rgb(var(--text-secondary))] font-sans">
+                  <p className="text-xs text-[rgb(var(--text-secondary))] font-sans">
                     Elige tu color y tu URL personalizada
                   </p>
                 </div>
                 
-                <div className="flex-1 flex flex-col justify-center space-y-6">
-                  <div>
-                    <label className="block text-sm font-bold text-[rgb(var(--text-main))] mb-4 uppercase tracking-wide">
+                <div className="flex-1 flex flex-col space-y-3 min-h-0 overflow-y-auto">
+                  <div className="flex-shrink-0">
+                    <label className="block text-xs font-bold text-[rgb(var(--text-main))] mb-2 uppercase tracking-wide">
                       Color Principal
                     </label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {Object.entries(COLOR_THEMES).map(([key, theme]) => (
                         <button
                           key={key}
                           onClick={() => setSelectedColor(key)}
-                          className={`p-4 rounded-xl border-2 transition-all backdrop-blur-sm bg-white/40 ${
+                          className={`p-2.5 rounded-lg border-2 transition-all backdrop-blur-sm bg-white/40 ${
                             selectedColor === key
                               ? 'border-[rgb(var(--accent))] ring-2 ring-[rgb(var(--accent))] bg-white/60 shadow-lg'
                               : 'border-white/50 hover:border-white/70 hover:bg-white/50'
                           }`}
                         >
                           <div
-                            className="w-full h-12 rounded mb-2"
+                            className="w-full h-8 rounded mb-1"
                             style={{ backgroundColor: theme.bgColor }}
                           />
-                          <span className="font-bold text-sm text-[rgb(var(--text-main))]">{theme.name}</span>
+                          <span className="font-bold text-[10px] text-[rgb(var(--text-main))] leading-tight">{theme.name}</span>
                           {selectedColor === key && (
-                            <div className="mt-2 flex justify-center">
-                              <CheckCircle size={16} style={{ color: accentColor }} />
+                            <div className="mt-0.5 flex justify-center">
+                              <CheckCircle size={12} style={{ color: accentColor }} />
                             </div>
                           )}
                         </button>
@@ -1188,12 +1188,12 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ user, onComplete
                     </div>
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-bold text-[rgb(var(--text-main))] mb-2 uppercase tracking-wide">
+                  <div className="flex-shrink-0">
+                    <label className="block text-xs font-bold text-[rgb(var(--text-main))] mb-1.5 uppercase tracking-wide">
                       Tu URL Personalizada
                     </label>
-                    <div className="flex items-center gap-2 backdrop-blur-sm bg-white/60 border border-white/50 rounded-lg p-3 shadow-md">
-                      <span className="text-sm text-[rgb(var(--text-secondary))] font-mono whitespace-nowrap">
+                    <div className="flex items-center gap-2 backdrop-blur-sm bg-white/60 border border-white/50 rounded-lg p-2 shadow-md">
+                      <span className="text-[10px] text-[rgb(var(--text-secondary))] font-mono whitespace-nowrap">
                         www.terretahub.com/p/
                       </span>
                       <div className="flex-1 flex items-center">
@@ -1202,24 +1202,24 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ user, onComplete
                           value={extension}
                           onChange={(e) => handleExtensionChange(e.target.value)}
                           placeholder="tu-extension"
-                          className="flex-1 bg-transparent border-none outline-none text-sm font-mono text-[rgb(var(--text-main))] placeholder:text-[rgb(var(--text-secondary))]/50"
+                          className="flex-1 bg-transparent border-none outline-none text-[10px] font-mono text-[rgb(var(--text-main))] placeholder:text-[rgb(var(--text-secondary))]/50"
                           maxLength={50}
                         />
                         {checkingExtension && (
-                          <Loader2 size={16} className="animate-spin ml-2" style={{ color: accentColor }} />
+                          <Loader2 size={12} className="animate-spin ml-2" style={{ color: accentColor }} />
                         )}
                       </div>
                     </div>
                     {extensionError && (
-                      <p className="mt-2 text-xs text-red-500">{extensionError}</p>
+                      <p className="mt-1 text-xs text-red-500">{extensionError}</p>
                     )}
-                    <p className="mt-2 text-xs text-[rgb(var(--text-secondary))]">
+                    <p className="mt-1 text-[10px] text-[rgb(var(--text-secondary))]">
                       Solo letras minúsculas, números, guiones y guiones bajos. Mínimo 3 caracteres.
                     </p>
                   </div>
                   
-                  <div className="backdrop-blur-sm bg-[rgb(var(--accent))]/10 border border-[rgb(var(--accent))]/30 rounded-lg p-4">
-                    <p className="text-sm text-[rgb(var(--text-main))]">
+                  <div className="backdrop-blur-sm bg-[rgb(var(--accent))]/10 border border-[rgb(var(--accent))]/30 rounded-lg p-2.5 flex-shrink-0">
+                    <p className="text-[10px] text-[rgb(var(--text-main))] leading-relaxed">
                       <strong>Importante:</strong> Luego podrás agregar muchas más cosas y personalizar tu perfil 
                       (fotos, videos, currículum y personalizar los colores y botones a tu antojo).
                     </p>
