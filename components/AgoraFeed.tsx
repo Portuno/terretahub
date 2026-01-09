@@ -687,7 +687,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                       <textarea
                           ref={textareaRef}
                           placeholder="Comparte algo con la comunidad"
-                          className="w-full bg-transparent border-none focus:ring-0 text-lg placeholder-terreta-secondary/50 resize-none h-24 p-0 pb-10 font-sans text-terreta-dark"
+                          className="w-full bg-transparent border-none focus:ring-0 text-lg placeholder-terreta-secondary/50 resize-none h-24 p-0 pb-14 font-sans text-terreta-dark"
                           value={newPostContent}
                           onChange={(e) => {
                             setNewPostContent(e.target.value);
@@ -710,7 +710,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                     </div>
                     
                     {/* Media Icons - Bottom Left */}
-                    <div className="absolute bottom-2 left-0 flex gap-2">
+                    <div className="absolute bottom-3 left-0 flex gap-2 z-10">
                       <input
                         type="file"
                         ref={imageInputRef}

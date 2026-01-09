@@ -268,11 +268,13 @@ const PLACEHOLDERS = [
         if (error) {
           console.error('Error loading resources:', error);
           // Si la tabla no existe aún, simplemente mostrar lista vacía
-          if (error.code === '42P01' || error.message?.includes('does not exist')) {
+          if (error.code === '42P01' || error.message?.includes('does not exist') || error.code === 'PGRST116') {
+            console.warn('La tabla resources no existe. Ejecuta el script SQL 40_create_resources.sql en Supabase.');
             setResources([]);
             setLoadingResources(false);
             return;
           }
+          setLoadingResources(false);
           return;
         }
 
@@ -668,10 +670,19 @@ const PLACEHOLDERS = [
 
       if (error) {
         console.error('Error creating resource:', error);
-        setErrorMessage('No se pudo compartir el recurso. Intenta nuevamente.');
+        
+        // Detectar si la tabla no existe
+        if (error.code === '42P01' || error.message?.includes('does not exist') || error.message?.includes('relation') || error.code === 'PGRST116') {
+          setErrorMessage('La tabla de recursos no existe. Por favor, ejecuta el script SQL 40_create_resources.sql en Supabase.');
+        } else if (error.code === '23503' || error.message?.includes('foreign key')) {
+          setErrorMessage('Error de referencia. Verifica que el usuario esté correctamente autenticado.');
+        } else {
+          setErrorMessage(`No se pudo compartir el recurso: ${error.message || 'Error desconocido'}`);
+        }
+        
         setResourceSubmitState('error');
         setUploadingResource(false);
-        setTimeout(() => setResourceSubmitState('idle'), 3000);
+        setTimeout(() => setResourceSubmitState('idle'), 5000);
         return;
       }
 
@@ -1035,7 +1046,10 @@ const PLACEHOLDERS = [
 
               {/* Error Message */}
               {errorMessage && (
-                <div className="text-sm text-red-600">{errorMessage}</div>
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                  <div className="font-semibold mb-1">Error:</div>
+                  <div>{errorMessage}</div>
+                </div>
               )}
 
               {/* Submit Button */}
@@ -1172,7 +1186,10 @@ const PLACEHOLDERS = [
 
               {/* Error Message */}
               {errorMessage && (
-                <div className="text-sm text-red-600">{errorMessage}</div>
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                  <div className="font-semibold mb-1">Error:</div>
+                  <div>{errorMessage}</div>
+                </div>
               )}
 
               {/* Submit Button */}
