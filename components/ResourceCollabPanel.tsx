@@ -111,19 +111,28 @@ const AlmoinaCard: React.FC<{ resource: Resource; currentUser?: AuthUser | null;
 
         {/* Acciones: Voto y Descarga */}
         <div className="flex items-center gap-3">
-          {/* Sistema de Votación con Clavel */}
+          {/* Sistema de Votación con Clavel - Mejorado */}
           <button
             onClick={handleVote}
             disabled={!currentUser}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200 ${
               resource.hasUserVoted
-                ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                ? 'bg-rose-100 text-rose-700 border-2 border-rose-300 shadow-sm'
                 : 'bg-terreta-bg/50 text-terreta-secondary hover:bg-rose-50 hover:text-rose-600 border border-terreta-border/50 hover:border-rose-200'
-            } ${!currentUser ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-            aria-label={`Votar por ${resource.title}`}
+            } ${!currentUser ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'}`}
+            aria-label={`${resource.hasUserVoted ? 'Quitar' : 'Dar'} clavel a ${resource.title}`}
+            title={`${resource.hasUserVoted ? 'Quitar clavel' : 'Dar clavel'} (${resource.votes_count ?? 0} aprobaciones)`}
           >
-            <Flower2 size={14} className={resource.hasUserVoted ? 'fill-current' : ''} />
-            <span className="text-xs font-semibold">{resource.votes_count}</span>
+            <Flower2 
+              size={16} 
+              className={`transition-transform duration-200 ${resource.hasUserVoted ? 'fill-current scale-110' : ''}`}
+            />
+            <span className="text-xs font-bold min-w-[1.5rem] text-center">
+              {resource.votes_count ?? 0}
+            </span>
+            {resource.votes_count === 0 && (
+              <span className="text-[10px] text-terreta-secondary/60 ml-0.5">aprobaciones</span>
+            )}
           </button>
 
           {/* Botón de Descarga */}
@@ -256,6 +265,40 @@ const PLACEHOLDERS = [
     const loadResources = async () => {
       try {
         setLoadingResources(true);
+        
+        // Intentar usar la función RPC mejorada primero
+        if (user?.id) {
+          const { data: rpcData, error: rpcError } = await supabase
+            .rpc('get_resources_with_votes', {
+              current_user_id: user.id,
+              limit_count: 50
+            });
+
+          if (!rpcError && rpcData) {
+            const formattedResources: Resource[] = rpcData.map((r: any) => ({
+              id: r.id,
+              title: r.title,
+              description: r.description,
+              category: r.category,
+              file_url: r.file_url,
+              download_count: r.download_count || 0,
+              votes_count: r.votes_count || 0, // Asegurar que siempre tenga un valor
+              author: {
+                id: r.author_id,
+                name: r.author_name || 'Usuario',
+                avatar: r.author_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.author_username || 'user'}`,
+                username: r.author_username || 'usuario'
+              },
+              created_at: r.created_at,
+              hasUserVoted: r.has_user_voted || false
+            }));
+            setResources(formattedResources);
+            setLoadingResources(false);
+            return;
+          }
+        }
+
+        // Fallback al método anterior si la función RPC no existe
         const { data, error } = await supabase
           .from('resources')
           .select(`
@@ -297,6 +340,7 @@ const PLACEHOLDERS = [
               avatar: resource.author.avatar,
               username: resource.author.username
             },
+            votes_count: resource.votes_count || 0, // Asegurar que siempre tenga un valor
             hasUserVoted: votedResourceIds.has(resource.id)
           }));
 
@@ -310,6 +354,7 @@ const PLACEHOLDERS = [
               avatar: resource.author.avatar,
               username: resource.author.username
             },
+            votes_count: resource.votes_count || 0, // Asegurar que siempre tenga un valor
             hasUserVoted: false
           })) || [];
           setResources(resourcesWithAuthor);
@@ -420,10 +465,29 @@ const PLACEHOLDERS = [
           .eq('resource_id', resourceId)
           .eq('user_id', user.id);
 
-        if (!error) {
+        if (error) {
+          console.error('Error removing vote:', error);
+          return;
+        }
+
+        // Actualizar estado optimista
+        setResources(prev => prev.map(r => 
+          r.id === resourceId 
+            ? { ...r, votes_count: Math.max(0, (r.votes_count || 0) - 1), hasUserVoted: false }
+            : r
+        ));
+
+        // Recargar el recurso específico para asegurar sincronización
+        const { data: updatedResource } = await supabase
+          .from('resources')
+          .select('votes_count')
+          .eq('id', resourceId)
+          .single();
+
+        if (updatedResource) {
           setResources(prev => prev.map(r => 
             r.id === resourceId 
-              ? { ...r, votes_count: Math.max(0, r.votes_count - 1), hasUserVoted: false }
+              ? { ...r, votes_count: updatedResource.votes_count || 0 }
               : r
           ));
         }
@@ -433,10 +497,37 @@ const PLACEHOLDERS = [
           .from('resource_votes')
           .insert({ resource_id: resourceId, user_id: user.id });
 
-        if (!error) {
+        if (error) {
+          console.error('Error adding vote:', error);
+          // Si el error es que ya existe (UNIQUE constraint), actualizar estado
+          if (error.code === '23505') {
+            setResources(prev => prev.map(r => 
+              r.id === resourceId 
+                ? { ...r, hasUserVoted: true }
+                : r
+            ));
+          }
+          return;
+        }
+
+        // Actualizar estado optimista
+        setResources(prev => prev.map(r => 
+          r.id === resourceId 
+            ? { ...r, votes_count: (r.votes_count || 0) + 1, hasUserVoted: true }
+            : r
+        ));
+
+        // Recargar el recurso específico para asegurar sincronización
+        const { data: updatedResource } = await supabase
+          .from('resources')
+          .select('votes_count')
+          .eq('id', resourceId)
+          .single();
+
+        if (updatedResource) {
           setResources(prev => prev.map(r => 
             r.id === resourceId 
-              ? { ...r, votes_count: r.votes_count + 1, hasUserVoted: true }
+              ? { ...r, votes_count: updatedResource.votes_count || 0 }
               : r
           ));
         }
@@ -694,8 +785,8 @@ const PLACEHOLDERS = [
           description: data.description,
           category: data.category,
           file_url: data.file_url,
-          download_count: data.download_count,
-          votes_count: data.votes_count,
+          download_count: data.download_count || 0,
+          votes_count: data.votes_count || 0, // Asegurar que siempre tenga un valor
           author: {
             id: data.author.id,
             name: data.author.name,
