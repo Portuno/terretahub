@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { generateSlug, normalizeUrl } from '../lib/utils';
+import { generateSlug, normalizeUrl, renderMarkdown } from '../lib/utils';
 import { NotFound404 } from './NotFound404';
 import { Calendar, User, Video, Image as ImageIcon, ArrowLeft, ExternalLink } from 'lucide-react';
 
@@ -351,7 +351,9 @@ export const PublicProject: React.FC = () => {
           {/* Description */}
           <div className="mb-5">
             <h2 className="font-serif text-lg md:text-xl text-terreta-dark mb-2.5">Sobre el Proyecto</h2>
-            <p className="text-gray-700 leading-relaxed text-sm md:text-base whitespace-pre-line mb-4">{project.description}</p>
+            <div className="text-gray-700 text-sm md:text-base">
+              {renderMarkdown(project.description)}
+            </div>
             
             {/* Video - Show video inside content, not as cover */}
             {project.video_url && (

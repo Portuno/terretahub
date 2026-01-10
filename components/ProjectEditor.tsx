@@ -5,6 +5,7 @@ import {
   Layout, Maximize2, ExternalLink, Globe, Calendar, User
 } from 'lucide-react';
 import { Project, ProjectPhase, AuthUser } from '../types';
+import { renderMarkdown } from '../lib/utils';
 
 interface ProjectEditorProps {
   user: AuthUser;
@@ -524,21 +525,7 @@ const ProjectRenderer: React.FC<{ project: Project; user: AuthUser }> = ({ proje
 
              {/* Description */}
              <div className="prose prose-stone prose-sm sm:prose-base max-w-none font-sans text-gray-700">
-                {/* Simple markdown renderer fallback */}
-                {project.description.split('\n').map((line, i) => {
-                   // Render **bold**
-                   const parts = line.split(/(\*\*.*?\*\*)/g);
-                   return (
-                      <p key={i} className="mb-4 leading-relaxed">
-                         {parts.map((part, j) => {
-                            if (part.startsWith('**') && part.endsWith('**')) {
-                               return <strong key={j} className="text-terreta-dark">{part.slice(2, -2)}</strong>;
-                            }
-                            return part;
-                         })}
-                      </p>
-                   )
-                })}
+                {renderMarkdown(project.description)}
              </div>
 
              {/* Gallery Grid */}

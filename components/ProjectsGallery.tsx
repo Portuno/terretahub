@@ -80,27 +80,45 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
       }
 
       // Transform the data to match the expected interface
-      const projectsWithAuthors: ProjectWithAuthor[] = projectsData.map((p: any) => ({
-        id: p.id,
-        author_id: p.author_id,
-        name: p.name,
-        slogan: p.slogan,
-        description: p.description,
-        images: Array.isArray(p.images) ? p.images : (p.images || []),
-        video_url: p.video_url,
-        website: p.website,
-        categories: p.categories || [],
-        technologies: p.technologies || [],
-        phase: p.phase,
-        status: p.status as ProjectStatus,
-        created_at: p.created_at,
-        updated_at: p.updated_at,
-        author: {
-          name: p.author_name || 'Usuario',
-          username: p.author_username || 'usuario',
-          avatar: p.author_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.author_username || 'user'}`
+      const projectsWithAuthors: ProjectWithAuthor[] = projectsData.map((p: any) => {
+        // Asegurar que images sea siempre un array válido
+        let imagesArray: string[] = [];
+        if (Array.isArray(p.images)) {
+          imagesArray = p.images.filter((img: any) => img != null && img !== '');
+        } else if (p.images) {
+          // Si no es array pero existe, intentar convertirlo
+          try {
+            if (typeof p.images === 'string') {
+              const parsed = JSON.parse(p.images);
+              imagesArray = Array.isArray(parsed) ? parsed : [];
+            }
+          } catch {
+            imagesArray = [];
+          }
         }
-      }));
+        
+        return {
+          id: p.id,
+          author_id: p.author_id,
+          name: p.name,
+          slogan: p.slogan,
+          description: p.description,
+          images: imagesArray,
+          video_url: p.video_url,
+          website: p.website,
+          categories: p.categories || [],
+          technologies: p.technologies || [],
+          phase: p.phase,
+          status: p.status as ProjectStatus,
+          created_at: p.created_at,
+          updated_at: p.updated_at,
+          author: {
+            name: p.author_name || 'Usuario',
+            username: p.author_username || 'usuario',
+            avatar: p.author_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.author_username || 'user'}`
+          }
+        };
+      });
 
       setProjects(projectsWithAuthors);
     } catch (err) {
@@ -189,8 +207,24 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
         const authorProfile = profilesMap.get(project.author_id);
         const finalAvatar = avatarsMap.get(project.author_id) || authorProfile?.avatar;
 
+        // Asegurar que images sea siempre un array válido
+        let imagesArray: string[] = [];
+        if (Array.isArray(project.images)) {
+          imagesArray = project.images.filter((img: any) => img != null && img !== '');
+        } else if (project.images) {
+          try {
+            if (typeof project.images === 'string') {
+              const parsed = JSON.parse(project.images);
+              imagesArray = Array.isArray(parsed) ? parsed : [];
+            }
+          } catch {
+            imagesArray = [];
+          }
+        }
+
         return {
           ...project,
+          images: imagesArray,
           author: {
             name: authorProfile?.name || 'Usuario',
             username: authorProfile?.username || 'usuario',

@@ -33,3 +33,31 @@ export const canEdit = (user: AuthUser | null, resourceAuthorId: string): boolea
   return user.id === resourceAuthorId || isAdmin(user);
 };
 
+/**
+ * Verifica si un usuario tiene autorización para escribir blogs
+ */
+export const isBlogAuthorized = (user: AuthUser | null): boolean => {
+  if (!user) return false;
+  // El campo blog_authorized debe estar en el perfil del usuario
+  // Se verifica desde la base de datos, no desde el objeto AuthUser
+  // Por ahora retornamos false, se debe verificar desde la BD
+  return false; // Se actualizará cuando se cargue el perfil completo
+};
+
+/**
+ * Verifica si un usuario puede editar un blog
+ * (propio o si es admin)
+ */
+export const canEditBlog = (user: AuthUser | null, blogAuthorId: string): boolean => {
+  if (!user) return false;
+  return user.id === blogAuthorId || isAdmin(user);
+};
+
+/**
+ * Verifica si un usuario puede eliminar un blog
+ * (propio o si es admin)
+ */
+export const canDeleteBlog = (user: AuthUser | null, blogAuthorId: string): boolean => {
+  if (!user) return false;
+  return user.id === blogAuthorId || isAdmin(user);
+};

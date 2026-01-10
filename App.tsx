@@ -16,6 +16,7 @@ import { ProjectsPage } from './components/ProjectsPage';
 import { ResourceCollabPanel } from './components/ResourceCollabPanel';
 import { AdminProjectsPanel } from './components/AdminProjectsPanel';
 import { AdminEventsPanel } from './components/AdminEventsPanel';
+import { AdminBlogsPanel } from './components/AdminBlogsPanel';
 import { ProfileEditor } from './components/ProfileEditor';
 import { PlaceholderPage } from './components/PlaceholderPage';
 import { EventsPage } from './components/EventsPage';
@@ -23,6 +24,8 @@ import { TermsAndConditions } from './components/TermsAndConditions';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { Documentation } from './components/Documentation';
 import { AgoraPostPage } from './components/AgoraPostPage';
+import { BlogsPage } from './components/BlogsPage';
+import { BlogPostPage } from './components/BlogPostPage';
 import { isAdmin } from './lib/userRoles';
 import { ThemeProvider } from './context/ThemeContext';
 import { OnboardingFlow } from './components/OnboardingFlow';
@@ -416,11 +419,15 @@ const AppContent: React.FC = () => {
           <Route path="proyectos" element={<ProjectsPage user={user} onOpenAuth={() => setIsAuthModalOpen(true)} />} />
           <Route path="recursos" element={<ResourceCollabPanel user={user} />} />
           <Route path="eventos" element={<EventsPage user={user} onOpenAuth={() => setIsAuthModalOpen(true)} />} />
+          <Route path="blogs" element={<BlogsPage user={user} onOpenAuth={() => setIsAuthModalOpen(true)} />} />
           <Route path="perfil" element={
             user ? <ProfileEditor user={user} /> : <Navigate to="/" replace />
           } />
           <Route path="admin" element={
             user && isAdmin(user) ? <AdminProjectsPanel user={user} /> : <Navigate to="/" replace />
+          } />
+          <Route path="admin/blogs" element={
+            user && isAdmin(user) ? <AdminBlogsPanel user={user} /> : <Navigate to="/" replace />
           } />
         </Route>
 
@@ -447,6 +454,10 @@ const AppContent: React.FC = () => {
         <Route 
           path="/agora/post/:id" 
           element={<AgoraPostPage user={user} onOpenAuth={() => setIsAuthModalOpen(true)} />} 
+        />
+        <Route 
+          path="/blog/:username/:slug" 
+          element={<BlogPostPage user={user} onOpenAuth={() => setIsAuthModalOpen(true)} />} 
         />
         <Route 
           path="*" 

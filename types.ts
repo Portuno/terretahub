@@ -192,3 +192,47 @@ export interface EventAttendance {
   status: AttendanceStatus;
   registeredAt: string;
 }
+
+// --- BLOG TYPES ---
+
+export interface Blog {
+  id: string;
+  authorId: string;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt?: string; // Máximo 140 caracteres
+  cardImagePath?: string; // Ruta en bucket, no URL completa
+  cardImageUrl?: string; // URL completa generada desde path (no se guarda en DB)
+  primaryTag: string; // Tag principal a mostrar
+  tags: string[]; // Array completo de tags
+  status: 'draft' | 'published';
+  viewsCount: number;
+  likesCount: number;
+  createdAt: string;
+  updatedAt: string;
+  author: {
+    id: string;
+    name: string;
+    username: string;
+    avatar: string;
+  };
+  hasUserLiked?: boolean;
+}
+
+export interface BlogComment {
+  id: string;
+  blogId: string;
+  authorId: string;
+  content: string;
+  parentId?: string;
+  createdAt: string;
+  updatedAt: string;
+  author: {
+    id: string;
+    name: string;
+    username: string;
+    avatar: string;
+  };
+  replies?: BlogComment[];
+}

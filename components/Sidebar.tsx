@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, Layout, MessageSquareText, MessageCircle, Shield, Menu, X, Mountain, Wind, Flame, Droplets } from 'lucide-react';
+import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, Layout, MessageSquareText, MessageCircle, Shield, Menu, X, Mountain, Wind, Flame, Droplets, FileText } from 'lucide-react';
 import { AuthUser } from '../types';
 import { isAdmin } from '../lib/userRoles';
 import { useTheme, THEMES, Theme } from '../context/ThemeContext';
@@ -122,6 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'proyectos', path: '/proyectos', label: 'Proyectos', icon: <FolderKanban size={20} /> },
     { id: 'recursos', path: '/recursos', label: 'Recursos', icon: <BookOpen size={20} /> },
     { id: 'eventos', path: '/eventos', label: 'Eventos', icon: <CalendarDays size={20} /> },
+    { id: 'blogs', path: '/blogs', label: 'Blogs', icon: <FileText size={20} /> },
   ];
 
   // Agregar sección Admin si el usuario es admin

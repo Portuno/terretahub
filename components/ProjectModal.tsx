@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Calendar, User, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import { ProjectWithAuthor } from './ProjectsGallery';
-import { generateSlug, normalizeUrl } from '../lib/utils';
+import { generateSlug, normalizeUrl, renderMarkdown } from '../lib/utils';
 
 interface ProjectModalProps {
   project: ProjectWithAuthor | null;
@@ -260,7 +260,9 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
             {/* Description */}
             <div className="mb-6">
               <h2 className="font-serif text-xl text-terreta-dark mb-3">Sobre el Proyecto</h2>
-              <p className="text-terreta-dark leading-relaxed whitespace-pre-line mb-4">{project.description}</p>
+              <div className="text-terreta-dark">
+                {renderMarkdown(project.description)}
+              </div>
               
               {/* Video - Show video inside content, not as cover */}
               {project.video_url && (

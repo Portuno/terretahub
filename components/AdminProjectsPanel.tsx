@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, Eye, Clock, FolderKanban, CalendarDays } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Check, X, Eye, Clock, FolderKanban, CalendarDays, FileText } from 'lucide-react';
 import { AuthUser, ProjectStatus, EventStatus } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -59,9 +60,10 @@ interface EventWithOrganizer extends EventFromDB {
   };
 }
 
-type TabType = 'proyectos' | 'eventos';
+type TabType = 'proyectos' | 'eventos' | 'blogs';
 
 export const AdminProjectsPanel: React.FC<AdminProjectsPanelProps> = ({ user }) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('proyectos');
   const [projects, setProjects] = useState<ProjectWithAuthor[]>([]);
   const [events, setEvents] = useState<EventWithOrganizer[]>([]);
@@ -361,6 +363,17 @@ export const AdminProjectsPanel: React.FC<AdminProjectsPanelProps> = ({ user }) 
                   {events.length}
                 </span>
               )}
+            </div>
+          </button>
+          <button
+            onClick={() => {
+              navigate('/admin/blogs');
+            }}
+            className="px-6 py-3 font-semibold transition-all border-b-2 border-transparent text-terreta-dark/60 hover:text-terreta-dark"
+          >
+            <div className="flex items-center gap-2">
+              <FileText size={18} />
+              <span>Blogs</span>
             </div>
           </button>
         </div>

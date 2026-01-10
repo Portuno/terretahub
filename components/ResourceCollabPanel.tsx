@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { AuthUser } from '../types';
+import { AuthUser, Blog } from '../types';
 import { Download, Flower2, HandHeart, Sprout, HelpCircle, Lightbulb, User, MessageSquare, X, Send, Upload, Package } from 'lucide-react';
+import { BlogCard } from './BlogCard';
+import { getBlogImageUrl } from '../lib/blogUtils';
+import { executeQueryWithRetry } from '../lib/supabaseHelpers';
 
 type SubmissionState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -213,8 +216,10 @@ const TablonSolicitudes: React.FC<{
 
 export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user }) => {
   const [resources, setResources] = useState<Resource[]>([]);
+  const [blogs, setBlogs] = useState<Blog[]>([]);
   const [requests, setRequests] = useState<ResourceNeed[]>([]);
   const [loadingResources, setLoadingResources] = useState(true);
+  const [loadingBlogs, setLoadingBlogs] = useState(true);
   const [loadingRequests, setLoadingRequests] = useState(true);
   const [showAportarModal, setShowAportarModal] = useState(false);
   const [showPedirAyudaModal, setShowPedirAyudaModal] = useState(false);
@@ -259,6 +264,98 @@ const PLACEHOLDERS = [
   'Piensa en el recurso ideal para tu yo de 2026: ¿Qué hito de crecimiento te ayudaría a alcanzar? ¿Un curso sobre el futuro del e-commerce o un acceso exclusivo a una convocatoria de fondos europea? Describe el impacto.',
   'Cuéntanos con detalle tu necesidad: ¿Buscas la guía definitiva de pitch deck, un mentor de UX o información sobre DeFi? Si tienes el nombre de un recurso que te encanta, compártelo. ¡Tu aporte prioriza nuestro trabajo!'
 ];
+
+  // Cargar blogs
+  useEffect(() => {
+    const loadBlogs = async () => {
+      try {
+        setLoadingBlogs(true);
+        
+        const { data: blogsData, error: blogsError } = await executeQueryWithRetry(
+          async () => await supabase
+            .from('blogs')
+            .select(`
+              id,
+              author_id,
+              title,
+              slug,
+              excerpt,
+              card_image_path,
+              primary_tag,
+              tags,
+              status,
+              views_count,
+              likes_count,
+              created_at,
+              updated_at,
+              author:profiles!blogs_author_id_fkey (
+                id,
+                name,
+                username,
+                avatar
+              )
+            `)
+            .eq('status', 'published')
+            .order('created_at', { ascending: false })
+            .limit(20),
+          'load blogs for resources'
+        );
+
+        if (blogsError) {
+          console.error('Error loading blogs:', blogsError);
+          setBlogs([]);
+          return;
+        }
+
+        // Cargar likes del usuario si está autenticado
+        let userLikes: Set<string> = new Set();
+        if (user) {
+          const { data: likesData } = await supabase
+            .from('blog_likes')
+            .select('blog_id')
+            .eq('user_id', user.id);
+
+          if (likesData) {
+            userLikes = new Set(likesData.map(l => l.blog_id));
+          }
+        }
+
+        const transformedBlogs: Blog[] = (blogsData || []).map((blog: any) => ({
+          id: blog.id,
+          authorId: blog.author_id,
+          title: blog.title,
+          slug: blog.slug,
+          content: blog.content || '',
+          excerpt: blog.excerpt,
+          cardImagePath: blog.card_image_path,
+          cardImageUrl: blog.card_image_path ? getBlogImageUrl(blog.card_image_path) : undefined,
+          primaryTag: blog.primary_tag,
+          tags: blog.tags || [],
+          status: blog.status,
+          viewsCount: blog.views_count || 0,
+          likesCount: blog.likes_count || 0,
+          createdAt: blog.created_at,
+          updatedAt: blog.updated_at,
+          author: {
+            id: blog.author?.id || blog.author_id,
+            name: blog.author?.name || 'Usuario',
+            username: blog.author?.username || 'usuario',
+            avatar: blog.author?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${blog.author?.username || 'user'}`
+          },
+          hasUserLiked: userLikes.has(blog.id)
+        }));
+
+        setBlogs(transformedBlogs);
+      } catch (err) {
+        console.error('Error loading blogs:', err);
+        setBlogs([]);
+      } finally {
+        setLoadingBlogs(false);
+      }
+    };
+
+    loadBlogs();
+  }, [user]);
 
   // Cargar recursos
   useEffect(() => {
@@ -934,24 +1031,25 @@ const PLACEHOLDERS = [
             </button>
           </div>
           
-          {loadingResources ? (
+          {(loadingResources || loadingBlogs) ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-terreta-accent"></div>
                 <p className="mt-4 text-terreta-secondary text-sm">Cargando recursos...</p>
               </div>
             </div>
-          ) : resources.length === 0 ? (
+          ) : (resources.length === 0 && blogs.length === 0) ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center py-12">
                 <p className="text-terreta-secondary mb-4">Aún no hay recursos compartidos</p>
                 <p className="text-sm text-terreta-secondary/70">Sé el primero en compartir tu talento</p>
               </div>
-                      </div>
+            </div>
           ) : (
             <div className="flex-1 overflow-y-auto pr-2">
               {/* Grid Masonry usando columnas CSS */}
               <div className="columns-1 md:columns-2 gap-4">
+                {/* Recursos normales */}
                 {resources.map((resource) => (
                   <div key={resource.id} className="break-inside-avoid mb-4">
                     <AlmoinaCard 
@@ -960,6 +1058,12 @@ const PLACEHOLDERS = [
                       onVote={handleVote}
                       onDownload={handleDownload}
                     />
+                  </div>
+                ))}
+                {/* Blogs con tag "Blog" */}
+                {!loadingBlogs && blogs.map((blog) => (
+                  <div key={blog.id} className="break-inside-avoid mb-4">
+                    <BlogCard blog={blog} showStats={false} />
                   </div>
                 ))}
               </div>
