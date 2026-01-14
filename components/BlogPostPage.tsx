@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Heart, Share2, Edit, Trash2, MessageCircle, Send, X } from 'lucide-react';
+import { Heart, Share2, Edit, Trash2, MessageCircle, Send, X, ThumbsDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { supabase } from '../lib/supabase';
 import { AuthUser, Blog, BlogComment } from '../types';
@@ -61,6 +61,7 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
             status,
             views_count,
             likes_count,
+            dislikes_count,
             created_at,
             updated_at,
             author:profiles!blogs_author_id_fkey (
@@ -89,17 +90,19 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
         return;
       }
 
-      // Verificar si el usuario ha dado like
+      // Verificar si el usuario ha dado like/dislike
       let hasUserLiked = false;
+      let userLikeType: 'like' | 'dislike' | null = null;
       if (user) {
         const { data: likeData } = await supabase
           .from('blog_likes')
-          .select('id')
+          .select('id, type')
           .eq('blog_id', blogData.id)
           .eq('user_id', user.id)
           .maybeSingle();
         
-        hasUserLiked = !!likeData;
+        hasUserLiked = !!likeData && likeData.type === 'like';
+        userLikeType = likeData?.type || null;
       }
 
       const transformedBlog: Blog = {
@@ -116,6 +119,7 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
         status: blogData.status,
         viewsCount: blogData.views_count || 0,
         likesCount: blogData.likes_count || 0,
+        dislikesCount: blogData.dislikes_count || 0,
         createdAt: blogData.created_at,
         updatedAt: blogData.updated_at,
         author: {
@@ -124,7 +128,8 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
           username: blogData.author?.username || 'usuario',
           avatar: blogData.author?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${blogData.author?.username || 'user'}`
         },
-        hasUserLiked
+        hasUserLiked,
+        userLikeType
       };
 
       setBlog(transformedBlog);
@@ -216,7 +221,7 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
     }
   };
 
-  const handleLike = async () => {
+  const handleLike = async (type: 'like' | 'dislike') => {
     if (!user) {
       onOpenAuth();
       return;
@@ -226,36 +231,63 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
 
     setIsLiking(true);
     try {
-      if (blog.hasUserLiked) {
-        // Quitar like
-        const { error } = await supabase
-          .from('blog_likes')
-          .delete()
-          .eq('blog_id', blog.id)
-          .eq('user_id', user.id);
+      // Verificar si ya existe un like/dislike
+      const { data: existing } = await supabase
+        .from('blog_likes')
+        .select('id, type')
+        .eq('blog_id', blog.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-        if (error) throw error;
+      if (existing) {
+        if (existing.type === type) {
+          // Si ya tiene el mismo tipo, eliminar
+          const { error } = await supabase
+            .from('blog_likes')
+            .delete()
+            .eq('id', existing.id);
 
-        setBlog(prev => prev ? {
-          ...prev,
-          hasUserLiked: false,
-          likesCount: Math.max(0, prev.likesCount - 1)
-        } : null);
+          if (error) throw error;
+
+          setBlog(prev => prev ? {
+            ...prev,
+            userLikeType: null,
+            likesCount: type === 'like' ? Math.max(0, prev.likesCount - 1) : prev.likesCount,
+            dislikesCount: type === 'dislike' ? Math.max(0, (prev.dislikesCount || 0) - 1) : prev.dislikesCount
+          } : null);
+        } else {
+          // Si tiene el tipo opuesto, actualizar
+          const { error } = await supabase
+            .from('blog_likes')
+            .update({ type })
+            .eq('id', existing.id);
+
+          if (error) throw error;
+
+          setBlog(prev => prev ? {
+            ...prev,
+            userLikeType: type,
+            likesCount: type === 'like' ? prev.likesCount + 1 : Math.max(0, prev.likesCount - 1),
+            dislikesCount: type === 'dislike' ? (prev.dislikesCount || 0) + 1 : Math.max(0, (prev.dislikesCount || 0) - 1)
+          } : null);
+        }
       } else {
-        // Dar like
+        // Crear nuevo like/dislike
         const { error } = await supabase
           .from('blog_likes')
           .insert({
             blog_id: blog.id,
-            user_id: user.id
+            user_id: user.id,
+            type
           });
 
         if (error) throw error;
 
         setBlog(prev => prev ? {
           ...prev,
-          hasUserLiked: true,
-          likesCount: prev.likesCount + 1
+          userLikeType: type,
+          likesCount: type === 'like' ? prev.likesCount + 1 : prev.likesCount,
+          dislikesCount: type === 'dislike' ? (prev.dislikesCount || 0) + 1 : (prev.dislikesCount || 0)
         } : null);
       }
     } catch (err) {
@@ -465,16 +497,28 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
           {/* Acciones */}
           <div className="flex items-center gap-4 pt-6 border-t border-terreta-border">
             <button
-              onClick={handleLike}
+              onClick={() => handleLike('like')}
               disabled={isLiking}
               className={`flex items-center gap-2 px-4 py-2 rounded-full font-semibold transition-colors ${
-                blog.hasUserLiked
+                blog.userLikeType === 'like'
                   ? 'bg-red-50 text-red-600 border-2 border-red-200'
                   : 'bg-terreta-bg text-terreta-secondary hover:bg-red-50 hover:text-red-600 border border-terreta-border'
               }`}
             >
-              <Heart size={18} className={blog.hasUserLiked ? 'fill-current' : ''} />
+              <Heart size={18} className={blog.userLikeType === 'like' ? 'fill-current' : ''} />
               <span>{blog.likesCount}</span>
+            </button>
+            <button
+              onClick={() => handleLike('dislike')}
+              disabled={isLiking}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full font-semibold transition-colors ${
+                blog.userLikeType === 'dislike'
+                  ? 'bg-red-50 text-red-600 border-2 border-red-200'
+                  : 'bg-terreta-bg text-terreta-secondary hover:bg-red-50 hover:text-red-600 border border-terreta-border'
+              }`}
+            >
+              <ThumbsDown size={18} className={blog.userLikeType === 'dislike' ? 'fill-current' : ''} />
+              <span>{blog.dislikesCount || 0}</span>
             </button>
 
             <button

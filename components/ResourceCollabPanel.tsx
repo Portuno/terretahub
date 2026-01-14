@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { AuthUser, Blog } from '../types';
-import { Download, Flower2, HandHeart, Sprout, HelpCircle, Lightbulb, User, MessageSquare, X, Send, Upload, Package } from 'lucide-react';
+import { Download, Flower2, HandHeart, Sprout, HelpCircle, Lightbulb, User, MessageSquare, X, Send, Upload, Package, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { useLikes } from '../hooks/useLikes';
 import { BlogCard } from './BlogCard';
 import { getBlogImageUrl } from '../lib/blogUtils';
 import { executeQueryWithRetry } from '../lib/supabaseHelpers';
@@ -15,7 +16,9 @@ interface Resource {
   category: string;
   file_url?: string;
   download_count: number;
-  votes_count: number;
+  votes_count?: number; // Mantener por compatibilidad
+  likes_count?: number;
+  dislikes_count?: number;
   author: {
     id: string;
     name: string;
@@ -23,7 +26,8 @@ interface Resource {
     username: string;
   };
   created_at: string;
-  hasUserVoted?: boolean;
+  hasUserVoted?: boolean; // Mantener por compatibilidad
+  userLikeType?: 'like' | 'dislike' | null;
 }
 
 interface ResourceNeedComment {
@@ -65,9 +69,19 @@ const AlmoinaCard: React.FC<{ resource: Resource; currentUser?: AuthUser | null;
   onVote, 
   onDownload 
 }) => {
+  const resourceLikes = useLikes({
+    entityType: 'resource',
+    entityId: resource.id,
+    currentLikeType: resource.userLikeType || null,
+    likesCount: resource.likes_count || resource.votes_count || 0,
+    dislikesCount: resource.dislikes_count || 0,
+    userId: currentUser?.id || null
+  });
+
   const handleVote = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentUser) return;
+    // Mantener compatibilidad con el sistema anterior
     onVote(resource.id);
   };
 
@@ -113,30 +127,43 @@ const AlmoinaCard: React.FC<{ resource: Resource; currentUser?: AuthUser | null;
           </span>
         </div>
 
-        {/* Acciones: Voto y Descarga */}
-        <div className="flex items-center gap-3">
-          {/* Sistema de Votación con Clavel - Mejorado */}
+        {/* Acciones: Likes/Dislikes y Descarga */}
+        <div className="flex items-center gap-2">
+          {/* Sistema de Likes/Dislikes */}
           <button
-            onClick={handleVote}
-            disabled={!currentUser}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200 ${
-              resource.hasUserVoted
-                ? 'bg-rose-100 text-rose-700 border-2 border-rose-300 shadow-sm'
-                : 'bg-terreta-bg/50 text-terreta-secondary hover:bg-rose-50 hover:text-rose-600 border border-terreta-border/50 hover:border-rose-200'
-            } ${!currentUser ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'}`}
-            aria-label={`${resource.hasUserVoted ? 'Quitar' : 'Dar'} clavel a ${resource.title}`}
-            title={`${resource.hasUserVoted ? 'Quitar clavel' : 'Dar clavel'} (${resource.votes_count ?? 0} aprobaciones)`}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!currentUser) return;
+              resourceLikes.handleLike();
+            }}
+            disabled={resourceLikes.isLiking || !currentUser}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-colors ${
+              resourceLikes.likeType === 'like'
+                ? 'bg-terreta-accent/20 text-terreta-accent'
+                : 'text-terreta-secondary hover:text-terreta-accent hover:bg-terreta-bg/50'
+            } ${!currentUser ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            title="Me gusta"
           >
-            <Flower2 
-              size={16} 
-              className={`transition-transform duration-200 ${resource.hasUserVoted ? 'fill-current scale-110' : ''}`}
-            />
-            <span className="text-xs font-bold min-w-[1.5rem] text-center">
-              {resource.votes_count ?? 0}
-            </span>
-            {resource.votes_count === 0 && (
-              <span className="text-[10px] text-terreta-secondary/60 ml-0.5">aprobaciones</span>
-            )}
+            <ThumbsUp size={14} className={resourceLikes.likeType === 'like' ? 'fill-current' : ''} />
+            <span className="text-xs font-medium">{resourceLikes.likesCount}</span>
+          </button>
+          
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!currentUser) return;
+              resourceLikes.handleDislike();
+            }}
+            disabled={resourceLikes.isLiking || !currentUser}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-colors ${
+              resourceLikes.likeType === 'dislike'
+                ? 'bg-red-500/20 text-red-500'
+                : 'text-terreta-secondary hover:text-red-500 hover:bg-terreta-bg/50'
+            } ${!currentUser ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            title="No me gusta"
+          >
+            <ThumbsDown size={14} className={resourceLikes.likeType === 'dislike' ? 'fill-current' : ''} />
+            <span className="text-xs font-medium">{resourceLikes.dislikesCount}</span>
           </button>
 
           {/* Botón de Descarga */}
@@ -400,7 +427,17 @@ const PLACEHOLDERS = [
         const { data, error } = await supabase
           .from('resources')
           .select(`
-            *,
+            id,
+            author_id,
+            title,
+            description,
+            category,
+            file_url,
+            download_count,
+            votes_count,
+            likes_count,
+            dislikes_count,
+            created_at,
             author:profiles!resources_author_id_fkey(id, name, avatar, username)
           `)
           .order('created_at', { ascending: false })

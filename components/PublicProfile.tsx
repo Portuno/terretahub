@@ -3,6 +3,8 @@ import { LinkBioProfile } from '../types';
 import { ProfileRenderer, THEMES } from './ProfileEditor';
 import { supabase } from '../lib/supabase';
 import { trackProfileView } from '../lib/analytics';
+import { useFollow } from '../hooks/useFollow';
+import { UserPlus, Users } from 'lucide-react';
 
 interface PublicProfileProps {
   handle: string;
@@ -13,9 +15,31 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ handle }) => {
   const [profile, setProfile] = useState<LinkBioProfile | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
 
   // Limpiar el handle (quitar @ si existe)
   const cleanHandle = handle.replace('@', '').trim();
+
+  // Hook para seguir/dejar de seguir
+  const followHook = useFollow({
+    userId: currentUserId,
+    targetUserId: profileUserId || '',
+    initialIsFollowing: false,
+    initialFollowersCount: followersCount
+  });
+
+  // Obtener usuario actual
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+    };
+    getCurrentUser();
+  }, []);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -42,10 +66,10 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ handle }) => {
           profileData = linkBioProfile;
           profileUserId = linkBioProfile.user_id;
           
-          // Fetch username and cv_url from profiles (optimized: only needed columns)
+          // Fetch username, cv_url, followers_count, following_count from profiles
           const { data: profileFromDb } = await supabase
             .from('profiles')
-            .select('username, cv_url')
+            .select('username, cv_url, followers_count, following_count')
             .eq('id', linkBioProfile.user_id)
             .maybeSingle();
           
@@ -54,12 +78,14 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ handle }) => {
             if (profileFromDb.cv_url) {
               (profileData as any).cv_url = profileFromDb.cv_url;
             }
+            setFollowersCount(profileFromDb.followers_count || 0);
+            setFollowingCount(profileFromDb.following_count || 0);
           }
         } else {
           // If not found, search by username in profiles
           const { data: profileFromDb } = await supabase
             .from('profiles')
-            .select('id, name, username, email, avatar, cv_url, role')
+            .select('id, name, username, email, avatar, cv_url, role, followers_count, following_count')
             .eq('username', cleanHandle)
             .single();
 
@@ -72,6 +98,8 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ handle }) => {
           userProfile = profileFromDb;
           username = profileFromDb.username;
           profileUserId = profileFromDb.id;
+          setFollowersCount(profileFromDb.followers_count || 0);
+          setFollowingCount(profileFromDb.following_count || 0);
 
           // Try to get link_bio_profile for this user (optimized: only needed columns)
           const { data: linkBioByUsername } = await supabase
@@ -192,10 +220,65 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ handle }) => {
     );
   }
 
+  // Actualizar contadores cuando cambia el estado de follow
+  useEffect(() => {
+    if (followHook.followersCount !== followersCount) {
+      setFollowersCount(followHook.followersCount);
+    }
+  }, [followHook.followersCount]);
+
   return (
       <div className="w-full h-full bg-white overflow-y-auto">
        {/* We reuse the ProfileRenderer but wrap it to look good on desktop full-width */}
        <div className="max-w-md mx-auto min-h-screen shadow-2xl overflow-hidden">
+          {/* Follow Button and Stats */}
+          {profileUserId && currentUserId && currentUserId !== profileUserId && (
+            <div className="bg-white border-b border-gray-200 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  onClick={followHook.toggleFollow}
+                  disabled={followHook.isToggling}
+                  className={`px-4 py-2 rounded-full font-medium text-sm transition-colors flex items-center gap-2 ${
+                    followHook.isFollowing
+                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      : 'bg-terreta-accent text-white hover:bg-opacity-90'
+                  }`}
+                >
+                  <UserPlus size={16} />
+                  {followHook.isFollowing ? 'Siguiendo' : 'Seguir'}
+                </button>
+                
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-1">
+                    <Users size={16} />
+                    <span className="font-medium">{followersCount}</span>
+                    <span className="text-gray-500">seguidores</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium">{followingCount}</span>
+                    <span className="text-gray-500">siguiendo</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {profileUserId && (!currentUserId || currentUserId === profileUserId) && (
+            <div className="bg-white border-b border-gray-200 p-4">
+              <div className="flex items-center gap-4 text-sm text-gray-600">
+                <div className="flex items-center gap-1">
+                  <Users size={16} />
+                  <span className="font-medium">{followersCount}</span>
+                  <span className="text-gray-500">seguidores</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">{followingCount}</span>
+                  <span className="text-gray-500">siguiendo</span>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <ProfileRenderer profile={profile} profileUserId={profileUserId || undefined} />
        </div>
     </div>

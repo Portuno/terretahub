@@ -22,6 +22,9 @@ export interface UserProfile {
   hasLinkBio?: boolean; // Indica si el perfil tiene link in bio configurado
   createdAt?: string; // Fecha de creación del perfil
   profileViewsCount?: number; // Cantidad de visitas al perfil
+  followersCount?: number; // Cantidad de seguidores
+  followingCount?: number; // Cantidad de usuarios que sigue
+  isFollowing?: boolean; // Si el usuario actual sigue a este perfil
 }
 
 export type AppView = 'landing' | 'app' | 'public_profile';
@@ -98,6 +101,9 @@ export interface AgoraComment {
   };
   content: string;
   timestamp: string;
+  likesCount?: number;
+  dislikesCount?: number;
+  userLikeType?: 'like' | 'dislike' | null;
 }
 
 export interface AgoraPost {
@@ -115,6 +121,11 @@ export interface AgoraPost {
   imageUrls?: string[]; // URLs de imágenes (máximo 4, o 3 si hay video)
   videoUrl?: string | null; // URL del video (máximo 1)
   linkUrl?: string | null; // URL de enlace externo opcional
+  tags?: string[]; // Tags del post
+  likesCount?: number;
+  dislikesCount?: number;
+  userLikeType?: 'like' | 'dislike' | null; // Tipo de like del usuario actual
+  poll?: Poll; // Encuesta asociada (opcional)
 }
 
 // --- PROJECT TYPES ---
@@ -209,6 +220,7 @@ export interface Blog {
   status: 'draft' | 'published';
   viewsCount: number;
   likesCount: number;
+  dislikesCount?: number;
   createdAt: string;
   updatedAt: string;
   author: {
@@ -218,6 +230,7 @@ export interface Blog {
     avatar: string;
   };
   hasUserLiked?: boolean;
+  userLikeType?: 'like' | 'dislike' | null;
 }
 
 export interface BlogComment {
@@ -235,4 +248,39 @@ export interface BlogComment {
     avatar: string;
   };
   replies?: BlogComment[];
+}
+
+// --- GAMIFICATION TYPES ---
+
+export interface Poll {
+  id: string;
+  postId: string;
+  question: string;
+  options: string[]; // Array de opciones
+  expiresAt?: string | null;
+  createdAt: string;
+  userVote?: PollVote; // Voto del usuario actual (opcional)
+  results?: PollResult[]; // Resultados de la encuesta
+}
+
+export interface PollVote {
+  id: string;
+  pollId: string;
+  userId: string;
+  optionIndex: number;
+  createdAt: string;
+}
+
+export interface PollResult {
+  optionIndex: number;
+  option: string;
+  voteCount: number;
+  percentage: number;
+}
+
+export interface Follow {
+  id: string;
+  followerId: string;
+  followingId: string;
+  createdAt: string;
 }

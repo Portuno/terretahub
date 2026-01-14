@@ -1,12 +1,15 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Share2, MoreHorizontal, Send, Trash2, Shield, ExternalLink } from 'lucide-react';
+import { MessageCircle, Share2, MoreHorizontal, Send, Trash2, Shield, ExternalLink, ThumbsUp, ThumbsDown, Hash } from 'lucide-react';
 import { AgoraPost as AgoraPostType, AuthUser } from '../types';
 import { canDelete } from '../lib/userRoles';
 import { useProfileNavigation } from '../hooks/useProfileNavigation';
 import { useMentions } from '../hooks/useMentions';
 import { MentionSuggestions } from './MentionSuggestions';
 import { ShareModal } from './ShareModal';
+import { useLikes } from '../hooks/useLikes';
+import { truncateText, shouldTruncate } from '../lib/agoraUtils';
+import { PollDisplay } from './PollDisplay';
 
 interface AgoraPostProps {
   post: AgoraPostType;
@@ -17,6 +20,88 @@ interface AgoraPostProps {
   autoOpenComments?: boolean;
 }
 
+// Componente separado para comentarios (permite usar hooks)
+const AgoraCommentItem: React.FC<{
+  comment: AgoraPostType['comments'][0];
+  currentUser: AuthUser | null;
+  onOpenAuth: () => void;
+  navigateToProfile: (handle: string) => void;
+}> = ({ comment, currentUser, onOpenAuth, navigateToProfile }) => {
+  const commentLikes = useLikes({
+    entityType: 'comment',
+    entityId: comment.id,
+    currentLikeType: comment.userLikeType || null,
+    likesCount: comment.likesCount || 0,
+    dislikesCount: comment.dislikesCount || 0,
+    userId: currentUser?.id || null
+  });
+
+  return (
+    <div className="bg-terreta-bg/50 rounded-lg p-3 flex gap-3 border border-terreta-border/50">
+      <img 
+        src={comment.author.avatar} 
+        alt={comment.author.name} 
+        className="w-8 h-8 rounded-full bg-terreta-card object-cover cursor-pointer"
+        onClick={() => navigateToProfile(comment.author.handle)}
+      />
+      <div className="flex-1">
+         <div className="flex justify-between items-baseline">
+            <span 
+                className="font-bold text-xs text-terreta-dark cursor-pointer hover:underline"
+                onClick={() => navigateToProfile(comment.author.handle)}
+            >
+                {comment.author.name}
+            </span>
+            <span className="text-[10px] text-terreta-secondary">{comment.timestamp}</span>
+         </div>
+         <p className="text-sm text-terreta-dark/90 mt-1">{comment.content}</p>
+         
+         {/* Comment Likes/Dislikes */}
+         <div className="flex items-center gap-3 mt-2">
+           <button
+             onClick={(e) => {
+               e.stopPropagation();
+               if (!currentUser) {
+                 onOpenAuth();
+                 return;
+               }
+               commentLikes.handleLike();
+             }}
+             className={`flex items-center gap-1 text-xs transition-colors ${
+               commentLikes.likeType === 'like'
+                 ? 'text-terreta-accent'
+                 : 'text-terreta-secondary hover:text-terreta-accent'
+             }`}
+             disabled={commentLikes.isLiking}
+           >
+             <ThumbsUp size={12} className={commentLikes.likeType === 'like' ? 'fill-current' : ''} />
+             <span>{commentLikes.likesCount}</span>
+           </button>
+           <button
+             onClick={(e) => {
+               e.stopPropagation();
+               if (!currentUser) {
+                 onOpenAuth();
+                 return;
+               }
+               commentLikes.handleDislike();
+             }}
+             className={`flex items-center gap-1 text-xs transition-colors ${
+               commentLikes.likeType === 'dislike'
+                 ? 'text-red-500'
+                 : 'text-terreta-secondary hover:text-red-500'
+             }`}
+             disabled={commentLikes.isLiking}
+           >
+             <ThumbsDown size={12} className={commentLikes.likeType === 'dislike' ? 'fill-current' : ''} />
+             <span>{commentLikes.dislikesCount}</span>
+           </button>
+         </div>
+      </div>
+    </div>
+  );
+};
+
 export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply, onDelete, onOpenAuth, autoOpenComments = false }) => {
   const [isCommentsOpen, setIsCommentsOpen] = useState(autoOpenComments);
   const [replyText, setReplyText] = useState('');
@@ -25,7 +110,21 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const [expandedImageIndex, setExpandedImageIndex] = useState<number | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const replyTextareaRef = useRef<HTMLInputElement>(null);
+  
+  // Likes para el post
+  const postLikes = useLikes({
+    entityType: 'post',
+    entityId: post.id,
+    currentLikeType: post.userLikeType || null,
+    likesCount: post.likesCount || 0,
+    dislikesCount: post.dislikesCount || 0,
+    userId: currentUser?.id || null
+  });
+  
+  const needsTruncation = shouldTruncate(post.content);
+  const displayContent = isExpanded || !needsTruncation ? post.content : truncateText(post.content);
   
   const navigateToProfile = useProfileNavigation();
   const navigate = useNavigate();
@@ -183,9 +282,47 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
       {/* Content */}
       <div className="mb-5 pl-[60px] space-y-4">
         {post.content && (
-          <p className="text-terreta-dark text-base leading-relaxed whitespace-pre-line font-sans">
-            {post.content}
-          </p>
+          <div>
+            <p className="text-terreta-dark text-base leading-relaxed whitespace-pre-line font-sans">
+              {displayContent}
+            </p>
+            {needsTruncation && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(!isExpanded);
+                }}
+                className="text-terreta-accent hover:text-terreta-dark text-sm font-medium mt-2 transition-colors"
+              >
+                {isExpanded ? 'Leer menos' : 'Leer completo'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Tags */}
+        {post.tags && post.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 items-center">
+            {post.tags.map((tag, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center gap-1 px-2 py-1 bg-terreta-bg/50 text-terreta-secondary text-xs rounded-full border border-terreta-border/50"
+              >
+                <Hash size={12} />
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Poll Display */}
+        {post.poll && (
+          <div onClick={(e) => e.stopPropagation()}>
+            <PollDisplay
+              poll={post.poll}
+              currentUserId={currentUser?.id || null}
+            />
+          </div>
         )}
 
         {/* Media Display */}
@@ -379,6 +516,48 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
 
       {/* Actions */}
       <div className="flex items-center gap-6 pl-[60px] border-t border-terreta-border pt-3">
+        {/* Like/Dislike */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!currentUser) {
+                onOpenAuth();
+                return;
+              }
+              postLikes.handleLike();
+            }}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium transition-colors ${
+              postLikes.likeType === 'like'
+                ? 'bg-terreta-accent/20 text-terreta-accent'
+                : 'text-terreta-secondary hover:text-terreta-accent hover:bg-terreta-bg/50'
+            }`}
+            disabled={postLikes.isLiking}
+          >
+            <ThumbsUp size={16} className={postLikes.likeType === 'like' ? 'fill-current' : ''} />
+            <span>{postLikes.likesCount}</span>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!currentUser) {
+                onOpenAuth();
+                return;
+              }
+              postLikes.handleDislike();
+            }}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium transition-colors ${
+              postLikes.likeType === 'dislike'
+                ? 'bg-red-500/20 text-red-500'
+                : 'text-terreta-secondary hover:text-red-500 hover:bg-terreta-bg/50'
+            }`}
+            disabled={postLikes.isLiking}
+          >
+            <ThumbsDown size={16} className={postLikes.likeType === 'dislike' ? 'fill-current' : ''} />
+            <span>{postLikes.dislikesCount}</span>
+          </button>
+        </div>
+
         <button 
           onClick={(e) => {
             e.stopPropagation();
@@ -404,26 +583,13 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
           
           {/* List of Comments */}
           {post.comments.map(comment => (
-            <div key={comment.id} className="bg-terreta-bg/50 rounded-lg p-3 flex gap-3 border border-terreta-border/50">
-              <img 
-                src={comment.author.avatar} 
-                alt={comment.author.name} 
-                className="w-8 h-8 rounded-full bg-terreta-card object-cover cursor-pointer"
-                onClick={() => navigateToProfile(comment.author.handle)}
-              />
-              <div className="flex-1">
-                 <div className="flex justify-between items-baseline">
-                    <span 
-                        className="font-bold text-xs text-terreta-dark cursor-pointer hover:underline"
-                        onClick={() => navigateToProfile(comment.author.handle)}
-                    >
-                        {comment.author.name}
-                    </span>
-                    <span className="text-[10px] text-terreta-secondary">{comment.timestamp}</span>
-                 </div>
-                 <p className="text-sm text-terreta-dark/90 mt-1">{comment.content}</p>
-              </div>
-            </div>
+            <AgoraCommentItem
+              key={comment.id}
+              comment={comment}
+              currentUser={currentUser}
+              onOpenAuth={onOpenAuth}
+              navigateToProfile={navigateToProfile}
+            />
           ))}
 
           {/* Reply Input */}

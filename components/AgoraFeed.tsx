@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, User, AlertTriangle, Image as ImageIcon, Video, Link as LinkIcon, X } from 'lucide-react';
+import { Send, User, AlertTriangle, Image as ImageIcon, Video, Link as LinkIcon, X, BarChart3 } from 'lucide-react';
 import { AgoraPost as AgoraPostComponent } from './AgoraPost';
 import { AgoraPost, AuthUser } from '../types';
 import { supabase } from '../lib/supabase';
@@ -9,6 +9,7 @@ import { uploadAgoraMedia, validateAgoraMedia, validateLinkUrl } from '../lib/ag
 import { useMentions } from '../hooks/useMentions';
 import { MentionSuggestions } from './MentionSuggestions';
 import { createMentionNotifications } from '../lib/mentionUtils';
+import { PollCreator } from './PollCreator';
 
 // Helper para formatear timestamps
 const formatTimestamp = (dateString: string): string => {
@@ -32,6 +33,18 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
   const [posts, setPosts] = useState<AgoraPost[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  
+  // Filtros
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  
+  // Creación de post
+  const [postTags, setPostTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  const [showPollCreator, setShowPollCreator] = useState(false);
+  const [pollData, setPollData] = useState<{ question: string; options: string[]; expiresAt?: string | null } | null>(null);
   
   // Anti-Paste & Formatting State
   const [pasteCount, setPasteCount] = useState(0);
@@ -58,33 +71,175 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
   const videoInputRef = useRef<HTMLInputElement>(null);
   const linkInputRef = useRef<HTMLInputElement>(null);
 
-  // Función para recargar posts (útil cuando se actualiza un avatar)
-  const loadPosts = async () => {
+  // Función para cargar posts con paginación y filtros
+  const loadPosts = async (offset: number = 0, limit: number = 12, reset: boolean = false) => {
     try {
-      setLoading(true);
+      if (reset) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
       
-      // OPTIMIZED: Use single RPC function that loads posts + comments + profiles in one query
-      // This reduces from 3+ queries to 1, and filters large base64 avatars
-      const { data: feedData, error: feedError } = await executeQueryWithRetry(
-        async () => await supabase.rpc('get_agora_feed', { limit_posts: 50 }),
-        'load agora feed'
+      let query = supabase
+        .from('agora_posts')
+        .select(`
+          id,
+          author_id,
+          content,
+          tags,
+          location,
+          image_urls,
+          video_url,
+          link_url,
+          likes_count,
+          dislikes_count,
+          created_at,
+          updated_at,
+          author:profiles!agora_posts_author_id_fkey (
+            id,
+            name,
+            username,
+            avatar,
+            role
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      // Aplicar filtro de tag
+      if (selectedTag) {
+        query = query.contains('tags', [selectedTag]);
+      }
+
+      const { data: postsData, error: postsError } = await executeQueryWithRetry(
+        async () => await query,
+        'load agora posts'
       );
 
-      if (feedError) {
-        console.error('[AgoraFeed] Error al cargar feed:', feedError);
-        // Fallback to old method if function doesn't exist
-        await loadPostsFallback();
-        return;
+      if (postsError) {
+        console.error('[AgoraFeed] Error al cargar posts:', postsError);
+        if (reset) {
+          setPosts([]);
+        }
+        return [];
       }
 
-      if (!feedData || !feedData.posts || feedData.posts.length === 0) {
-        setPosts([]);
-        return;
+      if (!postsData || postsData.length === 0) {
+        if (reset) {
+          setPosts([]);
+        }
+        setHasMore(false);
+        return [];
       }
 
-      // Transform the RPC response to match our interface
-      const transformedPosts: AgoraPost[] = feedData.posts.map((post: any) => ({
-        id: post.id,
+      // Cargar likes del usuario si está autenticado
+      let userLikes: Map<string, 'like' | 'dislike'> = new Map();
+      if (user && postsData.length > 0) {
+        const postIds = postsData.map((p: any) => p.id);
+        const { data: likesData } = await supabase
+          .from('agora_post_likes')
+          .select('post_id, type')
+          .eq('user_id', user.id)
+          .in('post_id', postIds);
+
+        if (likesData) {
+          likesData.forEach((like: any) => {
+            userLikes.set(like.post_id, like.type);
+          });
+        }
+      }
+
+      // Cargar comentarios para estos posts
+      const postIds = postsData.map((p: any) => p.id);
+      const { data: allComments } = await executeQueryWithRetry(
+        async () => await supabase
+          .from('agora_comments')
+          .select(`
+            id,
+            post_id,
+            author_id,
+            content,
+            likes_count,
+            dislikes_count,
+            created_at,
+            author:profiles!agora_comments_author_id_fkey (
+              id,
+              name,
+              username,
+              avatar
+            )
+          `)
+          .in('post_id', postIds)
+          .order('created_at', { ascending: true }),
+        'load agora comments'
+      );
+
+      // Cargar likes de comentarios del usuario
+      let commentLikes: Map<string, 'like' | 'dislike'> = new Map();
+      if (user && allComments && allComments.length > 0) {
+        const commentIds = allComments.map((c: any) => c.id);
+        const { data: commentLikesData } = await supabase
+          .from('agora_comment_likes')
+          .select('comment_id, type')
+          .eq('user_id', user.id)
+          .in('comment_id', commentIds);
+
+        if (commentLikesData) {
+          commentLikesData.forEach((like: any) => {
+            commentLikes.set(like.comment_id, like.type);
+          });
+        }
+      }
+
+      // Agrupar comentarios por post
+      const commentsByPost = new Map<string, any[]>();
+      (allComments || []).forEach((comment: any) => {
+        if (!commentsByPost.has(comment.post_id)) {
+          commentsByPost.set(comment.post_id, []);
+        }
+        commentsByPost.get(comment.post_id)!.push({
+          ...comment,
+          userLikeType: commentLikes.get(comment.id) || null
+        });
+      });
+
+      // Cargar encuestas para estos posts
+      const { data: pollsData } = await executeQueryWithRetry(
+        async () => await supabase
+          .from('agora_polls')
+          .select('id, post_id, question, options, expires_at, created_at')
+          .in('post_id', postIds),
+        'load agora polls'
+      );
+
+      // Cargar votos de encuestas del usuario
+      let pollVotes: Map<string, number> = new Map();
+      if (user && pollsData && pollsData.length > 0) {
+        const pollIds = pollsData.map((p: any) => p.id);
+        const { data: votesData } = await supabase
+          .from('poll_votes')
+          .select('poll_id, option_index')
+          .eq('user_id', user.id)
+          .in('poll_id', pollIds);
+
+        if (votesData) {
+          votesData.forEach((vote: any) => {
+            pollVotes.set(vote.poll_id, vote.option_index);
+          });
+        }
+      }
+
+      // Crear mapa de polls por post_id
+      const pollsByPost = new Map<string, any>();
+      (pollsData || []).forEach((poll: any) => {
+        pollsByPost.set(poll.post_id, poll);
+      });
+
+      // Transformar posts
+      const transformedPosts: AgoraPost[] = postsData.map((post: any) => {
+        const poll = pollsByPost.get(post.id);
+        return {
+          id: post.id,
         authorId: post.author_id,
         author: {
           name: post.author?.name || 'Usuario',
@@ -97,7 +252,26 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         imageUrls: post.image_urls || [],
         videoUrl: post.video_url || null,
         linkUrl: post.link_url || null,
-        comments: (post.comments || []).map((comment: any) => ({
+        tags: post.tags || [],
+        likesCount: post.likes_count || 0,
+        dislikesCount: post.dislikes_count || 0,
+        userLikeType: userLikes.get(post.id) || null,
+        poll: poll ? {
+          id: poll.id,
+          postId: post.id,
+          question: poll.question,
+          options: poll.options,
+          expiresAt: poll.expires_at || undefined,
+          createdAt: poll.created_at,
+          userVote: pollVotes.has(poll.id) ? {
+            id: '',
+            pollId: poll.id,
+            userId: user?.id || '',
+            optionIndex: pollVotes.get(poll.id) || 0,
+            createdAt: ''
+          } : undefined
+        } : undefined,
+        comments: (commentsByPost.get(post.id) || []).map((comment: any) => ({
           id: comment.id,
           author: {
             name: comment.author?.name || 'Usuario',
@@ -105,17 +279,57 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
             avatar: comment.author?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.author?.username || 'user'}`
           },
           content: comment.content,
-          timestamp: formatTimestamp(comment.created_at)
+          timestamp: formatTimestamp(comment.created_at),
+          likesCount: comment.likes_count || 0,
+          dislikesCount: comment.dislikes_count || 0,
+          userLikeType: comment.userLikeType
         }))
-      }));
+      };
+      });
 
-      setPosts(transformedPosts);
+      if (reset) {
+        setPosts(transformedPosts);
+      } else {
+        setPosts(prev => [...prev, ...transformedPosts]);
+      }
+
+      // Si recibimos menos posts que el límite, no hay más
+      if (transformedPosts.length < limit) {
+        setHasMore(false);
+      }
+
+      return transformedPosts;
     } catch (err) {
       console.error('[AgoraFeed] Error al cargar posts:', err);
-      // Fallback to old method on error
-      await loadPostsFallback();
+      if (reset) {
+        setPosts([]);
+      }
+      return [];
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  // Cargar tags disponibles
+  const loadAvailableTags = async () => {
+    try {
+      const { data } = await supabase
+        .from('agora_posts')
+        .select('tags')
+        .not('tags', 'is', null);
+
+      if (data) {
+        const allTags = new Set<string>();
+        data.forEach((post: any) => {
+          if (post.tags && Array.isArray(post.tags)) {
+            post.tags.forEach((tag: string) => allTags.add(tag));
+          }
+        });
+        setAvailableTags(Array.from(allTags).sort());
+      }
+    } catch (err) {
+      console.error('Error loading tags:', err);
     }
   };
 
@@ -343,10 +557,18 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     }
   };
 
-  // Cargar posts desde Supabase
+  // Cargar posts iniciales y tags disponibles
   useEffect(() => {
-    loadPosts();
-  }, []);
+    loadPosts(0, 12, true);
+    loadAvailableTags();
+  }, [selectedTag]);
+
+  // Función para cargar más posts
+  const handleLoadMore = async () => {
+    if (!loadingMore && hasMore) {
+      await loadPosts(posts.length, 12, false);
+    }
+  };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -438,6 +660,12 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         videoUrl = mediaResult.videoUrl;
       }
 
+      // Formatear tags
+      const formattedTags = postTags
+        .map(tag => tag.trim().toLowerCase().replace(/\s+/g, '-'))
+        .filter(tag => tag.length > 0)
+        .slice(0, 5); // Máximo 5 tags
+
       // Crear post en Supabase
       const { data: newPost, error: postError } = await supabase
         .from('agora_posts')
@@ -446,7 +674,8 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
           content: newPostContent.trim() || '',
           image_urls: imageUrls,
           video_url: videoUrl,
-          link_url: cleanedLinkUrl
+          link_url: cleanedLinkUrl,
+          tags: formattedTags.length > 0 ? formattedTags : null
         })
         .select('*')
         .single();
@@ -455,6 +684,23 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         console.error('Error al crear post:', postError);
         alert('Error al publicar. Intenta nuevamente.');
         return;
+      }
+
+      // Crear encuesta si existe
+      if (pollData && newPost) {
+        const { error: pollError } = await supabase
+          .from('agora_polls')
+          .insert({
+            post_id: newPost.id,
+            question: pollData.question,
+            options: pollData.options,
+            expires_at: pollData.expiresAt || null
+          });
+
+        if (pollError) {
+          console.error('Error al crear encuesta:', pollError);
+          // No fallar el post si la encuesta falla
+        }
       }
 
       // Obtener el perfil actualizado del usuario desde la BD para asegurar avatar actualizado
@@ -504,6 +750,10 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         imageUrls: newPost.image_urls || [],
         videoUrl: newPost.video_url || null,
         linkUrl: newPost.link_url || null,
+        tags: formattedTags.length > 0 ? formattedTags : undefined,
+        likesCount: 0,
+        dislikesCount: 0,
+        userLikeType: null,
         comments: []
       };
 
@@ -513,9 +763,16 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
       setSelectedFiles([]);
       setLinkUrl('');
       setShowLinkInput(false);
+      setPostTags([]);
+      setTagInput('');
+      setPollData(null);
+      setShowPollCreator(false);
       setPasteCount(0);
       setShowPasteWarning(false);
       setMediaError(null);
+      
+      // Recargar tags disponibles
+      loadAvailableTags();
       
       // Limpiar inputs de archivos
       if (imageInputRef.current) {
@@ -778,6 +1035,79 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                        />
                      </div>
                    )}
+
+                   {/* Tags Input */}
+                   <div className="space-y-2">
+                     <div className="flex flex-wrap gap-2">
+                       {postTags.map((tag, index) => (
+                         <span
+                           key={index}
+                           className="inline-flex items-center gap-1 px-2 py-1 bg-terreta-accent/10 text-terreta-accent text-xs rounded-full"
+                         >
+                           {tag}
+                           <button
+                             type="button"
+                             onClick={() => setPostTags(prev => prev.filter((_, i) => i !== index))}
+                             className="hover:text-terreta-dark"
+                           >
+                             <X size={12} />
+                           </button>
+                         </span>
+                       ))}
+                       {postTags.length < 5 && (
+                         <input
+                           type="text"
+                           placeholder="Agregar tag..."
+                           value={tagInput}
+                           onChange={(e) => setTagInput(e.target.value)}
+                           onKeyDown={(e) => {
+                             if (e.key === 'Enter' && tagInput.trim()) {
+                               e.preventDefault();
+                               const formattedTag = tagInput.trim().toLowerCase().replace(/\s+/g, '-');
+                               if (formattedTag && !postTags.includes(formattedTag)) {
+                                 setPostTags(prev => [...prev, formattedTag]);
+                                 setTagInput('');
+                               }
+                             }
+                           }}
+                           className="bg-terreta-bg/50 border-terreta-border border rounded-full px-3 py-1 text-xs focus:ring-1 focus:ring-terreta-accent outline-none text-terreta-dark placeholder-terreta-secondary/50 min-w-[100px]"
+                         />
+                       )}
+                     </div>
+                     {availableTags.length > 0 && (
+                       <div className="flex flex-wrap gap-1 text-xs">
+                         <span className="text-terreta-secondary">Sugerencias:</span>
+                         {availableTags.slice(0, 5).map((tag) => (
+                           <button
+                             key={tag}
+                             type="button"
+                             onClick={() => {
+                               if (!postTags.includes(tag) && postTags.length < 5) {
+                                 setPostTags(prev => [...prev, tag]);
+                               }
+                             }}
+                             className="text-terreta-accent hover:text-terreta-dark hover:underline"
+                           >
+                             {tag}
+                           </button>
+                         ))}
+                       </div>
+                     )}
+                   </div>
+
+                   {/* Poll Creator */}
+                   {showPollCreator && (
+                     <PollCreator
+                       onSave={(poll) => {
+                         setPollData(poll);
+                         setShowPollCreator(false);
+                       }}
+                       onCancel={() => {
+                         setShowPollCreator(false);
+                         setPollData(null);
+                       }}
+                     />
+                   )}
                  </div>
 
                  <div className="flex justify-between items-center pt-2">
@@ -861,6 +1191,34 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         </div>
       </div>
 
+      {/* Filtros */}
+      <div className="mb-6 flex flex-wrap gap-2 items-center">
+        <span className="text-sm text-terreta-secondary">Filtros:</span>
+        <button
+          onClick={() => setSelectedTag(null)}
+          className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+            !selectedTag
+              ? 'bg-terreta-accent text-white border-terreta-accent'
+              : 'bg-terreta-bg/50 text-terreta-secondary border-terreta-border hover:bg-terreta-bg'
+          }`}
+        >
+          Todos
+        </button>
+        {availableTags.slice(0, 10).map((tag) => (
+          <button
+            key={tag}
+            onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+            className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+              selectedTag === tag
+                ? 'bg-terreta-accent text-white border-terreta-accent'
+                : 'bg-terreta-bg/50 text-terreta-secondary border-terreta-border hover:bg-terreta-bg'
+            }`}
+          >
+            #{tag}
+          </button>
+        ))}
+      </div>
+
       {/* Feed List */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-12">
@@ -873,18 +1231,40 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
           <p className="text-sm">Sé el primero en compartir algo con la comunidad</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {posts.map(post => (
-            <AgoraPostComponent 
-              key={post.id} 
-              post={post} 
-              currentUser={user}
-              onReply={handleReply}
-              onDelete={handleDeletePost}
-              onOpenAuth={onOpenAuth}
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-4">
+            {posts.map(post => (
+              <AgoraPostComponent 
+                key={post.id} 
+                post={post} 
+                currentUser={user}
+                onReply={handleReply}
+                onDelete={handleDeletePost}
+                onOpenAuth={onOpenAuth}
+              />
+            ))}
+          </div>
+          
+          {/* Botón Cargar más */}
+          {hasMore && (
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="px-6 py-2 bg-terreta-bg/50 border border-terreta-border rounded-full text-sm font-medium text-terreta-dark hover:bg-terreta-bg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loadingMore ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-terreta-accent inline-block mr-2"></div>
+                    Cargando...
+                  </>
+                ) : (
+                  'Cargar más posts'
+                )}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
     </div>

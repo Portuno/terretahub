@@ -87,6 +87,7 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
           status,
           views_count,
           likes_count,
+          dislikes_count,
           created_at,
           updated_at,
           author:profiles!blogs_author_id_fkey (
@@ -120,16 +121,18 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
         return;
       }
 
-      // Cargar likes del usuario si está autenticado
-      let userLikes: Set<string> = new Set();
+      // Cargar likes/dislikes del usuario si está autenticado
+      let userLikes: Map<string, 'like' | 'dislike'> = new Map();
       if (user) {
         const { data: likesData } = await supabase
           .from('blog_likes')
-          .select('blog_id')
+          .select('blog_id, type')
           .eq('user_id', user.id);
 
         if (likesData) {
-          userLikes = new Set(likesData.map(l => l.blog_id));
+          likesData.forEach((like: any) => {
+            userLikes.set(like.blog_id, like.type);
+          });
         }
       }
 
@@ -148,6 +151,7 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
         status: blog.status,
         viewsCount: blog.views_count || 0,
         likesCount: blog.likes_count || 0,
+        dislikesCount: blog.dislikes_count || 0,
         createdAt: blog.created_at,
         updatedAt: blog.updated_at,
         author: {
@@ -156,7 +160,8 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
           username: blog.author?.username || 'usuario',
           avatar: blog.author?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${blog.author?.username || 'user'}`
         },
-        hasUserLiked: userLikes.has(blog.id)
+        hasUserLiked: userLikes.has(blog.id) && userLikes.get(blog.id) === 'like',
+        userLikeType: userLikes.get(blog.id) || null
       }));
 
       // Ordenar

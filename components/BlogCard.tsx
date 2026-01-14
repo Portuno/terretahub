@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Eye, Heart, User } from 'lucide-react';
+import { Calendar, Eye, Heart, ThumbsDown } from 'lucide-react';
 import { Blog } from '../types';
 import { getBlogImageUrl, truncateExcerpt } from '../lib/blogUtils';
 
@@ -98,9 +98,15 @@ export const BlogCard: React.FC<BlogCardProps> = ({ blog, showStats = true }) =>
                 <span>{blog.viewsCount}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Heart size={12} className={blog.hasUserLiked ? 'text-red-500 fill-red-500' : ''} />
+                <Heart size={12} className={blog.userLikeType === 'like' ? 'text-red-500 fill-red-500' : ''} />
                 <span>{blog.likesCount}</span>
               </div>
+              {blog.dislikesCount !== undefined && blog.dislikesCount > 0 && (
+                <div className="flex items-center gap-1">
+                  <ThumbsDown size={12} className={blog.userLikeType === 'dislike' ? 'text-red-500 fill-red-500' : ''} />
+                  <span>{blog.dislikesCount}</span>
+                </div>
+              )}
             </div>
           )}
         </div>
