@@ -1016,83 +1016,86 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                      </div>
                    )}
 
-                   {/* Link Input */}
-                   {(showLinkInput || linkUrl.trim()) && (
-                     <div className="relative">
-                       <LinkIcon size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-terreta-secondary" />
-                       <input
-                         ref={linkInputRef}
-                         type="text"
-                         placeholder="Agregar enlace (opcional)"
-                         value={linkUrl}
-                         onChange={(e) => setLinkUrl(e.target.value)}
-                         onBlur={() => {
-                           if (!linkUrl.trim()) {
-                             setShowLinkInput(false);
-                           }
-                         }}
-                         className="w-full bg-terreta-bg/50 border-terreta-border border rounded-lg px-10 py-2 text-sm focus:ring-1 focus:ring-terreta-accent outline-none text-terreta-dark placeholder-terreta-secondary/50"
-                       />
-                     </div>
-                   )}
-
-                   {/* Tags Input */}
-                   <div className="space-y-2">
-                     <div className="flex flex-wrap gap-2">
-                       {postTags.map((tag, index) => (
-                         <span
-                           key={index}
-                           className="inline-flex items-center gap-1 px-2 py-1 bg-terreta-accent/10 text-terreta-accent text-xs rounded-full"
-                         >
-                           {tag}
-                           <button
-                             type="button"
-                             onClick={() => setPostTags(prev => prev.filter((_, i) => i !== index))}
-                             className="hover:text-terreta-dark"
-                           >
-                             <X size={12} />
-                           </button>
-                         </span>
-                       ))}
-                       {postTags.length < 5 && (
+                   {/* Link Input y Tags Input en la misma fila */}
+                   <div className="flex gap-2 items-start">
+                     {/* Link Input */}
+                     {(showLinkInput || linkUrl.trim()) && (
+                       <div className="relative flex-1">
+                         <LinkIcon size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-terreta-secondary" />
                          <input
+                           ref={linkInputRef}
                            type="text"
-                           placeholder="Agregar tag..."
-                           value={tagInput}
-                           onChange={(e) => setTagInput(e.target.value)}
-                           onKeyDown={(e) => {
-                             if (e.key === 'Enter' && tagInput.trim()) {
-                               e.preventDefault();
-                               const formattedTag = tagInput.trim().toLowerCase().replace(/\s+/g, '-');
-                               if (formattedTag && !postTags.includes(formattedTag)) {
-                                 setPostTags(prev => [...prev, formattedTag]);
-                                 setTagInput('');
-                               }
+                           placeholder="Agregar enlace (opcional)"
+                           value={linkUrl}
+                           onChange={(e) => setLinkUrl(e.target.value)}
+                           onBlur={() => {
+                             if (!linkUrl.trim()) {
+                               setShowLinkInput(false);
                              }
                            }}
-                           className="bg-terreta-bg/50 border-terreta-border border rounded-full px-3 py-1 text-xs focus:ring-1 focus:ring-terreta-accent outline-none text-terreta-dark placeholder-terreta-secondary/50 min-w-[100px]"
+                           className="w-full bg-terreta-bg/50 border-terreta-border border rounded-lg px-10 py-2 text-sm focus:ring-1 focus:ring-terreta-accent outline-none text-terreta-dark placeholder-terreta-secondary/50"
                          />
-                       )}
-                     </div>
-                     {availableTags.length > 0 && (
-                       <div className="flex flex-wrap gap-1 text-xs">
-                         <span className="text-terreta-secondary">Sugerencias:</span>
-                         {availableTags.slice(0, 5).map((tag) => (
-                           <button
-                             key={tag}
-                             type="button"
-                             onClick={() => {
-                               if (!postTags.includes(tag) && postTags.length < 5) {
-                                 setPostTags(prev => [...prev, tag]);
-                               }
-                             }}
-                             className="text-terreta-accent hover:text-terreta-dark hover:underline"
-                           >
-                             {tag}
-                           </button>
-                         ))}
                        </div>
                      )}
+
+                     {/* Tags Input */}
+                     <div className="flex-1">
+                       <div className="flex flex-wrap gap-2">
+                         {postTags.map((tag, index) => (
+                           <span
+                             key={index}
+                             className="inline-flex items-center gap-1 px-2 py-1 bg-terreta-accent/10 text-terreta-accent text-xs rounded-full"
+                           >
+                             {tag}
+                             <button
+                               type="button"
+                               onClick={() => setPostTags(prev => prev.filter((_, i) => i !== index))}
+                               className="hover:text-terreta-dark"
+                             >
+                               <X size={12} />
+                             </button>
+                           </span>
+                         ))}
+                         {postTags.length < 5 && (
+                           <input
+                             type="text"
+                             placeholder="Agregar tag..."
+                             value={tagInput}
+                             onChange={(e) => setTagInput(e.target.value)}
+                             onKeyDown={(e) => {
+                               if (e.key === 'Enter' && tagInput.trim()) {
+                                 e.preventDefault();
+                                 const formattedTag = tagInput.trim().toLowerCase().replace(/\s+/g, '-');
+                                 if (formattedTag && !postTags.includes(formattedTag)) {
+                                   setPostTags(prev => [...prev, formattedTag]);
+                                   setTagInput('');
+                                 }
+                               }
+                             }}
+                             className="bg-terreta-bg/50 border-terreta-border border rounded-full px-3 py-1 text-xs focus:ring-1 focus:ring-terreta-accent outline-none text-terreta-dark placeholder-terreta-secondary/50 min-w-[100px]"
+                           />
+                         )}
+                       </div>
+                       {availableTags.length > 0 && (
+                         <div className="flex flex-wrap gap-1 text-xs mt-1">
+                           <span className="text-terreta-secondary">Sugerencias:</span>
+                           {availableTags.slice(0, 5).map((tag) => (
+                             <button
+                               key={tag}
+                               type="button"
+                               onClick={() => {
+                                 if (!postTags.includes(tag) && postTags.length < 5) {
+                                   setPostTags(prev => [...prev, tag]);
+                                 }
+                               }}
+                               className="text-terreta-accent hover:text-terreta-dark hover:underline"
+                             >
+                               {tag}
+                             </button>
+                           ))}
+                         </div>
+                       )}
+                     </div>
                    </div>
 
                    {/* Poll Creator */}
