@@ -843,24 +843,49 @@ const PLACEHOLDERS = [
       // Nota: Si el bucket 'resources' no existe, el usuario puede usar una URL externa
       if (resourceFile) {
         try {
+          // Validar tamaño del archivo (50 MB máximo)
+          const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB en bytes
+          if (resourceFile.size > MAX_FILE_SIZE) {
+            setErrorMessage(`El archivo es demasiado grande. El tamaño máximo permitido es 50 MB. Tu archivo tiene ${(resourceFile.size / (1024 * 1024)).toFixed(2)} MB.`);
+            setResourceSubmitState('error');
+            setUploadingResource(false);
+            setTimeout(() => setResourceSubmitState('idle'), 5000);
+            return;
+          }
+
           const filePath = `${user.id}/${Date.now()}_${resourceFile.name}`;
           const { error: uploadError } = await supabase.storage
             .from('resources')
             .upload(filePath, resourceFile, {
               cacheControl: '3600',
-              upsert: false
+              upsert: false,
+              contentType: resourceFile.type || 'application/octet-stream'
             });
 
           if (uploadError) {
-            // Si el bucket no existe, sugerir usar URL externa
-            if (uploadError.message?.includes('Bucket') || uploadError.message?.includes('not found')) {
-              setErrorMessage('El bucket de recursos no está configurado. Por favor, usa una URL externa o configura el bucket en Supabase.');
-              setResourceSubmitState('error');
-              setUploadingResource(false);
-              setTimeout(() => setResourceSubmitState('idle'), 5000);
-              return;
+            console.error('Error uploading file:', uploadError);
+            
+            // Mensajes de error más específicos
+            let errorMessage = 'Error al subir el archivo. Puedes usar una URL externa en su lugar.';
+            
+            if (uploadError.message?.includes('Bucket') || uploadError.message?.includes('not found') || uploadError.message?.includes('does not exist')) {
+              errorMessage = 'El bucket de recursos no está configurado. Por favor, usa una URL externa o configura el bucket en Supabase.';
+            } else if (uploadError.message?.includes('new row violates row-level security policy') || uploadError.message?.includes('RLS')) {
+              errorMessage = 'No tienes permisos para subir archivos. Por favor, verifica tu sesión o contacta al administrador.';
+            } else if (uploadError.message?.includes('File size limit') || uploadError.message?.includes('too large')) {
+              errorMessage = `El archivo es demasiado grande. El tamaño máximo permitido es 50 MB.`;
+            } else if (uploadError.message?.includes('Invalid MIME type') || uploadError.message?.includes('not allowed')) {
+              errorMessage = `El tipo de archivo no está permitido. Tipos permitidos: PDF, Office (Word, Excel, PowerPoint), imágenes (JPEG, PNG, WebP), videos (MP4, WebM), archivos comprimidos (ZIP, RAR), texto plano, Markdown, CSV.`;
+            } else if (uploadError.message) {
+              // Mostrar el mensaje de error real del servidor
+              errorMessage = `Error: ${uploadError.message}. Puedes usar una URL externa en su lugar.`;
             }
-            throw uploadError;
+            
+            setErrorMessage(errorMessage);
+            setResourceSubmitState('error');
+            setUploadingResource(false);
+            setTimeout(() => setResourceSubmitState('idle'), 5000);
+            return;
           }
 
           const { data: { publicUrl } } = supabase.storage
@@ -870,7 +895,21 @@ const PLACEHOLDERS = [
           finalFileUrl = publicUrl;
         } catch (uploadError: any) {
           console.error('Error uploading file:', uploadError);
-          setErrorMessage('Error al subir el archivo. Puedes usar una URL externa en su lugar.');
+          
+          // Mensaje de error más detallado
+          let errorMessage = 'Error al subir el archivo. Puedes usar una URL externa en su lugar.';
+          
+          if (uploadError?.message) {
+            if (uploadError.message.includes('Bucket') || uploadError.message.includes('not found')) {
+              errorMessage = 'El bucket de recursos no está configurado. Por favor, usa una URL externa o configura el bucket en Supabase.';
+            } else if (uploadError.message.includes('RLS') || uploadError.message.includes('row-level security')) {
+              errorMessage = 'No tienes permisos para subir archivos. Por favor, verifica tu sesión o contacta al administrador.';
+            } else {
+              errorMessage = `Error: ${uploadError.message}. Puedes usar una URL externa en su lugar.`;
+            }
+          }
+          
+          setErrorMessage(errorMessage);
           setResourceSubmitState('error');
           setUploadingResource(false);
           setTimeout(() => setResourceSubmitState('idle'), 5000);
