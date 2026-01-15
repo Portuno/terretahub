@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Mail, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
+import { X, User, Mail, Lock, ArrowRight, ArrowLeft, UserPlus } from 'lucide-react';
 import { AuthUser } from '../types';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
@@ -8,9 +8,19 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLoginSuccess: (user: AuthUser) => void;
+  referrerUsername?: string | null;
+  startInRegister?: boolean;
+  onReferralConsumed?: () => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({
+  isOpen,
+  onClose,
+  onLoginSuccess,
+  referrerUsername,
+  startInRegister,
+  onReferralConsumed
+}) => {
   const { theme } = useTheme();
   const [isRegistering, setIsRegistering] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -23,8 +33,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [referrerInput, setReferrerInput] = useState('');
+  const [referralNotice, setReferralNotice] = useState('');
 
-  // Resetear estado cuando se cierra el modal
+  // Resetear estado cuando se cierra el modal y preparar referidos al abrirlo
   useEffect(() => {
     if (!isOpen) {
       setLoading(false);
@@ -34,10 +46,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
       setUsername('');
       setEmail('');
       setPassword('');
+      setReferrerInput('');
+      setReferralNotice('');
       setIsRegistering(false);
       setIsForgotPassword(false);
+      return;
     }
-  }, [isOpen]);
+
+    if (startInRegister) {
+      setIsRegistering(true);
+    }
+
+    if (referrerUsername) {
+      setReferrerInput(referrerUsername);
+    }
+  }, [isOpen, referrerUsername, startInRegister]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!referrerInput.trim()) {
+      setReferralNotice('');
+      return;
+    }
+    setReferralNotice('Se aplicará el referido si existe en Terreta Hub.');
+  }, [isOpen, referrerInput]);
 
   if (!isOpen) return null;
 
@@ -178,6 +210,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
 
         if (profileError || !profile) {
           throw new Error('Error al crear el perfil. Intenta nuevamente.');
+        }
+
+        const normalizedReferrer = referrerInput.trim().toLowerCase();
+        if (normalizedReferrer && normalizedReferrer !== cleanUsername && normalizedReferrer !== email.toLowerCase()) {
+          try {
+            const { data: inviterProfile } = await supabase
+              .from('profiles')
+              .select('id, username, email')
+              .or(`username.eq.${normalizedReferrer},email.eq.${normalizedReferrer}`)
+              .maybeSingle();
+
+            if (inviterProfile?.id && inviterProfile.id !== authData.user.id) {
+              const { error: referralError } = await supabase
+                .from('referrals')
+                .insert({
+                  inviter_id: inviterProfile.id,
+                  invitee_id: authData.user.id,
+                  invitee_email: email,
+                  status: 'converted'
+                });
+
+              if (referralError) {
+                console.error('Error saving referral:', referralError);
+              } else {
+                onReferralConsumed?.();
+              }
+            }
+          } catch (referralErr) {
+            console.error('Error processing referral:', referralErr);
+          }
         }
 
         const safeUser: AuthUser = {
@@ -379,6 +441,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                         onChange={e => setUsername(e.target.value)}
                       />
                     </div>
+                    <div className="relative group">
+                      <UserPlus size={18} className="absolute left-3 top-3 text-[rgb(var(--text-secondary))]/60 group-focus-within:text-[rgb(var(--accent))] transition-colors" />
+                      <input
+                        type="text"
+                        placeholder="Referido por (usuario o email)"
+                        className="w-full pl-10 pr-4 py-2.5 bg-[rgb(var(--bg-main))] border border-[rgb(var(--border-color))] rounded-lg focus:ring-1 focus:ring-[rgb(var(--accent))] outline-none text-sm transition-all text-[rgb(var(--text-main))] placeholder:text-[rgb(var(--text-secondary))]/50"
+                        value={referrerInput}
+                        onChange={e => setReferrerInput(e.target.value)}
+                        aria-label="Referido por usuario o email"
+                      />
+                    </div>
+                    {referralNotice && (
+                      <p className="text-xs text-terreta-secondary">{referralNotice}</p>
+                    )}
                   </>
                 )}
 

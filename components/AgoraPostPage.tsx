@@ -20,7 +20,7 @@ const formatTimestamp = (dateString: string): string => {
 
 interface AgoraPostPageProps {
   user: AuthUser | null;
-  onOpenAuth: () => void;
+  onOpenAuth: (referrerUsername?: string) => void;
 }
 
 export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }) => {

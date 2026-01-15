@@ -59,7 +59,7 @@ interface ResourceNeed {
 
 interface ResourceCollabPanelProps {
   user?: AuthUser | null;
-  onOpenAuth?: () => void;
+  onOpenAuth?: (referrerUsername?: string) => void;
 }
 
 // Componente: Tarjeta de Recurso (L'Almoina Card)

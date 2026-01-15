@@ -16,7 +16,7 @@ interface AgoraPostProps {
   currentUser: AuthUser | null;
   onReply: (postId: string, content: string) => void;
   onDelete?: (postId: string) => void;
-  onOpenAuth: () => void;
+  onOpenAuth: (referrerUsername?: string) => void;
   autoOpenComments?: boolean;
 }
 
@@ -24,7 +24,7 @@ interface AgoraPostProps {
 const AgoraCommentItem: React.FC<{
   comment: AgoraPostType['comments'][0];
   currentUser: AuthUser | null;
-  onOpenAuth: () => void;
+  onOpenAuth: (referrerUsername?: string) => void;
   navigateToProfile: (handle: string) => void;
 }> = ({ comment, currentUser, onOpenAuth, navigateToProfile }) => {
   const commentLikes = useLikes({

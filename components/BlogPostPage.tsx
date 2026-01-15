@@ -11,7 +11,7 @@ import { executeQueryWithRetry } from '../lib/supabaseHelpers';
 
 interface BlogPostPageProps {
   user: AuthUser | null;
-  onOpenAuth: () => void;
+  onOpenAuth: (referrerUsername?: string) => void;
 }
 
 export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) => {
@@ -674,7 +674,7 @@ const CommentItem: React.FC<{
   comment: BlogComment;
   user: AuthUser | null;
   onReply: (parentId: string) => void;
-  onOpenAuth: () => void;
+  onOpenAuth: (referrerUsername?: string) => void;
 }> = ({ comment, user, onReply, onOpenAuth }) => {
   const formattedDate = new Date(comment.createdAt).toLocaleDateString('es-ES', {
     day: 'numeric',

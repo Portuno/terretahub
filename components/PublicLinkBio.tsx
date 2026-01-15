@@ -1,13 +1,18 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { LinkBioProfile } from '../types';
+import { AuthUser, LinkBioProfile } from '../types';
 import { ProfileRenderer } from './ProfileEditor';
 import { NotFound404 } from './NotFound404';
 import { trackProfileView } from '../lib/analytics';
 import { useDynamicMetaTags } from '../hooks/useDynamicMetaTags';
 
-export const PublicLinkBio: React.FC = () => {
+interface PublicLinkBioProps {
+  user: AuthUser | null;
+  onOpenAuth: (referrerUsername?: string) => void;
+}
+
+export const PublicLinkBio: React.FC<PublicLinkBioProps> = ({ user, onOpenAuth }) => {
   const { extension } = useParams<{ extension: string }>();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<LinkBioProfile | null>(null);
@@ -449,7 +454,12 @@ export const PublicLinkBio: React.FC = () => {
 
       <div className="max-w-md mx-auto min-h-screen overflow-hidden flex flex-col">
         <div className="flex-1">
-          <ProfileRenderer profile={profile} profileUserId={profileUserId || undefined} />
+          <ProfileRenderer
+            profile={profile}
+            profileUserId={profileUserId || undefined}
+            viewerUserId={user?.id}
+            onOpenAuth={onOpenAuth}
+          />
         </div>
         
         {/* Footer */}

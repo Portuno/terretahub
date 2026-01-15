@@ -12,6 +12,8 @@ import { PublishProfileModal } from './PublishProfileModal';
 import { Toast } from './Toast';
 import { trackLinkClick, getProfileViewsStats, getLinkClicksStats } from '../lib/analytics';
 import { uploadAvatarToStorage, migrateAvatarToStorage } from '../lib/avatarUtils';
+import { ReferralPanel } from './ReferralPanel';
+import { useFollow } from '../hooks/useFollow';
 
 interface ProfileEditorProps {
   user: AuthUser;
@@ -245,6 +247,10 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
     top_link_clicks: number;
   } | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [referralStats, setReferralStats] = useState({
+    totalInvited: 0,
+    conversions: 0
+  });
   
   // Mobile preview modal state
   const [isMobilePreviewOpen, setIsMobilePreviewOpen] = useState(false);
@@ -1604,7 +1610,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-terreta-card p-4 rounded-xl border border-terreta-border shadow-sm">
                        <p className="text-xs font-bold text-terreta-secondary uppercase">Vistas Totales</p>
                        <p className="text-3xl font-bold text-terreta-dark mt-1">
@@ -1621,6 +1627,15 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                        </p>
                        <p className="text-xs text-terreta-secondary mt-2">
                          {clicksStats?.clicks_this_month || 0} este mes
+                       </p>
+                    </div>
+                    <div className="bg-terreta-card p-4 rounded-xl border border-terreta-border shadow-sm">
+                       <p className="text-xs font-bold text-terreta-secondary uppercase">Usuarios Invitados</p>
+                       <p className="text-3xl font-bold text-terreta-dark mt-1">
+                         {referralStats.totalInvited.toLocaleString()}
+                       </p>
+                       <p className="text-xs text-terreta-secondary mt-2">
+                         {referralStats.conversions} conversiones
                        </p>
                     </div>
                   </div>
@@ -1680,6 +1695,12 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                        </div>
                     </div>
                   )}
+
+                  <ReferralPanel
+                    userId={user.id}
+                    username={user.username}
+                    onStatsLoaded={setReferralStats}
+                  />
 
                   {clicksStats && clicksStats.top_link_clicks > 0 && (
                     <div className="bg-terreta-accent/10 p-4 rounded-xl border border-terreta-accent/20">
@@ -2140,8 +2161,27 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images }) => {
 
 // --- PREVIEW RENDERER COMPONENT ---
 // Separated specifically to render exactly what the public sees
-export const ProfileRenderer: React.FC<{ profile: LinkBioProfile; profileUserId?: string }> = ({ profile, profileUserId }) => {
+export const ProfileRenderer: React.FC<{
+  profile: LinkBioProfile;
+  profileUserId?: string;
+  viewerUserId?: string | null;
+  onOpenAuth?: (referrerUsername?: string) => void;
+}> = ({ profile, profileUserId, viewerUserId, onOpenAuth }) => {
   const { theme } = profile;
+  const shouldShowFollow = !!profileUserId && viewerUserId !== profileUserId;
+  const followState = useFollow({
+    userId: viewerUserId || null,
+    targetUserId: profileUserId || null
+  });
+
+  const handleFollowClick = () => {
+    if (!profileUserId) return;
+    if (!viewerUserId) {
+      onOpenAuth?.(profile.username);
+      return;
+    }
+    followState.toggleFollow();
+  };
 
   // Style helper
   const getBtnClass = () => {
@@ -2205,6 +2245,24 @@ export const ProfileRenderer: React.FC<{ profile: LinkBioProfile; profileUserId?
       )}
 
       <div className="relative z-10 w-full flex flex-col items-center">
+        {shouldShowFollow && (
+          <div className="mb-4 flex justify-center">
+            <button
+              type="button"
+              onClick={handleFollowClick}
+              disabled={followState.isToggling}
+              className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
+                viewerUserId && followState.isFollowing
+                  ? 'bg-terreta-dark text-terreta-bg'
+                  : 'bg-terreta-accent text-white hover:opacity-90'
+              } ${followState.isToggling ? 'opacity-60 cursor-not-allowed' : ''}`}
+              aria-label={viewerUserId && followState.isFollowing ? 'Dejar de seguir' : 'Seguir usuario'}
+            >
+              {viewerUserId && followState.isFollowing ? 'Siguiendo' : 'Seguir'}
+            </button>
+          </div>
+        )}
+
         {/* Avatar */}
         <div className="mb-4 relative group">
           <img 

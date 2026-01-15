@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Search, ArrowUpDown, ArrowUp, ArrowDown, UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { executeQueryWithRetry } from '../lib/supabaseHelpers';
-import { UserProfile } from '../types';
+import { AuthUser, UserProfile } from '../types';
 import { UserCard } from './UserCard';
 import { useProfileNavigation } from '../hooks/useProfileNavigation';
+import { ReferralInviteModal } from './ReferralInviteModal';
 
 // Función para cargar usuarios reales desde Supabase (optimizada)
 const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
@@ -180,13 +181,25 @@ const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
 type SortType = 'registration' | 'views';
 type SortOrder = 'asc' | 'desc';
 
-export const CommunityPage: React.FC = () => {
+interface CommunityPageProps {
+  user: AuthUser | null;
+  onOpenAuth: (referrerUsername?: string) => void;
+}
+
+export const CommunityPage: React.FC<CommunityPageProps> = ({ user, onOpenAuth }) => {
   const navigateToProfile = useProfileNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [communityUsers, setCommunityUsers] = useState<UserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [sortType, setSortType] = useState<SortType>('registration');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+
+  const referralLink = useMemo(() => {
+    if (!user?.username) return '';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.terretahub.com';
+    return `${origin}/?invitacion=${user.username}`;
+  }, [user?.username]);
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -257,6 +270,28 @@ export const CommunityPage: React.FC = () => {
   return (
     <div className="w-full py-2">
       <div className="w-full animate-fade-in">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 className="font-serif text-2xl text-terreta-dark">Comunidad</h2>
+            <p className="text-sm text-terreta-secondary">Descubre talento y comparte tu link de invitación.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (!user) {
+                onOpenAuth();
+                return;
+              }
+              setIsInviteOpen(true);
+            }}
+            className="flex items-center gap-2 bg-terreta-dark text-terreta-bg px-4 py-2 rounded-full text-sm font-bold hover:bg-opacity-90 transition-colors"
+            aria-label="Invitar a la comunidad"
+          >
+            <UserPlus size={16} />
+            Invitar
+          </button>
+        </div>
+
         {/* Search Bar */}
         <div className="relative mb-6 group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -345,6 +380,15 @@ export const CommunityPage: React.FC = () => {
           </>
         )}
       </div>
+
+      {user && (
+        <ReferralInviteModal
+          isOpen={isInviteOpen}
+          onClose={() => setIsInviteOpen(false)}
+          referralLink={referralLink}
+          referralCode={user.username}
+        />
+      )}
     </div>
   );
 };

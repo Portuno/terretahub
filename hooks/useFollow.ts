@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 
 interface UseFollowOptions {
   userId: string | null; // Usuario actual
-  targetUserId: string; // Usuario a seguir/dejar de seguir
+  targetUserId: string | null; // Usuario a seguir/dejar de seguir
   initialIsFollowing?: boolean;
   initialFollowersCount?: number;
 }
@@ -27,7 +27,7 @@ export const useFollow = ({
 
   // Verificar estado inicial
   useEffect(() => {
-    if (!userId || userId === targetUserId) {
+    if (!userId || !targetUserId || userId === targetUserId) {
       return;
     }
 
@@ -46,7 +46,7 @@ export const useFollow = ({
   }, [userId, targetUserId]);
 
   const toggleFollow = async () => {
-    if (!userId || userId === targetUserId) {
+    if (!userId || !targetUserId || userId === targetUserId) {
       return;
     }
 

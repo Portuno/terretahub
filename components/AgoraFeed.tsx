@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, User, AlertTriangle, Image as ImageIcon, Video, Link as LinkIcon, X, BarChart3 } from 'lucide-react';
+import { Send, User, AlertTriangle, Image as ImageIcon, Video, Link as LinkIcon, X, BarChart3, Mic, Square } from 'lucide-react';
 import { AgoraPost as AgoraPostComponent } from './AgoraPost';
 import { AgoraPost, AuthUser } from '../types';
 import { supabase } from '../lib/supabase';
@@ -26,7 +26,7 @@ const formatTimestamp = (dateString: string): string => {
 
 interface AgoraFeedProps {
   user: AuthUser | null;
-  onOpenAuth: () => void;
+  onOpenAuth: (referrerUsername?: string) => void;
 }
 
 export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
@@ -70,6 +70,16 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const linkInputRef = useRef<HTMLInputElement>(null);
+
+  // Audio transcription state
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const [audioError, setAudioError] = useState<string | null>(null);
+  const [transcriptionUnavailable, setTranscriptionUnavailable] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const liveTranscriptRef = useRef('');
 
   // Función para cargar posts con paginación y filtros
   const loadPosts = async (offset: number = 0, limit: number = 12, reset: boolean = false) => {
@@ -627,15 +637,19 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     setMediaError(null);
   };
 
-  const handleCreatePost = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || (!newPostContent.trim() && selectedFiles.length === 0 && !linkUrl.trim())) {
+  const createPost = async (options?: { contentOverride?: string; ignoreMedia?: boolean }) => {
+    const contentToPublish = (options?.contentOverride ?? newPostContent).trim();
+    const shouldIgnoreMedia = options?.ignoreMedia ?? false;
+    const hasMedia = !shouldIgnoreMedia && selectedFiles.length > 0;
+    const hasLink = !shouldIgnoreMedia && linkUrl.trim().length > 0;
+
+    if (!user || (!contentToPublish && !hasMedia && !hasLink)) {
       alert('El post debe tener contenido, media o un enlace.');
       return;
     }
 
     // Validar media antes de subir
-    if (selectedFiles.length > 0) {
+    if (!shouldIgnoreMedia && selectedFiles.length > 0) {
       const validation = validateAgoraMedia(selectedFiles);
       if (!validation.ok) {
         setMediaError(validation.error || 'Error al validar archivos');
@@ -644,7 +658,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     }
 
     // Validar link
-    const cleanedLinkUrl = validateLinkUrl(linkUrl);
+    const cleanedLinkUrl = shouldIgnoreMedia ? '' : validateLinkUrl(linkUrl);
 
     setIsUploading(true);
     setMediaError(null);
@@ -654,7 +668,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
       let videoUrl: string | null = null;
 
       // Subir media si hay archivos
-      if (selectedFiles.length > 0) {
+      if (!shouldIgnoreMedia && selectedFiles.length > 0) {
         const mediaResult = await uploadAgoraMedia(user.id, selectedFiles, null);
         imageUrls = mediaResult.imageUrls;
         videoUrl = mediaResult.videoUrl;
@@ -671,10 +685,10 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         .from('agora_posts')
         .insert({
           author_id: user.id,
-          content: newPostContent.trim() || '',
-          image_urls: imageUrls,
-          video_url: videoUrl,
-          link_url: cleanedLinkUrl,
+          content: contentToPublish || '',
+          image_urls: shouldIgnoreMedia ? [] : imageUrls,
+          video_url: shouldIgnoreMedia ? null : videoUrl,
+          link_url: shouldIgnoreMedia ? null : cleanedLinkUrl,
           tags: formattedTags.length > 0 ? formattedTags : null
         })
         .select('*')
@@ -711,9 +725,9 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         .single();
 
       // Crear notificaciones para usuarios mencionados
-      if (newPostContent.trim()) {
+      if (contentToPublish) {
         await createMentionNotifications(
-          newPostContent,
+          contentToPublish,
           user.id,
           updatedProfile?.name || user.name,
           newPost.id,
@@ -787,6 +801,160 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleCreatePost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await createPost();
+  };
+
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result?.toString() || '';
+        const base64 = result.split(',')[1] || '';
+        resolve(base64);
+      };
+      reader.onerror = () => reject(new Error('No se pudo leer el audio'));
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  const transcribeAudioBlob = async (audioBlob: Blob, isFinal: boolean): Promise<string> => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+    
+    if (!supabaseUrl) {
+      setTranscriptionUnavailable(true);
+      throw new Error('Servicio de transcripción no disponible. Configura VITE_SUPABASE_URL.');
+    }
+
+    const audioBase64 = await blobToBase64(audioBlob);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('elevenlabs-transcribe', {
+        body: {
+          audioBase64,
+          mimeType: audioBlob.type || 'audio/webm',
+          isFinal
+        }
+      });
+
+      if (error) {
+        console.error('[AgoraFeed] Edge Function error:', error);
+        if (error.message?.includes('404') || error.message?.includes('not found')) {
+          setTranscriptionUnavailable(true);
+          throw new Error('Servicio de transcripción no disponible. Asegura la Edge Function de Supabase.');
+        }
+        // Intentar extraer mensaje de error del body si está disponible
+        const errorMessage = error.message || (error.context?.body?.error || 'No se pudo transcribir el audio');
+        throw new Error(errorMessage);
+      }
+
+      return data?.text || '';
+    } catch (err: any) {
+      console.error('[AgoraFeed] Transcription error:', err);
+      if (err.message?.includes('404') || err.message?.includes('not found')) {
+        setTranscriptionUnavailable(true);
+        throw new Error('Servicio de transcripción no disponible. Asegura la Edge Function de Supabase.');
+      }
+      // Si el error tiene detalles de la Edge Function, mostrarlos
+      if (err.message) {
+        throw err;
+      }
+      throw new Error(err.message || 'Error al transcribir el audio');
+    }
+  };
+
+  const handleStartRecording = async () => {
+    if (!user) {
+      onOpenAuth();
+      return;
+    }
+    if (isRecording || isTranscribing) {
+      return;
+    }
+    if (transcriptionUnavailable) {
+      setAudioError('Servicio de transcripción no disponible. Verifica la Edge Function de Supabase.');
+      return;
+    }
+
+    setAudioError(null);
+    setLiveTranscript('');
+    liveTranscriptRef.current = '';
+    audioChunksRef.current = [];
+
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setAudioError('Tu navegador no soporta grabación de audio.');
+        return;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const preferredMimeType = MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : '';
+
+      const recorder = new MediaRecorder(stream, preferredMimeType ? { mimeType: preferredMimeType } : undefined);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = async (event) => {
+        if (!event.data || event.data.size === 0) {
+          return;
+        }
+
+        audioChunksRef.current.push(event.data);
+
+        try {
+          const partialText = await transcribeAudioBlob(event.data, false);
+          if (partialText) {
+            setLiveTranscript(prev => {
+              const updated = prev ? `${prev} ${partialText}` : partialText;
+              liveTranscriptRef.current = updated;
+              return updated;
+            });
+          }
+        } catch (err) {
+          console.warn('Error en transcripción parcial:', err);
+        }
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+        setIsRecording(false);
+        setIsTranscribing(true);
+
+        try {
+          const fullBlob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+          const finalText = await transcribeAudioBlob(fullBlob, true);
+          const transcript = (finalText || liveTranscriptRef.current).trim();
+
+          if (!transcript) {
+            setAudioError('No se pudo transcribir el audio. Intenta nuevamente.');
+            return;
+          }
+
+          await createPost({ contentOverride: transcript, ignoreMedia: true });
+        } catch (err: any) {
+          console.error('Error al transcribir audio:', err);
+          setAudioError(err.message || 'Error al transcribir el audio');
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      recorder.start(1200);
+      setIsRecording(true);
+    } catch (err: any) {
+      console.error('Error al iniciar grabación:', err);
+      setAudioError(err.message || 'No se pudo acceder al micrófono.');
+    }
+  };
+
+  const handleStopRecording = () => {
+    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
+      return;
+    }
+    mediaRecorderRef.current.stop();
   };
 
   const handleReply = async (postId: string, content: string) => {
@@ -966,6 +1134,23 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                       />
                     </div>
                  </div>
+
+                 {(isRecording || isTranscribing || liveTranscript || audioError) && (
+                   <div className="mt-3 rounded-lg border border-terreta-border bg-terreta-bg/50 p-3">
+                     <div className="flex items-center gap-2 text-xs text-terreta-secondary">
+                       <span className={`inline-flex h-2.5 w-2.5 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-terreta-accent'}`} />
+                       {isRecording && <span>Escuchando en vivo...</span>}
+                       {!isRecording && isTranscribing && <span>Procesando transcripción...</span>}
+                       {!isRecording && !isTranscribing && liveTranscript && <span>Transcripción generada</span>}
+                     </div>
+                     {liveTranscript && (
+                       <p className="mt-2 text-sm text-terreta-dark">{liveTranscript}</p>
+                     )}
+                     {audioError && (
+                       <p className="mt-2 text-xs text-red-500">{audioError}</p>
+                     )}
+                   </div>
+                 )}
 
                  {/* Media Selection */}
                  <div className="mt-3 space-y-2">
@@ -1162,10 +1347,24 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                       >
                         <LinkIcon size={18} />
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={isRecording ? handleStopRecording : handleStartRecording}
+                        className={`p-1.5 rounded transition-colors cursor-pointer ${
+                          isRecording
+                            ? 'text-white bg-red-500 hover:bg-red-600'
+                            : 'text-terreta-secondary hover:text-terreta-dark hover:bg-terreta-bg'
+                        }`}
+                        title={isRecording ? 'Detener transcripción' : 'Transcribir por voz'}
+                        aria-label={isRecording ? 'Detener transcripción' : 'Transcribir por voz'}
+                      >
+                        {isRecording ? <Square size={18} /> : <Mic size={18} />}
+                      </button>
                     </div>
                     <button 
                       type="submit" 
-                      disabled={(!newPostContent.trim() && selectedFiles.length === 0 && !linkUrl.trim()) || isUploading}
+                      disabled={(!newPostContent.trim() && selectedFiles.length === 0 && !linkUrl.trim()) || isUploading || isTranscribing || isRecording}
                       className="bg-terreta-dark text-terreta-bg px-6 py-2 rounded-full font-bold text-sm hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {isUploading ? (

@@ -10,7 +10,7 @@ import { executeQueryWithRetry } from '../lib/supabaseHelpers';
 
 interface BlogsPageProps {
   user: AuthUser | null;
-  onOpenAuth: () => void;
+  onOpenAuth: (referrerUsername?: string) => void;
 }
 
 type SortOption = 'recent' | 'views' | 'likes';

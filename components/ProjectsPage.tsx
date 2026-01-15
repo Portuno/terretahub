@@ -9,7 +9,7 @@ import { useProfileNavigation } from '../hooks/useProfileNavigation';
 
 interface ProjectsPageProps {
   user: AuthUser | null;
-  onOpenAuth: () => void;
+  onOpenAuth: (referrerUsername?: string) => void;
 }
 
 export const ProjectsPage: React.FC<ProjectsPageProps> = ({ user, onOpenAuth }) => {

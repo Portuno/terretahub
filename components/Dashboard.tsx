@@ -10,7 +10,7 @@ import { AuthUser } from '../types';
 
 interface DashboardProps {
   user: AuthUser | null;
-  onOpenAuth: () => void;
+  onOpenAuth: (referrerUsername?: string) => void;
   onLogout: () => void;
 }
 

@@ -8,7 +8,7 @@ import { EventModal } from './EventModal';
 
 interface EventsPageProps {
   user: AuthUser | null;
-  onOpenAuth: () => void;
+  onOpenAuth: (referrerUsername?: string) => void;
 }
 
 export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { LandingPage } from './components/LandingPage';
@@ -35,7 +35,9 @@ const AppContent: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
+  const [authReferrerUsername, setAuthReferrerUsername] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const userRef = useRef<AuthUser | null>(null); // Ref para verificar usuario sin causar re-renders
 
   // Función helper para cargar el perfil del usuario (con retry y mejor manejo de timeout)
@@ -351,6 +353,33 @@ const AppContent: React.FC = () => {
     };
   }, []); // Sin dependencias - el ref se actualiza cuando cambia user
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const invitationParam = params.get('invitacion');
+
+    if (invitationParam) {
+      const normalizedReferrer = invitationParam.trim().toLowerCase();
+      setAuthReferrerUsername(normalizedReferrer);
+      try {
+        localStorage.setItem('pending_referrer', normalizedReferrer);
+      } catch (err) {
+        console.warn('[App] Could not store pending referrer:', err);
+      }
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    if (authReferrerUsername) return;
+    try {
+      const stored = localStorage.getItem('pending_referrer');
+      if (stored) {
+        setAuthReferrerUsername(stored);
+      }
+    } catch (err) {
+      console.warn('[App] Could not read pending referrer:', err);
+    }
+  }, [authReferrerUsername]);
+
   const handleLoginSuccess = async (loggedInUser: AuthUser) => {
     setUser(loggedInUser);
     userRef.current = loggedInUser; // Actualizar ref
@@ -386,6 +415,28 @@ const AppContent: React.FC = () => {
     navigate('/');
   };
 
+  const handleOpenAuth = (referrerUsername?: string) => {
+    if (typeof referrerUsername === 'string' && referrerUsername.trim()) {
+      const normalizedReferrer = referrerUsername.trim().toLowerCase();
+      setAuthReferrerUsername(normalizedReferrer);
+      try {
+        localStorage.setItem('pending_referrer', normalizedReferrer);
+      } catch (err) {
+        console.warn('[App] Could not store pending referrer:', err);
+      }
+    }
+    setIsAuthModalOpen(true);
+  };
+
+  const handleReferralConsumed = () => {
+    setAuthReferrerUsername(null);
+    try {
+      localStorage.removeItem('pending_referrer');
+    } catch (err) {
+      console.warn('[App] Could not clear pending referrer:', err);
+    }
+  };
+
   // Mostrar loading mientras se verifica la sesión
   if (isLoadingSession || (user && onboardingCompleted === null)) {
     return (
@@ -412,14 +463,14 @@ const AppContent: React.FC = () => {
   return (
     <>
       <Routes>
-        <Route path="/" element={<Dashboard user={user} onOpenAuth={() => setIsAuthModalOpen(true)} onLogout={handleLogout} />}>
+        <Route path="/" element={<Dashboard user={user} onOpenAuth={handleOpenAuth} onLogout={handleLogout} />}>
           <Route index element={<LandingPage />} />
-          <Route path="agora" element={<AgoraFeed user={user} onOpenAuth={() => setIsAuthModalOpen(true)} />} />
-          <Route path="comunidad" element={<CommunityPage />} />
-          <Route path="proyectos" element={<ProjectsPage user={user} onOpenAuth={() => setIsAuthModalOpen(true)} />} />
-          <Route path="recursos" element={<ResourceCollabPanel user={user} onOpenAuth={() => setIsAuthModalOpen(true)} />} />
-          <Route path="eventos" element={<EventsPage user={user} onOpenAuth={() => setIsAuthModalOpen(true)} />} />
-          <Route path="blogs" element={<BlogsPage user={user} onOpenAuth={() => setIsAuthModalOpen(true)} />} />
+          <Route path="agora" element={<AgoraFeed user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="comunidad" element={<CommunityPage user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="proyectos" element={<ProjectsPage user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="recursos" element={<ResourceCollabPanel user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="eventos" element={<EventsPage user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="blogs" element={<BlogsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="perfil" element={
             user ? <ProfileEditor user={user} /> : <Navigate to="/" replace />
           } />
@@ -433,7 +484,7 @@ const AppContent: React.FC = () => {
 
         <Route 
           path="/p/:extension" 
-          element={<PublicLinkBio />} 
+          element={<PublicLinkBio user={user} onOpenAuth={handleOpenAuth} />} 
         />
         <Route 
           path="/proyecto/:slug" 
@@ -453,11 +504,11 @@ const AppContent: React.FC = () => {
         />
         <Route 
           path="/agora/post/:id" 
-          element={<AgoraPostPage user={user} onOpenAuth={() => setIsAuthModalOpen(true)} />} 
+          element={<AgoraPostPage user={user} onOpenAuth={handleOpenAuth} />} 
         />
         <Route 
           path="/blog/:username/:slug" 
-          element={<BlogPostPage user={user} onOpenAuth={() => setIsAuthModalOpen(true)} />} 
+          element={<BlogPostPage user={user} onOpenAuth={handleOpenAuth} />} 
         />
         <Route 
           path="*" 
@@ -469,6 +520,9 @@ const AppContent: React.FC = () => {
         isOpen={isAuthModalOpen} 
         onClose={() => setIsAuthModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
+        referrerUsername={authReferrerUsername}
+        startInRegister={!!authReferrerUsername}
+        onReferralConsumed={handleReferralConsumed}
       />
       
       <Analytics />

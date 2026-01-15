@@ -7,7 +7,7 @@ import { useTheme, THEMES, Theme } from '../context/ThemeContext';
 
 interface SidebarProps {
   user: AuthUser | null;
-  onOpenAuth: () => void;
+  onOpenAuth: (referrerUsername?: string) => void;
   onLogout: () => void;
   onOpenFeedback?: () => void;
 }
