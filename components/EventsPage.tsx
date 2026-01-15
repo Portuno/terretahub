@@ -507,7 +507,8 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
             {events.map((event) => (
               <div
                 key={event.id}
-                className="bg-terreta-card rounded-lg overflow-hidden shadow-sm border border-terreta-border hover:shadow-lg transition-all"
+                onClick={() => event.slug && handleViewEvent(event)}
+                className={`bg-terreta-card rounded-lg overflow-hidden shadow-sm border border-terreta-border hover:shadow-lg transition-all ${event.slug ? 'cursor-pointer' : ''}`}
               >
                 {event.imageUrl && (
                   <div className="w-full h-48 overflow-hidden">
@@ -526,7 +527,10 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                     </h3>
                     {event.slug && (
                       <button
-                        onClick={() => handleShareEvent(event)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShareEvent(event);
+                        }}
                         className="text-terreta-dark/60 hover:text-terreta-accent transition-colors p-1"
                         title="Compartir evento"
                       >
