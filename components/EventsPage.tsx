@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Clock, Plus, CalendarDays, Download, ExternalLink, ChevronDown, ChevronUp, Share2 } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Plus, CalendarDays, ExternalLink, ChevronDown, ChevronUp, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { AuthUser, Event } from '../types';
-import { downloadICSFile, openGoogleCalendar } from '../lib/calendarUtils';
+import { openGoogleCalendar } from '../lib/calendarUtils';
 import { Toast } from './Toast';
 import { EventModal } from './EventModal';
 
@@ -282,7 +282,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
     }
   };
 
-  const handleExportToCalendar = (event: Event, method: 'download' | 'google') => {
+  const handleExportToCalendar = (event: Event) => {
     const eventUrl = event.slug 
       ? `${window.location.origin}/evento/${event.organizer.username}/${event.slug}`
       : `${window.location.origin}/eventos`;
@@ -296,13 +296,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
       url: eventUrl,
     };
 
-    if (method === 'download') {
-      downloadICSFile(calendarEvent);
-      setToastMessage('Archivo .ics descargado. Puedes importarlo a tu calendario.');
-      setShowToast(true);
-    } else {
-      openGoogleCalendar(calendarEvent);
-    }
+    openGoogleCalendar(calendarEvent);
   };
 
   const toggleEventExpanded = (eventId: string) => {
