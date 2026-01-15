@@ -587,17 +587,6 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    {event.slug && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewEvent(event);
-                        }}
-                        className="w-full bg-terreta-card hover:bg-terreta-sidebar text-terreta-dark px-4 py-2 rounded-full font-semibold transition-all border border-terreta-border"
-                      >
-                        Ver evento completo
-                      </button>
-                    )}
                     {event.registrationRequired && (
                       <>
                         {event.isUserRegistered ? (
@@ -611,30 +600,17 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                             >
                               Cancelar Inscripci?n
                             </button>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleExportToCalendar(event, 'download');
-                                }}
-                                className="flex-1 flex items-center justify-center gap-2 bg-terreta-card hover:bg-terreta-sidebar text-terreta-dark px-3 py-2 rounded-full text-sm font-semibold transition-all border border-terreta-border"
-                                title="Descargar .ics"
-                              >
-                                <Download size={16} />
-                                .ics
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleExportToCalendar(event, 'google');
-                                }}
-                                className="flex-1 flex items-center justify-center gap-2 bg-terreta-card hover:bg-terreta-sidebar text-terreta-dark px-3 py-2 rounded-full text-sm font-semibold transition-all border border-terreta-border"
-                                title="Abrir en Google Calendar"
-                              >
-                                <ExternalLink size={16} />
-                                Google
-                              </button>
-                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleExportToCalendar(event);
+                              }}
+                              className="w-full flex items-center justify-center gap-2 bg-terreta-card hover:bg-terreta-sidebar text-terreta-dark px-4 py-2 rounded-full font-semibold transition-all border border-terreta-border"
+                              title="Abrir en Google Calendar"
+                            >
+                              <ExternalLink size={18} />
+                              Agregar a Google Calendar
+                            </button>
                           </>
                         ) : (
                           <button
