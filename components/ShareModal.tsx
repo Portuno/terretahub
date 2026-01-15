@@ -9,7 +9,7 @@ interface ShareModalProps {
   authorName: string;
   authorHandle: string;
   title?: string; // Título del blog o post
-  contentType?: 'blog' | 'agora'; // Tipo de contenido
+  contentType?: 'blog' | 'agora' | 'event'; // Tipo de contenido
 }
 
 export const ShareModal: React.FC<ShareModalProps> = ({
@@ -43,6 +43,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       ? `${postContent.substring(0, 150)}...` 
       : postContent;
     linkedinSummary = `Comparto esta reflexión del Ágora: "${truncatedAgoraContent}"`;
+  } else if (contentType === 'event' && title) {
+    linkedinSummary = `Te invito a este evento: "${title}"`;
   } else {
     linkedinSummary = shareText;
   }

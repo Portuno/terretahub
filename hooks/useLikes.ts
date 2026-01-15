@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 export type LikeType = 'like' | 'dislike' | null;
@@ -35,22 +35,51 @@ export const useLikes = ({
   const [isLiking, setIsLiking] = useState(false);
   const [lastSyncedEntityId, setLastSyncedEntityId] = useState(entityId);
   const [hasLocalChanges, setHasLocalChanges] = useState(false);
+  
+  // Usar useRef para rastrear los últimos valores sincronizados sin causar re-renders
+  const lastSyncedValuesRef = useRef({
+    entityId,
+    likeType: currentLikeType || null,
+    likesCount: initialLikesCount,
+    dislikesCount: initialDislikesCount
+  });
 
-  // Sincronizar estado SOLO cuando cambia el entityId (nuevo post/comentario)
-  // NO sincronizar cuando cambian los valores iniciales para evitar sobrescribir cambios optimistas
-  // Los valores se actualizarán correctamente después de cada operación desde la BD
+  // Sincronizar estado cuando cambia el entityId o cuando cambian los valores iniciales
+  // (solo si no hay cambios locales pendientes)
   useEffect(() => {
-    // Solo sincronizar si cambió el entityId (nuevo post/comentario)
-    if (entityId !== lastSyncedEntityId) {
+    const entityChanged = entityId !== lastSyncedValuesRef.current.entityId;
+    const valuesChanged = 
+      (currentLikeType || null) !== lastSyncedValuesRef.current.likeType ||
+      initialLikesCount !== lastSyncedValuesRef.current.likesCount ||
+      initialDislikesCount !== lastSyncedValuesRef.current.dislikesCount;
+
+    // Sincronizar si cambió el entityId (nuevo post/comentario)
+    if (entityChanged) {
       setLikeType(currentLikeType || null);
       setLikesCount(initialLikesCount);
       setDislikesCount(initialDislikesCount);
       setLastSyncedEntityId(entityId);
+      lastSyncedValuesRef.current = {
+        entityId,
+        likeType: currentLikeType || null,
+        likesCount: initialLikesCount,
+        dislikesCount: initialDislikesCount
+      };
       setHasLocalChanges(false);
+    } 
+    // Sincronizar si cambiaron los valores iniciales y no hay cambios locales pendientes
+    else if (valuesChanged && !hasLocalChanges && !isLiking) {
+      setLikeType(currentLikeType || null);
+      setLikesCount(initialLikesCount);
+      setDislikesCount(initialDislikesCount);
+      lastSyncedValuesRef.current = {
+        entityId,
+        likeType: currentLikeType || null,
+        likesCount: initialLikesCount,
+        dislikesCount: initialDislikesCount
+      };
     }
-    // NO sincronizar cuando cambian los valores iniciales para evitar sobrescribir cambios optimistas
-    // Los valores se actualizarán correctamente después de cada operación desde la BD
-  }, [entityId, lastSyncedEntityId, currentLikeType, initialLikesCount, initialDislikesCount]);
+  }, [entityId, currentLikeType, initialLikesCount, initialDislikesCount, hasLocalChanges, isLiking]);
 
   const getTableName = () => {
     switch (entityType) {
@@ -188,6 +217,9 @@ export const useLikes = ({
 
       // Recargar valores reales de la BD para asegurar sincronización
       // Los triggers actualizan los contadores automáticamente
+      let finalLikesCount = likesCount;
+      let finalDislikesCount = dislikesCount;
+      
       if (mainTableName) {
         const { data: updatedEntity } = await supabase
           .from(mainTableName)
@@ -196,8 +228,10 @@ export const useLikes = ({
           .single();
 
         if (updatedEntity) {
-          setLikesCount(updatedEntity.likes_count || 0);
-          setDislikesCount(updatedEntity.dislikes_count || 0);
+          finalLikesCount = updatedEntity.likes_count || 0;
+          finalDislikesCount = updatedEntity.dislikes_count || 0;
+          setLikesCount(finalLikesCount);
+          setDislikesCount(finalDislikesCount);
         }
       }
 
@@ -209,7 +243,17 @@ export const useLikes = ({
         .eq('user_id', userId)
         .maybeSingle();
 
-      setLikeType((currentUserLike?.type as LikeType) || null);
+      const finalLikeType = (currentUserLike?.type as LikeType) || null;
+      setLikeType(finalLikeType);
+      
+      // Actualizar la referencia con los valores finales de la BD
+      lastSyncedValuesRef.current = {
+        entityId,
+        likeType: finalLikeType,
+        likesCount: finalLikesCount,
+        dislikesCount: finalDislikesCount
+      };
+      
       setHasLocalChanges(false); // Marcar que ya se sincronizó con la BD
 
     } catch (error) {
@@ -218,6 +262,15 @@ export const useLikes = ({
       setLikeType(previousLikeType);
       setLikesCount(previousLikesCount);
       setDislikesCount(previousDislikesCount);
+      
+      // Actualizar la referencia con los valores revertidos
+      lastSyncedValuesRef.current = {
+        entityId,
+        likeType: previousLikeType,
+        likesCount: previousLikesCount,
+        dislikesCount: previousDislikesCount
+      };
+      
       setHasLocalChanges(false);
     } finally {
       setIsLiking(false);

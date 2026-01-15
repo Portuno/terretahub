@@ -248,13 +248,6 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
             .eq('id', existing.id);
 
           if (error) throw error;
-
-          setBlog(prev => prev ? {
-            ...prev,
-            userLikeType: null,
-            likesCount: type === 'like' ? Math.max(0, prev.likesCount - 1) : prev.likesCount,
-            dislikesCount: type === 'dislike' ? Math.max(0, (prev.dislikesCount || 0) - 1) : prev.dislikesCount
-          } : null);
         } else {
           // Si tiene el tipo opuesto, actualizar
           const { error } = await supabase
@@ -263,13 +256,6 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
             .eq('id', existing.id);
 
           if (error) throw error;
-
-          setBlog(prev => prev ? {
-            ...prev,
-            userLikeType: type,
-            likesCount: type === 'like' ? prev.likesCount + 1 : Math.max(0, prev.likesCount - 1),
-            dislikesCount: type === 'dislike' ? (prev.dislikesCount || 0) + 1 : Math.max(0, (prev.dislikesCount || 0) - 1)
-          } : null);
         }
       } else {
         // Crear nuevo like/dislike
@@ -282,12 +268,31 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
           });
 
         if (error) throw error;
+      }
 
+      // Recargar valores reales de la BD para asegurar sincronización
+      // Los triggers actualizan los contadores automáticamente
+      const { data: updatedBlog } = await supabase
+        .from('blogs')
+        .select('likes_count, dislikes_count')
+        .eq('id', blog.id)
+        .single();
+
+      // Verificar el tipo de like actual del usuario
+      const { data: currentUserLike } = await supabase
+        .from('blog_likes')
+        .select('type')
+        .eq('blog_id', blog.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      // Actualizar el estado con los valores reales de la BD
+      if (updatedBlog) {
         setBlog(prev => prev ? {
           ...prev,
-          userLikeType: type,
-          likesCount: type === 'like' ? prev.likesCount + 1 : prev.likesCount,
-          dislikesCount: type === 'dislike' ? (prev.dislikesCount || 0) + 1 : (prev.dislikesCount || 0)
+          likesCount: updatedBlog.likes_count || 0,
+          dislikesCount: updatedBlog.dislikes_count || 0,
+          userLikeType: (currentUserLike?.type as 'like' | 'dislike' | null) || null
         } : null);
       }
     } catch (err) {

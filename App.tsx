@@ -20,6 +20,7 @@ import { AdminBlogsPanel } from './components/AdminBlogsPanel';
 import { ProfileEditor } from './components/ProfileEditor';
 import { PlaceholderPage } from './components/PlaceholderPage';
 import { EventsPage } from './components/EventsPage';
+import { EventPage } from './components/EventPage';
 import { TermsAndConditions } from './components/TermsAndConditions';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { Documentation } from './components/Documentation';
@@ -509,6 +510,10 @@ const AppContent: React.FC = () => {
         <Route 
           path="/blog/:username/:slug" 
           element={<BlogPostPage user={user} onOpenAuth={handleOpenAuth} />} 
+        />
+        <Route 
+          path="/evento/:username/:slug" 
+          element={<EventPage user={user} onOpenAuth={handleOpenAuth} />} 
         />
         <Route 
           path="*" 

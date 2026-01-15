@@ -222,14 +222,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               .maybeSingle();
 
             if (inviterProfile?.id && inviterProfile.id !== authData.user.id) {
+              // Verificar si hay un evento asociado en localStorage
+              let eventId: string | null = null;
+              try {
+                const pendingEventReferrer = localStorage.getItem('pending_event_referrer');
+                if (pendingEventReferrer) {
+                  const eventData = JSON.parse(pendingEventReferrer);
+                  // Verificar que el organizador del evento coincida con el referrer
+                  if (eventData.organizerId === inviterProfile.id) {
+                    eventId = eventData.eventId;
+                    // Limpiar localStorage después de usar
+                    localStorage.removeItem('pending_event_referrer');
+                  }
+                }
+              } catch (err) {
+                console.warn('[AuthModal] Error reading pending event referrer:', err);
+              }
+
+              const referralData: any = {
+                inviter_id: inviterProfile.id,
+                invitee_id: authData.user.id,
+                invitee_email: email,
+                status: 'converted'
+              };
+
+              // Agregar event_id si existe
+              if (eventId) {
+                referralData.event_id = eventId;
+              }
+
               const { error: referralError } = await supabase
                 .from('referrals')
-                .insert({
-                  inviter_id: inviterProfile.id,
-                  invitee_id: authData.user.id,
-                  invitee_email: email,
-                  status: 'converted'
-                });
+                .insert(referralData);
 
               if (referralError) {
                 console.error('Error saving referral:', referralError);

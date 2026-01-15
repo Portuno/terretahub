@@ -179,6 +179,7 @@ export interface Event {
     username: string;
   };
   title: string;
+  slug: string;
   description?: string;
   location?: string;
   locationUrl?: string;

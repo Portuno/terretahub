@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { AuthUser, Event, EventStatus } from '../types';
 import { Toast } from './Toast';
 import { uploadEventImageToStorage } from '../lib/eventImageUtils';
+import { generateUniqueEventSlug } from '../lib/eventUtils';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -128,9 +129,18 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
         }
       }
 
+      // Generar slug único para el evento
+      const eventSlug = await generateUniqueEventSlug(
+        title.trim(),
+        user.username,
+        user.id,
+        event?.id
+      );
+
       const eventData: any = {
         organizer_id: user.id,
         title: title.trim(),
+        slug: eventSlug,
         description: description.trim() || null,
         location: location.trim() || null,
         location_url: locationUrl.trim() || null,
