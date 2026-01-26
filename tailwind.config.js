@@ -40,8 +40,10 @@ export default {
         }
       },
       fontFamily: {
-        serif: ['"Playfair Display"', 'serif'],
-        sans: ['"Lato"', 'sans-serif'],
+        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+        sans: ['"Lora"', '"Montserrat"', 'system-ui', 'sans-serif'],
+        body: ['"Lora"', '"Georgia"', 'serif'], // Vintage serif for body text
+        display: ['"Playfair Display"', 'serif'], // Display font for headings
       },
       transitionTimingFunction: {
         'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',

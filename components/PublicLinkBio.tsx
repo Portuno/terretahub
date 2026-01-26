@@ -443,10 +443,12 @@ export const PublicLinkBio: React.FC<PublicLinkBioProps> = ({ user, onOpenAuth }
           onClick={() => navigate('/')}
           className="flex items-center gap-2.5 bg-white/90 backdrop-blur-sm px-4 py-2.5 rounded-lg hover:bg-white transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 group"
         >
-          <div className="w-7 h-7 rounded-full bg-[#D97706] flex items-center justify-center text-white font-serif font-bold text-base group-hover:scale-105 transition-transform">
-            T
-          </div>
-          <span className="font-serif text-lg text-terreta-dark font-bold tracking-tight group-hover:text-[#D97706] transition-colors">
+          <img 
+            src="/logo.png" 
+            alt="Terreta Hub" 
+            className="w-7 h-7 object-contain group-hover:scale-105 transition-transform"
+          />
+          <span className="font-sans text-lg text-terreta-dark font-bold tracking-tight group-hover:text-[#D97706] transition-colors">
             Terreta Hub
           </span>
         </button>

@@ -105,7 +105,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
         {/* Top Navbar - Only show if not on Landing Page (index) */}
         {location.pathname !== '/' && (
           <header className="bg-terreta-nav border-b border-terreta-border h-14 md:h-16 px-4 md:px-8 flex items-center justify-between sticky top-0 z-10 transition-colors duration-500">
-              <h2 className="font-serif text-lg md:text-2xl text-terreta-dark truncate">
+              <h2 className="font-sans text-lg md:text-2xl text-terreta-dark truncate">
                   {title}
               </h2>
 

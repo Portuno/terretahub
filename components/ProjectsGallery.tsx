@@ -326,7 +326,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
-            <h3 className="font-serif text-3xl text-terreta-dark mb-2">Galería de Innovación</h3>
+            <h3 className="font-sans text-3xl text-terreta-dark mb-2">Galería de Innovación</h3>
             <p className="text-terreta-secondary">
               {filteredProjects.length} {filteredProjects.length === 1 ? 'proyecto encontrado' : 'proyectos encontrados'}
             </p>
@@ -379,7 +379,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
 
         {/* Filters Panel */}
         {showFilters && (
-          <div className="bg-terreta-card border border-terreta-border rounded-xl p-6 mb-6 shadow-sm">
+          <div className="bg-terreta-card rounded-[12px] p-6 mb-6 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
             <div className="flex justify-between items-center mb-4">
               <h4 className="font-bold text-terreta-dark">Filtros</h4>
               {hasActiveFilters && (
@@ -475,7 +475,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
             <div className="w-20 h-20 bg-terreta-bg rounded-full flex items-center justify-center mb-6">
               <FolderKanban size={40} className="text-terreta-accent" />
             </div>
-            <h4 className="font-serif text-2xl text-terreta-dark mb-2">
+            <h4 className="font-sans text-2xl text-terreta-dark mb-2">
               {projects.length === 0 ? 'Aún no hay proyectos públicos' : 'No se encontraron proyectos'}
             </h4>
             <p className="max-w-md text-terreta-secondary mb-4">
@@ -497,7 +497,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
             {filteredProjects.map((project) => (
               <div
                 key={project.id}
-                className="bg-terreta-card border border-terreta-border rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] overflow-hidden hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 hover:-translate-y-1 cursor-pointer"
                 onClick={() => {
                   setSelectedProject(project);
                   setIsModalOpen(true);
@@ -530,7 +530,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
 
                 {/* Contenido */}
                 <div className="p-6">
-                  <h3 className="font-serif text-xl text-terreta-dark mb-2 line-clamp-1">
+                  <h3 className="font-sans text-xl text-terreta-dark mb-2 line-clamp-1">
                     {project.name}
                   </h3>
                   {project.slogan && (

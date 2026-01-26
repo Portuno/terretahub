@@ -1089,7 +1089,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     <div className="max-w-3xl mx-auto px-4 py-8 animate-fade-in">
       
       {/* Create Post Section */}
-      <div className="bg-terreta-card rounded-xl shadow-sm border border-terreta-border p-6 mb-8 relative overflow-hidden">
+      <div className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-6 mb-8 relative overflow-hidden">
         
         {/* Anti-Paste Warning Overlay */}
         {showPasteWarning && (

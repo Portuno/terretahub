@@ -366,7 +366,7 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
     return (
       <div className="min-h-screen bg-terreta-bg flex items-center justify-center px-4">
         <div className="text-center max-w-md">
-          <h1 className="font-serif text-2xl font-bold text-terreta-dark mb-2">Blog no encontrado</h1>
+          <h1 className="font-sans text-2xl font-bold text-terreta-dark mb-2">Blog no encontrado</h1>
           <p className="text-terreta-secondary mb-4">{error || 'El blog que buscas no existe o fue eliminado.'}</p>
           <button
             onClick={() => navigate('/blogs')}
@@ -399,7 +399,7 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
         </button>
 
         {/* Header del blog */}
-        <article className="bg-terreta-card rounded-xl shadow-sm border border-terreta-border p-8 mb-6">
+        <article className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-8 mb-6">
           {/* Tag principal */}
           <div className="mb-4">
             <span className="inline-block px-3 py-1 text-xs font-bold rounded-full bg-terreta-accent/10 text-terreta-accent border border-terreta-accent/20">
@@ -408,7 +408,7 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
           </div>
 
           {/* Título */}
-          <h1 className="font-serif text-4xl font-bold text-terreta-dark mb-4">
+          <h1 className="font-sans text-4xl font-bold text-terreta-dark mb-4">
             {blog.title}
           </h1>
 
@@ -447,13 +447,13 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
                   <img {...props} className="rounded-lg border border-terreta-border my-4" />
                 ),
                 h1: ({ node, ...props }) => (
-                  <h1 {...props} className="font-serif text-3xl font-bold text-terreta-dark mt-8 mb-4" />
+                  <h1 {...props} className="font-sans text-3xl font-bold text-terreta-dark mt-8 mb-4" />
                 ),
                 h2: ({ node, ...props }) => (
-                  <h2 {...props} className="font-serif text-2xl font-bold text-terreta-dark mt-6 mb-3" />
+                  <h2 {...props} className="font-sans text-2xl font-bold text-terreta-dark mt-6 mb-3" />
                 ),
                 h3: ({ node, ...props }) => (
-                  <h3 {...props} className="font-serif text-xl font-bold text-terreta-dark mt-4 mb-2" />
+                  <h3 {...props} className="font-sans text-xl font-bold text-terreta-dark mt-4 mb-2" />
                 ),
                 p: ({ node, ...props }) => (
                   <p {...props} className="text-terreta-dark mb-4 leading-relaxed" />
@@ -584,8 +584,8 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
         </article>
 
         {/* Comentarios */}
-        <div className="bg-terreta-card rounded-xl shadow-sm border border-terreta-border p-8">
-          <h2 className="font-serif text-2xl font-bold text-terreta-dark mb-6">
+        <div className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-8">
+          <h2 className="font-sans text-2xl font-bold text-terreta-dark mb-6">
             Comentarios ({comments.length})
           </h2>
 

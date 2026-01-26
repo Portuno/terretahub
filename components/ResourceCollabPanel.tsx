@@ -50,7 +50,7 @@ const HelpRequestCard: React.FC<{
 
   return (
     <div 
-      className={`bg-terreta-card rounded-2xl p-5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] border transition-all duration-300 ${
+      className={`bg-terreta-card rounded-[12px] p-5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] border transition-all duration-300 ${
         isResolved 
           ? 'border-emerald-200/50 bg-emerald-50/20' 
           : 'border-terreta-border/50 hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:border-terreta-accent/30'
@@ -688,7 +688,7 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
       {/* Modal: Pedir Ayuda */}
       {showPedirAyudaModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-terreta-card rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-terreta-border shadow-xl">
+          <div className="bg-terreta-card rounded-[12px] p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
@@ -827,7 +827,7 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
       {selectedRequest && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedRequest(null)}>
           <div 
-            className="bg-terreta-card rounded-2xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-terreta-border shadow-xl"
+            className="bg-terreta-card rounded-[12px] p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-terreta-border shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

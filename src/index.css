@@ -19,8 +19,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: rgb(var(--bg-main));
   color: rgb(var(--text-main));
-  /* Use system fonts as fallback while custom fonts load */
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  /* Use Lora as primary serif font for vintage warmth */
+  font-family: 'Lora', 'Georgia', 'Times New Roman', serif;
+  /* Subtle paper texture background */
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(45, 41, 38, 0.015) 1px, transparent 0);
+  background-size: 20px 20px;
 }
 
 /* Global Smooth Theme Transitions */
@@ -46,27 +50,27 @@ path {
 }
 
 :root {
-  /* Default Theme (Tierra) - Warm Cream */
-  --bg-main: 243 239 231;      /* #F3EFE7 */
-  --nav-bg: 255 255 255;       /* #FFFFFF */
-  --sidebar-bg: 234 227 213;   /* #EAE3D5 */
-  --text-main: 62 39 35;       /* #3E2723 */
-  --text-secondary: 93 64 55;  /* #5D4037 */
-  --accent: 217 119 6;         /* #D97706 */
-  --card-bg: 255 255 255;      /* #FFFFFF */
-  --border-color: 209 201 188; /* #D1C9BC */
+  /* Default Theme (Tierra) - Vintage Warm Cream */
+  --bg-main: 249 247 242;      /* #F9F7F2 - Blanco roto cálido */
+  --nav-bg: 252 248 241;       /* #FCF8F1 - Crema suave */
+  --sidebar-bg: 245 240 230;   /* #F5F0E6 - Beige cálido */
+  --text-main: 45 41 38;       /* #2D2926 - Carbón cálido (no negro) */
+  --text-secondary: 93 64 55;  /* #5D4037 - Marrón medio */
+  --accent: 192 87 62;         /* #C0573E - Teja/terracota valenciana */
+  --card-bg: 255 255 255;      /* #FFFFFF - Blanco puro para contraste */
+  --border-color: 209 201 188; /* #D1C9BC - Borde suave */
 }
 
 html.theme-tierra {
-  /* Tierra - Warm Sand/Cream - More saturated to avoid washing out */
-  --bg-main: 247 243 235;      /* #F7F3EB - Richer Cream */
-  --nav-bg: 255 255 255;
-  --sidebar-bg: 234 227 213;   /* #EAE3D5 */
-  --text-main: 62 39 35;       /* #3E2723 */
-  --text-secondary: 93 64 55;  /* #5D4037 */
-  --accent: 217 119 6;         /* #D97706 */
-  --card-bg: 255 255 255;
-  --border-color: 214 207 196; /* #D6CFC4 */
+  /* Tierra - Vintage Warm Cream - Estética artesanal valenciana */
+  --bg-main: 249 247 242;      /* #F9F7F2 - Blanco roto cálido */
+  --nav-bg: 252 248 241;       /* #FCF8F1 - Crema suave */
+  --sidebar-bg: 245 240 230;   /* #F5F0E6 - Beige cálido */
+  --text-main: 45 41 38;       /* #2D2926 - Carbón cálido */
+  --text-secondary: 93 64 55;  /* #5D4037 - Marrón medio */
+  --accent: 192 87 62;         /* #C0573E - Teja/terracota valenciana */
+  --card-bg: 255 255 255;      /* #FFFFFF - Blanco para contraste */
+  --border-color: 192 87 62;   /* #C0573E - Borde en color teja para vintage */
 }
 
 html.theme-aire {
@@ -139,4 +143,69 @@ html.theme-agua {
 
 .ease-out-expo {
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Vintage Typography Styles */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Playfair Display', 'Georgia', serif;
+  font-weight: 600;
+  color: rgb(var(--text-main));
+}
+
+h2 {
+  font-style: italic; /* Subtítulos en cursiva para look editorial */
+}
+
+/* Vintage Button Styles - Flat, matte, no modern shadows */
+@layer components {
+  .btn-vintage {
+    background-color: rgb(var(--accent));
+    color: white;
+    border: none;
+    border-radius: 2px; /* Esquinas rectas o apenas redondeadas */
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all 0.2s ease;
+    box-shadow: none; /* Sin sombras brillantes */
+  }
+  
+  .btn-vintage:hover {
+    background-color: rgb(192 87 62 / 0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(45, 41, 38, 0.1); /* Sombra sutil mate */
+  }
+  
+  .btn-vintage:active {
+    transform: translateY(0);
+  }
+}
+
+/* Vintage Card Styles - Thin borders, no heavy shadows */
+@layer components {
+  .card-vintage {
+    background-color: rgb(var(--card-bg));
+    border: 1px solid rgb(var(--border-color));
+    border-radius: 4px; /* Bordes ligeramente redondeados */
+    box-shadow: 0 1px 3px rgba(45, 41, 38, 0.08); /* Sombra muy sutil */
+  }
+}
+
+/* Vintage Separator Lines - Double line style */
+@layer components {
+  .separator-vintage {
+    border: none;
+    border-top: 1px solid rgb(var(--accent));
+    border-bottom: 1px solid rgb(var(--accent));
+    height: 2px;
+    margin: 1.5rem 0;
+    background: transparent;
+  }
+  
+  .separator-vintage-single {
+    border: none;
+    border-top: 1px solid rgb(var(--border-color));
+    margin: 1rem 0;
+  }
 }

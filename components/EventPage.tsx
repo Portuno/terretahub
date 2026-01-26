@@ -377,7 +377,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
     return (
       <div className="min-h-screen bg-terreta-bg flex items-center justify-center px-4">
         <div className="text-center max-w-md">
-          <h1 className="font-serif text-2xl font-bold text-terreta-dark mb-2">Evento no encontrado</h1>
+          <h1 className="font-sans text-2xl font-bold text-terreta-dark mb-2">Evento no encontrado</h1>
           <p className="text-terreta-secondary mb-4">{error || 'El evento que buscas no existe o fue eliminado.'}</p>
           <button
             onClick={() => navigate('/eventos')}
@@ -406,7 +406,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
         </button>
 
         {/* Header del evento */}
-        <article className="bg-terreta-card rounded-xl shadow-sm border border-terreta-border p-8 mb-6">
+        <article className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-8 mb-6">
           {/* Categoría */}
           {event.category && (
             <div className="mb-4">
@@ -501,7 +501,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
           {/* Descripción */}
           {event.description && (
             <div className="mb-8">
-              <h2 className="font-serif text-2xl font-bold text-terreta-dark mb-4">Descripción</h2>
+              <h2 className="font-sans text-2xl font-bold text-terreta-dark mb-4">Descripción</h2>
               <div className="prose prose-lg max-w-none">
                 <p className="text-terreta-dark leading-relaxed whitespace-pre-wrap">{event.description}</p>
               </div>
@@ -580,8 +580,8 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
 
         {/* Estadísticas para el organizador */}
         {isOrganizer && (
-          <div className="bg-terreta-card rounded-xl shadow-sm border border-terreta-border p-8 mb-6">
-            <h2 className="font-serif text-2xl font-bold text-terreta-dark mb-6">Estadísticas del Evento</h2>
+          <div className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-8 mb-6">
+            <h2 className="font-sans text-2xl font-bold text-terreta-dark mb-6">Estadísticas del Evento</h2>
             
             {loadingStats ? (
               <div className="flex items-center justify-center py-8">

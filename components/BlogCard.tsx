@@ -30,7 +30,7 @@ export const BlogCard: React.FC<BlogCardProps> = ({ blog, showStats = true }) =>
   return (
     <div
       onClick={handleClick}
-      className="bg-terreta-card rounded-xl shadow-sm border border-terreta-border overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer group"
+      className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] overflow-hidden hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all duration-300 cursor-pointer group"
     >
       {/* Imagen de card */}
       <div className="relative w-full h-48 overflow-hidden bg-terreta-bg">
@@ -54,7 +54,7 @@ export const BlogCard: React.FC<BlogCardProps> = ({ blog, showStats = true }) =>
         </div>
 
         {/* Título */}
-        <h3 className="font-serif text-lg font-bold text-terreta-dark mb-2 leading-tight line-clamp-2 group-hover:text-terreta-accent transition-colors">
+        <h3 className="font-sans text-lg font-bold text-terreta-dark mb-2 leading-tight line-clamp-2 group-hover:text-terreta-accent transition-colors">
           {blog.title}
         </h3>
 

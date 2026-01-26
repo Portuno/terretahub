@@ -369,7 +369,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
-            <h1 className="font-serif text-3xl md:text-4xl text-terreta-dark font-bold mb-2">
+            <h1 className="font-sans text-3xl md:text-4xl text-terreta-dark font-bold mb-2">
               Eventos
             </h1>
             <p className="text-terreta-dark/60">
@@ -508,7 +508,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
               <div
                 key={event.id}
                 onClick={() => event.slug && handleViewEvent(event)}
-                className={`bg-terreta-card rounded-lg overflow-hidden shadow-sm border border-terreta-border hover:shadow-lg transition-all ${event.slug ? 'cursor-pointer' : ''}`}
+                className={`bg-terreta-card rounded-[12px] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-all ${event.slug ? 'cursor-pointer' : ''}`}
               >
                 {event.imageUrl && (
                   <div className="w-full h-48 overflow-hidden">

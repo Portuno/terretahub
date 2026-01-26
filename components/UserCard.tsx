@@ -8,7 +8,7 @@ interface UserCardProps {
 
 export const UserCard: React.FC<UserCardProps> = ({ user, onViewProfile }) => {
   return (
-    <div className="bg-terreta-card rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 p-6 flex flex-col items-center border border-terreta-border relative">
+    <div className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] transition-shadow duration-300 p-6 flex flex-col items-center relative">
       
       {/* Avatar Container with Hover Effect */}
       <div className="relative group mb-4">
@@ -22,7 +22,7 @@ export const UserCard: React.FC<UserCardProps> = ({ user, onViewProfile }) => {
         </div>
       </div>
       
-      <h3 className="font-serif text-xl text-terreta-dark font-medium mb-1 text-center">
+      <h3 className="font-sans text-xl text-terreta-dark font-medium mb-1 text-center">
         {user.name}
       </h3>
       

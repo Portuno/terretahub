@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, Layout, MessageSquareText, MessageCircle, Shield, Menu, X, Mountain, Wind, Flame, Droplets, FileText } from 'lucide-react';
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, MessageSquareText, MessageCircle, Shield, Menu, X, Mountain, Wind, Flame, Droplets, FileText } from 'lucide-react';
 import { AuthUser } from '../types';
 import { isAdmin } from '../lib/userRoles';
 import { useTheme, THEMES, Theme } from '../context/ThemeContext';
@@ -109,6 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   
   // Close mobile menu when location changes
@@ -159,7 +160,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Logo Area */}
       <Link 
         to="/"
-        className="px-6 py-4 flex items-center gap-3 cursor-pointer group relative h-14 md:h-16"
+        className="px-6 py-4 flex items-center gap-3 cursor-pointer group relative h-14 md:h-16 bg-transparent"
       >
         {/* Close button for mobile */}
         <button
@@ -172,39 +173,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <X size={20} className="text-terreta-dark" />
         </button>
-        <div className="w-8 h-8 rounded-full bg-terreta-accent flex items-center justify-center text-white font-serif font-bold text-lg group-hover:scale-105 transition-transform">
-          T
-        </div>
-        <h1 className="font-serif text-2xl text-terreta-dark font-bold tracking-tight group-hover:text-terreta-accent transition-colors">
+        <img 
+          src="/logo.png" 
+          alt="Terreta Hub" 
+          className="w-14 h-14 rounded-full object-cover group-hover:scale-105 transition-transform"
+        />
+        <h1 className="font-sans text-2xl text-terreta-dark font-bold tracking-tight group-hover:text-terreta-accent transition-colors">
           Terreta Hub
         </h1>
       </Link>
 
       {/* Navigation */}
       <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
-        
-        {/* User's "Mi Página" Link - Only if logged in */}
-        {user && (
-          <div className="mb-6">
-             <NavLink
-              to="/perfil"
-              className={({ isActive }) => `w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group border border-terreta-accent/20 ${
-                isActive
-                  ? 'bg-terreta-card shadow-md' 
-                  : 'bg-terreta-card/40 hover:bg-terreta-card'
-              }`}
-            >
-              <span className="text-terreta-accent">
-                <Layout size={20} />
-              </span>
-              <span className="font-sans font-bold text-sm tracking-wide text-terreta-dark">
-                Mi Página
-              </span>
-            </NavLink>
-            <div className="h-px bg-terreta-dark/5 mx-2 mt-4"></div>
-          </div>
-        )}
-
         {menuItems.map((item) => (
           <NavLink
             key={item.id}
@@ -247,14 +227,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
          {/* Theme Oracle */}
          <ThemeOracle />
 
-         {/* Feedback Section */}
+         {user ? (
+            <div 
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                navigate('/perfil');
+              }}
+              className="flex items-center gap-3 p-2 rounded-lg bg-terreta-card/50 border border-terreta-card/40 cursor-pointer hover:bg-terreta-card/70 transition-colors mb-4"
+            >
+               <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full bg-terreta-card" />
+               <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-terreta-dark truncate">{user.name}</p>
+                  <p className="text-xs text-terreta-dark/70 truncate">@{user.username}</p>
+               </div>
+               <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onLogout();
+                  }}
+                  className="text-xs text-red-400 hover:text-red-600 font-bold px-2 py-1"
+                >
+                  Salir
+               </button>
+            </div>
+         ) : (
+            <button 
+              onClick={onOpenAuth}
+              className="w-full flex items-center justify-center gap-2 bg-terreta-accent text-white py-3 rounded-lg hover:opacity-90 transition-all shadow-md hover:shadow-lg font-bold mb-4"
+            >
+               <LogIn size={16} className="stroke-[2.5]" />
+               <span className="text-xs font-bold uppercase tracking-wider">Ingresar</span>
+            </button>
+         )}
+
+         {/* Feedback Section - Moved to bottom */}
          <button
            type="button"
            onClick={() => {
              setIsMobileMenuOpen(false);
              onOpenFeedback?.();
            }}
-           className="mb-4 px-2 w-full text-left rounded-lg hover:bg-terreta-card/40 transition-colors focus:outline-none focus:ring-2 focus:ring-terreta-accent focus:ring-offset-2 focus:ring-offset-terreta-sidebar"
+           className="w-full px-2 py-2 text-left rounded-lg hover:bg-terreta-card/40 transition-colors focus:outline-none focus:ring-2 focus:ring-terreta-accent focus:ring-offset-2 focus:ring-offset-terreta-sidebar"
            aria-label="Abrir feedback"
          >
            <h4 className="text-[10px] font-bold uppercase tracking-widest text-terreta-accent mb-1 flex items-center gap-1">
@@ -264,36 +277,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
              Tu opinión importa. Ayúdanos a hacer de Terreta Hub el mejor hogar digital.
            </p>
          </button>
-
-         {user ? (
-            <div className="flex items-center gap-3 p-2 rounded-lg bg-terreta-card/50 border border-terreta-card/40">
-               <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full bg-terreta-card" />
-               <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-terreta-dark truncate">{user.name}</p>
-                  <p className="text-xs text-terreta-dark/70 truncate">@{user.username}</p>
-               </div>
-               <button 
-                  onClick={onLogout}
-                  className="text-xs text-red-400 hover:text-red-600 font-bold px-2 py-1"
-                >
-                  Salir
-               </button>
-            </div>
-         ) : (
-            <button 
-              onClick={onOpenAuth}
-              className="w-full flex items-center justify-center gap-2 bg-terreta-accent text-white py-3 rounded-lg hover:opacity-90 transition-all shadow-md hover:shadow-lg font-bold"
-            >
-               <LogIn size={16} className="stroke-[2.5]" />
-               <span className="text-xs font-bold uppercase tracking-wider">Ingresar</span>
-            </button>
-         )}
-         
-         <div className="text-center mt-4">
-            <p className="text-[10px] uppercase tracking-widest text-terreta-secondary/70 font-bold">
-               Terreta Hub v1.0
-            </p>
-         </div>
       </div>
     </aside>
     </>
