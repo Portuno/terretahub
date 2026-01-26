@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, X, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Notification as NotificationType } from '../types';
+import { generateSlug } from '../lib/utils';
 
 interface NotificationsProps {
   userId: string;
 }
 
 export const Notifications: React.FC<NotificationsProps> = ({ userId }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -92,6 +95,99 @@ export const Notifications: React.FC<NotificationsProps> = ({ userId }) => {
     };
   }, [isOpen]);
 
+  // Navegar a la ubicación de la notificación
+  const handleNotificationClick = async (notification: NotificationType) => {
+    // Marcar como leída si no lo está
+    if (!notification.is_read) {
+      await handleMarkAsRead(notification.id);
+    }
+
+    // Cerrar el dropdown
+    setIsOpen(false);
+
+    // Navegar según el tipo y related_type
+    if (!notification.related_id || !notification.related_type) {
+      return; // No hay destino definido
+    }
+
+    try {
+      switch (notification.related_type) {
+        case 'post':
+          // Navegar al post del Ágora
+          navigate(`/agora/post/${notification.related_id}`);
+          break;
+
+        case 'project':
+          // Obtener el nombre del proyecto para generar el slug
+          const { data: projectData, error: projectError } = await supabase
+            .from('projects')
+            .select('name')
+            .eq('id', notification.related_id)
+            .single();
+
+          if (!projectError && projectData) {
+            const projectSlug = generateSlug(projectData.name);
+            navigate(`/proyecto/${projectSlug}`);
+          } else {
+            console.error('Error al cargar proyecto:', projectError);
+            // Fallback: ir a la página de proyectos
+            navigate('/proyectos');
+          }
+          break;
+
+        case 'blog':
+          // Para blogs necesitamos username y slug
+          const { data: blogData, error: blogError } = await supabase
+            .from('blogs')
+            .select('slug, author:profiles!blogs_author_id_fkey(username)')
+            .eq('id', notification.related_id)
+            .single();
+
+          if (!blogError && blogData) {
+            const username = (blogData.author as any)?.username;
+            if (username && blogData.slug) {
+              navigate(`/blog/${username}/${blogData.slug}`);
+            } else {
+              navigate('/blogs');
+            }
+          } else {
+            navigate('/blogs');
+          }
+          break;
+
+        case 'event':
+          // Para eventos necesitamos username y slug del organizador
+          const { data: eventData, error: eventError } = await supabase
+            .from('events')
+            .select('slug, organizer:profiles!events_organizer_id_fkey(username)')
+            .eq('id', notification.related_id)
+            .single();
+
+          if (!eventError && eventData) {
+            const username = (eventData.organizer as any)?.username;
+            if (username && eventData.slug) {
+              navigate(`/evento/${username}/${eventData.slug}`);
+            } else {
+              navigate('/eventos');
+            }
+          } else {
+            navigate('/eventos');
+          }
+          break;
+
+        default:
+          // Para tipos desconocidos, intentar navegar según el type de notificación
+          if (notification.type === 'comment' || notification.type === 'mention') {
+            // Si es un comentario o mención, probablemente sea un post
+            navigate(`/agora/post/${notification.related_id}`);
+          }
+          break;
+      }
+    } catch (err) {
+      console.error('Error al navegar desde notificación:', err);
+    }
+  };
+
   // Marcar notificación como leída
   const handleMarkAsRead = async (notificationId: string) => {
     try {
@@ -147,6 +243,8 @@ export const Notifications: React.FC<NotificationsProps> = ({ userId }) => {
     switch (type) {
       case 'comment':
         return <MessageSquare size={16} className="text-blue-500" />;
+      case 'mention':
+        return <MessageSquare size={16} className="text-purple-500" />;
       case 'project_approved':
         return <CheckCircle size={16} className="text-green-500" />;
       case 'project_rejected':
@@ -238,7 +336,7 @@ export const Notifications: React.FC<NotificationsProps> = ({ userId }) => {
                     className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${
                       !notification.is_read ? 'bg-blue-50/50' : ''
                     }`}
-                    onClick={() => !notification.is_read && handleMarkAsRead(notification.id)}
+                    onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5">{getNotificationIcon(notification.type)}</div>
