@@ -200,13 +200,6 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
       'commentCount': comments.length
     } : undefined
   });
-    } catch (err) {
-      console.error('Error loading blog:', err);
-      setError('Error al cargar el blog');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const loadComments = async (blogId: string) => {
     try {
