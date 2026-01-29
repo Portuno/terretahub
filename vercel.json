@@ -31,6 +31,9 @@
   "functions": {
     "api/p/[extension].ts": {
       "maxDuration": 10
+    },
+    "api/sitemap.ts": {
+      "maxDuration": 30
     }
   },
   "headers": [

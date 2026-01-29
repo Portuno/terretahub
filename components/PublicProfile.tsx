@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { trackProfileView } from '../lib/analytics';
 import { useFollow } from '../hooks/useFollow';
 import { UserPlus, Users } from 'lucide-react';
+import { useDynamicMetaTags } from '../hooks/useDynamicMetaTags';
 
 interface PublicProfileProps {
   handle: string;
@@ -226,6 +227,43 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ handle }) => {
       setFollowersCount(followHook.followersCount);
     }
   }, [followHook.followersCount]);
+
+  // Meta tags dinámicos y structured data para SEO
+  const profileUrl = `/p/${cleanHandle}`;
+  const profileName = profile?.displayName || cleanHandle;
+  const profileBio = profile?.bio || `Perfil de ${profileName} en Terreta Hub`;
+
+  useDynamicMetaTags({
+    title: profile ? `${profileName} (@${cleanHandle}) | Terreta Hub` : 'Perfil | Terreta Hub',
+    description: profileBio,
+    image: profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanHandle}`,
+    url: profileUrl,
+    type: 'profile',
+    structuredData: profile && profileUserId ? {
+      '@context': 'https://schema.org',
+      '@type': 'Person',
+      '@id': `https://terretahub.com${profileUrl}`,
+      'name': profileName,
+      'alternateName': `@${cleanHandle}`,
+      'description': profileBio,
+      'image': profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanHandle}`,
+      'url': `https://terretahub.com${profileUrl}`,
+      'sameAs': profile.socials ? Object.values(profile.socials).filter((url: any) => url && typeof url === 'string') : [],
+      'knowsAbout': profile.blocks
+        ?.filter((block: any) => block.type === 'text' || block.type === 'header')
+        .map((block: any) => block.title || block.content)
+        .slice(0, 5) || [],
+      'memberOf': {
+        '@type': 'Organization',
+        'name': 'Terreta Hub',
+        'url': 'https://terretahub.com'
+      },
+      'followers': {
+        '@type': 'Integer',
+        'value': followersCount
+      }
+    } : undefined
+  });
 
   return (
       <div className="w-full h-full bg-white overflow-y-auto">

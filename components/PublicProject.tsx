@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { generateSlug, normalizeUrl, renderMarkdown } from '../lib/utils';
 import { NotFound404 } from './NotFound404';
 import { Calendar, User, Video, Image as ImageIcon, ArrowLeft, ExternalLink } from 'lucide-react';
+import { useDynamicMetaTags } from '../hooks/useDynamicMetaTags';
 
 // Helper to convert YouTube/Vimeo URLs to embed format
 const getEmbedUrl = (url: string): string => {
@@ -236,6 +237,69 @@ export const PublicProject: React.FC = () => {
   if (!project) {
     return <NotFound404 variant="project-not-found" />;
   }
+
+  // Meta tags dinámicos y structured data para SEO
+  const projectUrl = `/proyecto/${slug}`;
+  const projectImageUrl = project.images && project.images.length > 0 
+    ? project.images[0] 
+    : '/logo.png';
+  const projectDescription = project.slogan 
+    ? `${project.slogan}. ${project.description.substring(0, 150)}...`
+    : project.description.substring(0, 200);
+
+  useDynamicMetaTags({
+    title: project ? `${project.name} | Proyecto en Terreta Hub` : 'Proyecto | Terreta Hub',
+    description: projectDescription,
+    image: projectImageUrl,
+    url: projectUrl,
+    type: 'product',
+    author: `${project.author.name} (@${project.author.username})`,
+    publishedTime: project.created_at,
+    modifiedTime: project.updated_at,
+    tags: [...project.categories, ...project.technologies],
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'CreativeWork',
+      '@id': `https://terretahub.com${projectUrl}`,
+      'name': project.name,
+      'description': project.description,
+      'image': projectImageUrl.startsWith('http') ? projectImageUrl : `https://terretahub.com${projectImageUrl}`,
+      'datePublished': project.created_at,
+      'dateModified': project.updated_at,
+      'author': {
+        '@type': 'Person',
+        'name': project.author.name,
+        'url': `https://terretahub.com/p/${project.author.username}`,
+        'image': project.author.avatar
+      },
+      'publisher': {
+        '@type': 'Organization',
+        'name': 'Terreta Hub',
+        'logo': {
+          '@type': 'ImageObject',
+          'url': 'https://terretahub.com/logo.png'
+        }
+      },
+      'mainEntityOfPage': {
+        '@type': 'WebPage',
+        '@id': `https://terretahub.com${projectUrl}`
+      },
+      'keywords': [...project.categories, ...project.technologies].join(', '),
+      'inLanguage': 'es-ES',
+      'isAccessibleForFree': true,
+      'creativeWorkStatus': project.phase,
+      'category': project.categories.join(', '),
+      ...(project.website ? {
+        'url': normalizeUrl(project.website)
+      } : {}),
+      ...(project.video_url ? {
+        'video': {
+          '@type': 'VideoObject',
+          'embedUrl': getEmbedUrl(project.video_url)
+        }
+      } : {})
+    }
+  });
 
   return (
     <div className="min-h-screen bg-[#F5E8D8] relative py-8 px-4">

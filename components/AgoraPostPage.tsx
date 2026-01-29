@@ -4,6 +4,7 @@ import { AgoraPost as AgoraPostComponent } from './AgoraPost';
 import { AgoraPost, AuthUser } from '../types';
 import { supabase } from '../lib/supabase';
 import { executeQueryWithRetry } from '../lib/supabaseHelpers';
+import { useDynamicMetaTags } from '../hooks/useDynamicMetaTags';
 
 // Helper para formatear timestamps
 const formatTimestamp = (dateString: string): string => {
@@ -27,6 +28,7 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [post, setPost] = useState<AgoraPost | null>(null);
+  const [postCreatedAt, setPostCreatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,6 +80,7 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
               }))
             };
             setPost(transformedPost);
+            setPostCreatedAt(foundPost.created_at);
             setLoading(false);
             return;
           }
@@ -98,6 +101,8 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
           setLoading(false);
           return;
         }
+        
+        setPostCreatedAt(postData.created_at);
 
         // Cargar perfil del autor
         const { data: authorProfile } = await supabase
@@ -255,6 +260,71 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
       </div>
     );
   }
+
+  // Meta tags dinámicos y structured data para SEO
+  const postUrl = `/agora/post/${id}`;
+  const postImageUrl = post?.imageUrls && post.imageUrls.length > 0 
+    ? post.imageUrls[0] 
+    : post?.author.avatar || '/logo.png';
+  const postContent = post?.content 
+    ? (post.content.length > 200 ? post.content.substring(0, 200) + '...' : post.content)
+    : 'Post en el Ágora de Terreta Hub';
+
+  useDynamicMetaTags({
+    title: post ? `Post de ${post.author.name} | Ágora Terreta Hub` : 'Post | Terreta Hub',
+    description: postContent,
+    image: postImageUrl,
+    url: postUrl,
+    type: 'article',
+    author: post ? `${post.author.name} (${post.author.handle})` : undefined,
+    publishedTime: postCreatedAt || undefined,
+    tags: ['Ágora', 'Comunidad', 'Terreta Hub'],
+    structuredData: post ? {
+      '@context': 'https://schema.org',
+      '@type': 'SocialMediaPosting',
+      '@id': `https://terretahub.com${postUrl}`,
+      'headline': postContent.substring(0, 100),
+      'description': postContent,
+      'image': postImageUrl.startsWith('http') ? postImageUrl : `https://terretahub.com${postImageUrl}`,
+      'datePublished': postCreatedAt || post.timestamp,
+      'author': {
+        '@type': 'Person',
+        'name': post.author.name,
+        'alternateName': post.author.handle,
+        'url': `https://terretahub.com/p/${post.author.handle.replace('@', '')}`,
+        'image': post.author.avatar
+      },
+      'publisher': {
+        '@type': 'Organization',
+        'name': 'Terreta Hub',
+        'logo': {
+          '@type': 'ImageObject',
+          'url': 'https://terretahub.com/logo.png'
+        }
+      },
+      'mainEntityOfPage': {
+        '@type': 'WebPage',
+        '@id': `https://terretahub.com${postUrl}`
+      },
+      'articleSection': 'Ágora',
+      'keywords': 'Ágora, Comunidad, Terreta Hub, Networking, Valencia',
+      'inLanguage': 'es-ES',
+      'isAccessibleForFree': true,
+      'commentCount': post.comments?.length || 0,
+      ...(post.videoUrl ? {
+        'video': {
+          '@type': 'VideoObject',
+          'embedUrl': post.videoUrl
+        }
+      } : {}),
+      ...(post.linkUrl ? {
+        'sharedContent': {
+          '@type': 'WebPage',
+          'url': post.linkUrl
+        }
+      } : {})
+    } : undefined
+  });
 
   return (
     <div className="min-h-screen bg-terreta-bg py-8 px-4">

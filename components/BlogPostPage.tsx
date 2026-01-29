@@ -8,6 +8,7 @@ import { getBlogImageUrl } from '../lib/blogUtils';
 import { canEditBlog, canDeleteBlog } from '../lib/userRoles';
 import { ShareModal } from './ShareModal';
 import { executeQueryWithRetry } from '../lib/supabaseHelpers';
+import { useDynamicMetaTags } from '../hooks/useDynamicMetaTags';
 
 interface BlogPostPageProps {
   user: AuthUser | null;
@@ -142,6 +143,63 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({ user, onOpenAuth }) 
 
       // Cargar comentarios
       loadComments(blogData.id);
+    } catch (err) {
+      console.error('Error loading blog:', err);
+      setError('Error al cargar el blog');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Meta tags dinámicos y structured data para SEO
+  const blogUrl = blog ? `/blog/${blog.author.username}/${blog.slug}` : '';
+  const blogImageUrl = blog?.cardImageUrl || '/logo.png';
+  
+  useDynamicMetaTags({
+    title: blog ? `${blog.title} | Terreta Hub` : 'Blog | Terreta Hub',
+    description: blog?.excerpt || blog?.title || 'Artículo publicado en Terreta Hub',
+    image: blogImageUrl,
+    url: blogUrl,
+    type: 'article',
+    author: blog ? `${blog.author.name} (@${blog.author.username})` : undefined,
+    publishedTime: blog?.createdAt,
+    modifiedTime: blog?.updatedAt,
+    section: blog?.primaryTag,
+    tags: blog?.tags || [],
+    structuredData: blog ? {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      '@id': `https://terretahub.com${blogUrl}`,
+      'headline': blog.title,
+      'description': blog.excerpt || blog.title,
+      'image': blogImageUrl.startsWith('http') ? blogImageUrl : `https://terretahub.com${blogImageUrl}`,
+      'datePublished': blog.createdAt,
+      'dateModified': blog.updatedAt,
+      'author': {
+        '@type': 'Person',
+        'name': blog.author.name,
+        'url': `https://terretahub.com/p/${blog.author.username}`,
+        'image': blog.author.avatar
+      },
+      'publisher': {
+        '@type': 'Organization',
+        'name': 'Terreta Hub',
+        'logo': {
+          '@type': 'ImageObject',
+          'url': 'https://terretahub.com/logo.png'
+        }
+      },
+      'mainEntityOfPage': {
+        '@type': 'WebPage',
+        '@id': `https://terretahub.com${blogUrl}`
+      },
+      'articleSection': blog.primaryTag,
+      'keywords': blog.tags?.join(', ') || blog.primaryTag,
+      'inLanguage': 'es-ES',
+      'isAccessibleForFree': true,
+      'commentCount': comments.length
+    } : undefined
+  });
     } catch (err) {
       console.error('Error loading blog:', err);
       setError('Error al cargar el blog');
