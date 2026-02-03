@@ -195,12 +195,12 @@ export interface Event {
   maxAttendees?: number;
   /** @deprecated Use admissionType === 'pre_registration' */
   registrationRequired: boolean;
-  admissionType: AdmissionType;
+  admissionType?: AdmissionType;
   attendeeQuestion?: string;
-  datePublic: boolean;
+  datePublic?: boolean;
   datePlaceholder?: string;
   durationMinutes?: number;
-  locationPublic: boolean;
+  locationPublic?: boolean;
   locationPlaceholder?: string;
   status: EventStatus;
   attendeeCount: number;

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Users, Clock, Share2, Download, ExternalLink, ArrowLeft, UserPlus } from 'lucide-react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Calendar, MapPin, Users, Clock, Share2, Download, ExternalLink, ArrowLeft, UserPlus, Check, X as XIcon, BarChart2, Eye, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { AuthUser, Event } from '../types';
 import { downloadICSFile, openGoogleCalendar } from '../lib/calendarUtils';
 import { getEventStats } from '../lib/eventUtils';
 import { Toast } from './Toast';
 import { ShareModal } from './ShareModal';
+import { EventModal } from './EventModal';
 
 interface EventPageProps {
   user: AuthUser | null;
@@ -49,6 +50,20 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
     }>;
   } | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [organizerView, setOrganizerView] = useState<'event' | 'stats'>('event');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [allAttendances, setAllAttendances] = useState<Array<{
+    id: string;
+    userId: string;
+    userName: string;
+    userUsername: string;
+    userAvatar: string;
+    status: string;
+    purpose: string | null;
+    answerToQuestion: string | null;
+    registeredAt: string;
+  }>>([]);
+  const [loadingAllAttendances, setLoadingAllAttendances] = useState(false);
 
   useEffect(() => {
     if (username && slug) {
@@ -62,7 +77,19 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
     } else {
       setPendingAttendances([]);
     }
-  }, [event?.id, user?.id, event?.organizerId, event?.admissionType]);
+  }, [event?.id, user?.id, event?.organizerId, event?.admissionType, event?.registrationRequired]);
+
+  useEffect(() => {
+    if (organizerView === 'stats' && event?.id && user && user.id === event.organizerId) {
+      loadAllAttendances(event.id);
+    }
+  }, [organizerView, event?.id, user?.id, event?.organizerId]);
+
+  useEffect(() => {
+    if (organizerView === 'stats' && event?.id && user && user.id === event.organizerId) {
+      loadAllAttendances(event.id);
+    }
+  }, [organizerView, event?.id, user?.id, event?.organizerId]);
 
   useEffect(() => {
     // Guardar información del evento en localStorage para referidos
@@ -231,35 +258,98 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
     }
   };
 
+  const loadAllAttendances = async (eventId: string) => {
+    try {
+      setLoadingAllAttendances(true);
+      const { data: attendancesData, error: attError } = await supabase
+        .from('event_attendances')
+        .select('id, user_id, status, purpose, answer_to_question, registered_at')
+        .eq('event_id', eventId)
+        .neq('status', 'cancelled')
+        .order('registered_at', { ascending: false });
+
+      if (attError) {
+        console.error('[EventPage] Error loading all attendances:', attError);
+        setAllAttendances([]);
+        return;
+      }
+      if (!attendancesData?.length) {
+        setAllAttendances([]);
+        return;
+      }
+
+      const userIds = [...new Set(attendancesData.map((a: { user_id: string }) => a.user_id))];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, name, username, avatar')
+        .in('id', userIds);
+
+      const profilesMap = new Map(
+        (profilesData || []).map((p: { id: string; name?: string; username?: string; avatar?: string }) => [p.id, p])
+      );
+
+      const list = attendancesData.map((row: any) => {
+        const profile = profilesMap.get(row.user_id);
+        return {
+          id: row.id,
+          userId: row.user_id,
+          userName: profile?.name || 'Usuario',
+          userUsername: profile?.username || 'usuario',
+          userAvatar: profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.username || 'user'}`,
+          status: row.status,
+          purpose: row.purpose ?? null,
+          answerToQuestion: row.answer_to_question ?? null,
+          registeredAt: row.registered_at,
+        };
+      });
+      setAllAttendances(list);
+    } catch (err) {
+      console.error('[EventPage] Error loading all attendances:', err);
+    } finally {
+      setLoadingAllAttendances(false);
+    }
+  };
+
   const loadPendingAttendances = async (eventId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data: attendancesData, error: attError } = await supabase
         .from('event_attendances')
-        .select(`
-          id,
-          user_id,
-          purpose,
-          answer_to_question,
-          registered_at,
-          user:profiles!event_attendances_user_id_fkey(id, name, username, avatar)
-        `)
+        .select('id, user_id, purpose, answer_to_question, registered_at')
         .eq('event_id', eventId)
         .eq('status', 'pending');
 
-      if (error) {
-        console.error('[EventPage] Error loading pending attendances:', error);
+      if (attError) {
+        console.error('[EventPage] Error loading pending attendances:', attError);
         return;
       }
-      const list = (data || []).map((row: any) => ({
-        id: row.id,
-        userId: row.user_id,
-        userName: row.user?.name || 'Usuario',
-        userUsername: row.user?.username || 'usuario',
-        userAvatar: row.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${row.user?.username || 'user'}`,
-        purpose: row.purpose ?? null,
-        answerToQuestion: row.answer_to_question ?? null,
-        registeredAt: row.registered_at,
-      }));
+      if (!attendancesData?.length) {
+        setPendingAttendances([]);
+        return;
+      }
+
+      const userIds = [...new Set(attendancesData.map((a: { user_id: string }) => a.user_id))];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, name, username, avatar')
+        .in('id', userIds);
+
+      const profilesMap = new Map(
+        (profilesData || []).map((p: { id: string; name?: string; username?: string; avatar?: string }) => [p.id, p])
+      );
+
+      const list = attendancesData.map((row: any) => {
+        const profile = profilesMap.get(row.user_id);
+        return {
+          id: row.id,
+          userId: row.user_id,
+          userName: profile?.name || 'Usuario',
+          userUsername: profile?.username || 'usuario',
+          userAvatar: profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.username || 'user'}`,
+          purpose: row.purpose ?? null,
+          answerToQuestion: row.answer_to_question ?? null,
+          registeredAt: row.registered_at,
+        };
+      });
       setPendingAttendances(list);
     } catch (err) {
       console.error('[EventPage] Error loading pending:', err);
@@ -289,7 +379,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
         return;
       }
 
-      const isPreRegistration = event.admissionType === 'pre_registration';
+      const isPreRegistrationEvent = event.admissionType === 'pre_registration' || (event.admissionType == null && event.registrationRequired);
       if (!isPreRegistration) {
         setToastMessage('Este evento es de acceso libre y no requiere inscripción');
         setShowToast(true);
@@ -349,26 +439,45 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
     }
     setIsRegistering(true);
     try {
-      const { error } = await supabase
-        .from('event_attendances')
-        .insert({
-          event_id: event.id,
-          user_id: user.id,
-          status: 'pending',
-          purpose: purposeTrim,
-          answer_to_question: event.attendeeQuestion ? preInscriptionAnswer.trim() || null : null,
-        });
+      const fullPayload = {
+        event_id: event.id,
+        user_id: user.id,
+        status: 'pending',
+        purpose: purposeTrim,
+        answer_to_question: event.attendeeQuestion ? preInscriptionAnswer.trim() || null : null,
+      };
+      const { error } = await supabase.from('event_attendances').insert(fullPayload);
 
       if (error) {
         if (error.code === '23505') {
           setToastMessage('Ya tienes una solicitud enviada para este evento.');
-        } else {
-          setToastMessage(error.message || 'Error al enviar la solicitud.');
+          setShowToast(true);
+          setIsRegistering(false);
+          return;
         }
+
+        const { error: fallbackError } = await supabase.from('event_attendances').insert({
+          event_id: event.id,
+          user_id: user.id,
+          status: 'registered',
+        });
+        if (!fallbackError) {
+          setShowPreInscriptionForm(false);
+          setPreInscriptionPurpose('');
+          setPreInscriptionAnswer('');
+          setToastMessage('Te has inscrito al evento.');
+          setShowToast(true);
+          loadEvent();
+          setIsRegistering(false);
+          return;
+        }
+
+        setToastMessage(error.message || 'Error al enviar la solicitud.');
         setShowToast(true);
         setIsRegistering(false);
         return;
       }
+
       setShowPreInscriptionForm(false);
       setPreInscriptionPurpose('');
       setPreInscriptionAnswer('');
@@ -401,6 +510,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
       setToastMessage('Solicitud aprobada');
       setShowToast(true);
       loadPendingAttendances(event.id);
+      loadAllAttendances(event.id);
       loadEvent();
     } catch (err) {
       console.error('[EventPage] Error approving:', err);
@@ -426,6 +536,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
       setToastMessage('Solicitud rechazada');
       setShowToast(true);
       loadPendingAttendances(event.id);
+      loadAllAttendances(event.id);
       loadEvent();
     } catch (err) {
       console.error('[EventPage] Error rejecting:', err);
@@ -535,25 +646,188 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
   }
 
   const isOrganizer = user && user.id === event.organizerId;
+  const isPreRegistration = event.admissionType === 'pre_registration' || (event.admissionType == null && event.registrationRequired);
   const isConfirmed = isOrganizer || event.isUserRegistered;
   const showDatePublic = event.datePublic ?? true;
   const showLocationPublic = event.locationPublic ?? true;
-  const displayDate = showDatePublic || isConfirmed ? formatDate(event.startDate) : (event.datePlaceholder || 'Fecha por confirmar');
-  const displayEndDate = showDatePublic || isConfirmed ? formatDate(event.endDate) : (event.datePlaceholder || 'Fecha por confirmar');
-  const displayLocation = showLocationPublic || isConfirmed ? (event.location || (event.isOnline ? event.locationUrl : null)) : (event.locationPlaceholder || 'Ubicación por confirmar');
-  const displayLocationLabel = showLocationPublic || isConfirmed ? (event.isOnline ? 'Evento en línea' : 'Ubicación') : 'Ubicación';
+  // Cuando fecha/ubicación no son públicos, se muestra el placeholder a todos (incl. organizador)
+  const displayDate = showDatePublic ? formatDate(event.startDate) : (event.datePlaceholder || 'Fecha por confirmar');
+  const displayEndDate = showDatePublic ? formatDate(event.endDate) : (event.datePlaceholder || 'Fecha por confirmar');
+  const displayLocation = showLocationPublic ? (event.location || (event.isOnline ? event.locationUrl : null)) : (event.locationPlaceholder || 'Ubicación por confirmar');
+  const displayLocationLabel = showLocationPublic ? (event.isOnline ? 'Evento en línea' : 'Ubicación') : 'Ubicación';
 
   return (
     <div className="min-h-screen bg-terreta-bg py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        <button
-          onClick={() => navigate('/eventos')}
-          className="text-terreta-accent hover:text-terreta-dark transition-colors mb-6 text-sm font-semibold flex items-center gap-2"
-        >
-          <ArrowLeft size={18} />
-          Volver a Eventos
-        </button>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <button
+            onClick={() => navigate('/eventos')}
+            className="text-terreta-accent hover:text-terreta-dark transition-colors text-sm font-semibold flex items-center gap-2"
+          >
+            <ArrowLeft size={18} />
+            Volver a Eventos
+          </button>
+          {isOrganizer && (
+            <div className="flex rounded-full border border-terreta-border bg-terreta-card p-1">
+              <button
+                type="button"
+                onClick={() => setOrganizerView('event')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${organizerView === 'event' ? 'bg-terreta-accent text-white' : 'text-terreta-dark/70 hover:text-terreta-dark'}`}
+              >
+                <Eye size={18} />
+                Ver evento
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrganizerView('stats')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${organizerView === 'stats' ? 'bg-terreta-accent text-white' : 'text-terreta-dark/70 hover:text-terreta-dark'}`}
+              >
+                <BarChart2 size={18} />
+                Estadísticas
+              </button>
+            </div>
+          )}
+        </div>
 
+        {organizerView === 'stats' && isOrganizer ? (
+          /* Vista Estadísticas para el organizador */
+          <div className="space-y-6">
+            <div className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-8 border border-terreta-border">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <h2 className="font-sans text-2xl font-bold text-terreta-dark">Resumen del evento</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-terreta-accent hover:opacity-90 text-white rounded-full font-semibold transition-all"
+                >
+                  <Pencil size={18} />
+                  Editar evento
+                </button>
+              </div>
+              <div className="space-y-3 text-terreta-dark">
+                <p><span className="font-semibold">Título:</span> {event.title}</p>
+                {event.category && <p><span className="font-semibold">Categoría:</span> {event.category}</p>}
+                <p><span className="font-semibold">Inicio:</span> {formatDate(event.startDate)}</p>
+                <p><span className="font-semibold">Fin:</span> {formatDate(event.endDate)}</p>
+                <p><span className="font-semibold">Ubicación:</span> {event.isOnline ? (event.locationUrl || event.location || '—') : (event.location || '—')}</p>
+                {event.maxAttendees && <p><span className="font-semibold">Máx. asistentes:</span> {event.maxAttendees}</p>}
+                {event.description && (
+                  <div className="pt-2">
+                    <p className="font-semibold mb-1">Descripción</p>
+                    <p className="text-sm text-terreta-dark/80 whitespace-pre-wrap">{event.description}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {loadingStats ? (
+              <div className="bg-terreta-card rounded-[12px] p-8 flex justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-terreta-accent" />
+              </div>
+            ) : stats && (
+              <div className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-8 border border-terreta-border">
+                <h2 className="font-sans text-xl font-bold text-terreta-dark mb-4">Números</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-terreta-bg rounded-lg p-4 border border-terreta-border">
+                    <p className="text-sm text-terreta-secondary mb-1">Personas inscritas / confirmadas</p>
+                    <p className="text-3xl font-bold text-terreta-dark">{stats.totalRegistrations}</p>
+                  </div>
+                  <div className="bg-terreta-bg rounded-lg p-4 border border-terreta-border">
+                    <p className="text-sm text-terreta-secondary mb-1">Registros en Terreta Hub desde este evento</p>
+                    <p className="text-3xl font-bold text-terreta-accent">{stats.totalReferrals}</p>
+                  </div>
+                </div>
+                {stats.totalReferrals > 0 && (
+                  <div className="mt-6">
+                    <h3 className="font-semibold text-terreta-dark mb-3">Quienes se registraron desde este evento</h3>
+                    <div className="space-y-2">
+                      {stats.referrals.map((ref) => (
+                        <div key={ref.id} className="flex items-center gap-3 p-3 bg-terreta-bg rounded-lg border border-terreta-border">
+                          <img src={ref.inviteeAvatar} alt={ref.inviteeName} className="w-10 h-10 rounded-full border border-terreta-border" />
+                          <div className="flex-1">
+                            <p className="font-semibold text-sm text-terreta-dark">{ref.inviteeName}</p>
+                            <p className="text-xs text-terreta-secondary">@{ref.inviteeUsername}</p>
+                          </div>
+                          <p className="text-xs text-terreta-secondary">{new Date(ref.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-8 border border-terreta-border">
+              <h2 className="font-sans text-xl font-bold text-terreta-dark mb-4">Personas inscritas</h2>
+              {loadingAllAttendances ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-terreta-accent" />
+                </div>
+              ) : allAttendances.length === 0 ? (
+                <p className="text-terreta-secondary">Aún no hay inscripciones.</p>
+              ) : (
+                <div className="space-y-4">
+                  {allAttendances.map((att) => (
+                    <div
+                      key={att.id}
+                      className="flex flex-wrap items-start gap-4 p-4 bg-terreta-bg rounded-xl border border-terreta-border"
+                    >
+                      <Link
+                        to={`/p/${att.userUsername}`}
+                        className="flex items-center gap-3 shrink-0"
+                      >
+                        <img src={att.userAvatar} alt={att.userName} className="w-12 h-12 rounded-full border border-terreta-border" />
+                        <div>
+                          <p className="font-semibold text-terreta-dark hover:text-terreta-accent">{att.userName}</p>
+                          <p className="text-sm text-terreta-secondary">@{att.userUsername}</p>
+                        </div>
+                      </Link>
+                      <div className="flex-1 min-w-0">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${att.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
+                          {att.status === 'pending' ? 'Pendiente' : att.status === 'registered' ? 'Confirmado' : 'Asistió'}
+                        </span>
+                        {att.purpose && (
+                          <p className="text-sm text-terreta-dark/90 mt-2">
+                            <span className="font-medium">Propósito:</span> {att.purpose}
+                          </p>
+                        )}
+                        {att.answerToQuestion && (
+                          <p className="text-sm text-terreta-dark/80 mt-1">
+                            <span className="font-medium">Comentario / respuesta:</span> {att.answerToQuestion}
+                          </p>
+                        )}
+                        <p className="text-xs text-terreta-dark/60 mt-1">
+                          {new Date(att.registeredAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      {att.status === 'pending' && (
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleApproveAttendance(att.id)}
+                            className="p-2 rounded-full bg-green-500/20 text-green-700 hover:bg-green-500/30 transition-colors"
+                            aria-label="Aprobar"
+                          >
+                            <Check size={20} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRejectAttendance(att.id)}
+                            className="p-2 rounded-full bg-red-500/20 text-red-700 hover:bg-red-500/30 transition-colors"
+                            aria-label="Rechazar"
+                          >
+                            <XIcon size={20} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Header del evento */}
         <article className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-8 mb-6">
           {/* Categoría */}
@@ -585,17 +859,6 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
             </div>
           </div>
 
-          {/* Imagen del evento */}
-          {event.imageUrl && (
-            <div className="mb-8">
-              <img
-                src={event.imageUrl}
-                alt={event.title}
-                className="w-full h-auto rounded-lg border border-terreta-border"
-              />
-            </div>
-          )}
-
           {/* Información del evento */}
           <div className="space-y-4 mb-8">
             <div className="flex items-center gap-3 text-terreta-dark">
@@ -619,7 +882,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
                 <MapPin size={20} className="text-terreta-accent" />
                 <div>
                   <p className="font-semibold">{displayLocationLabel}</p>
-                  {isConfirmed && event.locationUrl && event.isOnline ? (
+                  {showLocationPublic && event.locationUrl && event.isOnline ? (
                     <a
                       href={event.locationUrl}
                       target="_blank"
@@ -668,7 +931,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
                   </h3>
                 </div>
                 <p className="text-terreta-dark/80 mb-4">
-                  Debes registrarte en Terreta Hub para poder {event.admissionType === 'pre_registration' ? 'postularte' : 'asistir'}.
+                  Debes registrarte en Terreta Hub para poder {isPreRegistration ? 'postularte' : 'asistir'}.
                 </p>
                 <button
                   onClick={() => onOpenAuth(event.organizer.username)}
@@ -677,7 +940,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
                   Crear cuenta {event.admissionType === 'pre_registration' ? 'y postularme' : 'e inscribirme'}
                 </button>
               </div>
-            ) : event.admissionType === 'pre_registration' ? (
+            ) : isPreRegistration ? (
               event.isUserRegistered ? (
                 <>
                   <button
@@ -781,6 +1044,59 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
           </div>
         </article>
 
+        {/* Solicitudes pendientes (organizador, pre-inscripción) */}
+        {isOrganizer && isPreRegistration && pendingAttendances.length > 0 && (
+          <div className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-8 mb-6">
+            <h2 className="font-sans text-2xl font-bold text-terreta-dark mb-6">Solicitudes pendientes de aprobación</h2>
+            <div className="space-y-4">
+              {pendingAttendances.map((att) => (
+                <div
+                  key={att.id}
+                  className="flex flex-wrap items-start gap-4 p-4 bg-terreta-bg rounded-xl border border-terreta-border"
+                >
+                  <img
+                    src={att.userAvatar}
+                    alt={att.userName}
+                    className="w-12 h-12 rounded-full border border-terreta-border"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-terreta-dark">{att.userName}</p>
+                    <p className="text-sm text-terreta-secondary">@{att.userUsername}</p>
+                    {att.purpose && (
+                      <p className="text-sm text-terreta-dark/90 mt-2">
+                        <span className="font-medium">Propósito:</span> {att.purpose}
+                      </p>
+                    )}
+                    {att.answerToQuestion && (
+                      <p className="text-sm text-terreta-dark/80 mt-1">
+                        <span className="font-medium">Respuesta:</span> {att.answerToQuestion}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleApproveAttendance(att.id)}
+                      className="p-2 rounded-full bg-green-500/20 text-green-700 hover:bg-green-500/30 transition-colors"
+                      aria-label="Aprobar"
+                    >
+                      <Check size={20} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRejectAttendance(att.id)}
+                      className="p-2 rounded-full bg-red-500/20 text-red-700 hover:bg-red-500/30 transition-colors"
+                      aria-label="Rechazar"
+                    >
+                      <XIcon size={20} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Estadísticas para el organizador */}
         {isOrganizer && (
           <div className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-8 mb-6">
@@ -841,7 +1157,23 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
             )}
           </div>
         )}
+          </>
+        )}
       </div>
+
+      {/* Modal Editar evento (solo organizador) */}
+      {isOrganizer && user && event && showEditModal && (
+        <EventModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          user={user}
+          event={event}
+          onSave={() => {
+            loadEvent();
+            setShowEditModal(false);
+          }}
+        />
+      )}
 
       {/* Share Modal */}
       {showShareModal && event && (

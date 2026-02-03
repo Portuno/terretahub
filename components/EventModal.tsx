@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Calendar, MapPin, Users, Clock, Image as ImageIcon, Globe, Link as LinkIcon, ChevronRight, ChevronLeft } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Clock, Image as ImageIcon, Globe, Link as LinkIcon, ChevronRight, ChevronLeft, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { AuthUser, Event, EventStatus, AdmissionType } from '../types';
 import { Toast } from './Toast';
@@ -53,6 +53,7 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
   const [isSaving, setIsSaving] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [showReviewSuccessModal, setShowReviewSuccessModal] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   const durationMinutes = durationPreset === 'custom' ? durationCustomMinutes : durationPreset;
@@ -230,12 +231,14 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
           setIsSaving(false);
           return;
         }
-        setToastMessage('Evento creado exitosamente. Será revisado por un administrador antes de ser publicado.');
+        setShowReviewSuccessModal(true);
       }
 
-      setShowToast(true);
-      onSave();
-      setTimeout(() => onClose(), 1000);
+      if (event) {
+        setShowToast(true);
+        onSave();
+        setTimeout(() => onClose(), 1000);
+      }
     } catch (error) {
       console.error('[EventModal] Exception saving event:', error);
       setToastMessage('Error al guardar el evento');
@@ -646,6 +649,37 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
           </div>
         </div>
       </div>
+
+      {/* Modal: evento creado y en revisión */}
+      {showReviewSuccessModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-terreta-dark/80 backdrop-blur-sm">
+          <div
+            className="bg-terreta-card rounded-xl shadow-2xl max-w-md w-full p-8 border border-terreta-border text-center"
+            role="dialog"
+            aria-labelledby="review-success-title"
+            aria-describedby="review-success-desc"
+          >
+            <CheckCircle size={56} className="mx-auto mb-4 text-terreta-accent" aria-hidden />
+            <h3 id="review-success-title" className="font-serif text-xl font-bold text-terreta-dark mb-2">
+              Evento enviado a revisión
+            </h3>
+            <p id="review-success-desc" className="text-terreta-dark/80 mb-6">
+              Tu evento fue creado y pasó a revisión. Serás notificado cuando un administrador lo publique.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setShowReviewSuccessModal(false);
+                onSave();
+                onClose();
+              }}
+              className="w-full px-6 py-3 bg-terreta-accent hover:opacity-90 text-white rounded-full font-semibold transition-all"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
 
       {showToast && (
         <Toast

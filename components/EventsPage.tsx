@@ -34,7 +34,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
       // Primero cargar eventos
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
-        .select('id, organizer_id, title, slug, description, location, location_url, start_date, end_date, image_url, category, is_online, max_attendees, registration_required, status, created_at, updated_at')
+        .select('id, organizer_id, title, slug, description, location, location_url, start_date, end_date, image_url, category, is_online, max_attendees, registration_required, admission_type, attendee_question, date_public, date_placeholder, duration_minutes, location_public, location_placeholder, status, created_at, updated_at')
         .eq('status', 'published')
         .order('start_date', { ascending: filter !== 'past' });
 
@@ -65,7 +65,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
         return;
       }
 
-      // Cargar informaci?n de organizadores
+      // Cargar información de organizadores
       const organizerIds = [...new Set(filteredEvents.map((e: any) => e.organizer_id))];
       const { data: organizersData } = await supabase
         .from('profiles')
@@ -77,7 +77,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
         organizersMap.set(org.id, org);
       });
 
-      // Cargar conteo de asistentes y verificar si el usuario est? registrado
+      // Cargar conteo de asistentes y verificar si el usuario está registrado
       const eventIds = filteredEvents.map((e: any) => e.id);
       
       const { data: attendancesData } = await supabase
@@ -86,16 +86,17 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
         .in('event_id', eventIds)
         .neq('status', 'cancelled');
 
-      // Contar asistentes por evento
+      // Contar asistentes por evento; track user's status per event (pending vs registered)
       const attendeeCounts = new Map<string, number>();
       const userRegistrations = new Set<string>();
+      const userPending = new Set<string>();
 
       attendancesData?.forEach((attendance: any) => {
         const count = attendeeCounts.get(attendance.event_id) || 0;
         attendeeCounts.set(attendance.event_id, count + 1);
-        
         if (user && attendance.user_id === user.id) {
-          userRegistrations.add(attendance.event_id);
+          if (attendance.status === 'pending') userPending.add(attendance.event_id);
+          else userRegistrations.add(attendance.event_id);
         }
       });
 
@@ -121,10 +122,18 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
           category: e.category,
           isOnline: e.is_online,
           maxAttendees: e.max_attendees,
-          registrationRequired: e.registration_required,
+          registrationRequired: e.registration_required ?? (e.admission_type === 'pre_registration'),
+          admissionType: e.admission_type ?? (e.registration_required ? 'pre_registration' : 'open'),
+          attendeeQuestion: e.attendee_question,
+          datePublic: e.date_public ?? true,
+          datePlaceholder: e.date_placeholder,
+          durationMinutes: e.duration_minutes,
+          locationPublic: e.location_public ?? true,
+          locationPlaceholder: e.location_placeholder,
           status: e.status,
           attendeeCount: attendeeCounts.get(e.id) || 0,
           isUserRegistered: userRegistrations.has(e.id),
+          isUserPending: userPending.has(e.id),
           createdAt: e.created_at,
           updatedAt: e.updated_at,
         };
@@ -145,7 +154,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
     }
 
     try {
-      // Verificar si el usuario ya est? registrado
+      // Verificar si el usuario ya está registrado
       const { data: existingRegistration } = await supabase
         .from('event_attendances')
         .select('id, status')
@@ -168,40 +177,47 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
             return;
           }
 
-          setToastMessage('?Te has registrado al evento exitosamente! Puedes exportarlo a tu calendario usando los botones de exportaci?n.');
+          setToastMessage('¡Te has registrado al evento exitosamente! Puedes exportarlo a tu calendario usando los botones de exportación.');
           setShowToast(true);
           loadEvents();
           return;
         } else {
-          // Ya est? registrado
-          setToastMessage('Ya est?s registrado en este evento');
+          // Ya está registrado
+          setToastMessage('Ya estás registrado en este evento');
           setShowToast(true);
           return;
         }
       }
 
-      // Verificar que el evento existe y est? disponible para registro
+      // Verificar que el evento existe y está disponible; si es pre-inscripción, redirigir a la página del evento
+      const eventFromList = events.find((e) => e.id === eventId);
+      const isPreReg = eventFromList?.admissionType === 'pre_registration' || (eventFromList?.admissionType == null && eventFromList?.registrationRequired);
+      if (isPreReg && eventFromList?.organizer?.username && eventFromList?.slug) {
+        navigate(`/evento/${eventFromList.organizer.username}/${eventFromList.slug}`);
+        return;
+      }
+
       const { data: eventData, error: eventError } = await supabase
         .from('events')
-        .select('id, status, registration_required, max_attendees')
+        .select('id, status, registration_required, admission_type, max_attendees')
         .eq('id', eventId)
         .single();
 
       if (eventError || !eventData) {
         console.error('[EventsPage] Error loading event:', eventError);
-        setToastMessage('Error al cargar informaci?n del evento');
+        setToastMessage('Error al cargar información del evento');
         setShowToast(true);
         return;
       }
 
       if (eventData.status !== 'published') {
-        setToastMessage('Este evento no est? disponible para registro');
+        setToastMessage('Este evento no está disponible para registro');
         setShowToast(true);
         return;
       }
 
-      if (!eventData.registration_required) {
-        setToastMessage('Este evento no requiere registro');
+      if (!eventData.registration_required && eventData.admission_type !== 'pre_registration') {
+        setToastMessage('Este evento es de acceso libre y no requiere inscripción');
         setShowToast(true);
         return;
       }
@@ -215,7 +231,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
           .neq('status', 'cancelled');
 
         if (count !== null && count >= eventData.max_attendees) {
-          setToastMessage('Este evento ha alcanzado el m?ximo de asistentes');
+          setToastMessage('Este evento ha alcanzado el máximo de asistentes');
           setShowToast(true);
           return;
         }
@@ -233,9 +249,9 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
       if (error) {
         console.error('[EventsPage] Error registering:', error);
         
-        // Manejar errores espec?ficos
+        // Manejar errores específicos
         if (error.code === '23505') { // Unique violation
-          setToastMessage('Ya est?s registrado en este evento');
+          setToastMessage('Ya estás registrado en este evento');
         } else if (error.code === '42501') { // Insufficient privilege
           setToastMessage('No tienes permiso para registrarte en este evento');
         } else {
@@ -245,7 +261,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
         return;
       }
 
-      setToastMessage('?Te has registrado al evento exitosamente! Puedes exportarlo a tu calendario usando los botones de exportaci?n.');
+      setToastMessage('¡Te has registrado al evento exitosamente! Puedes exportarlo a tu calendario usando los botones de exportación.');
       setShowToast(true);
       loadEvents();
     } catch (error) {
@@ -267,17 +283,17 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
 
       if (error) {
         console.error('[EventsPage] Error cancelling registration:', error);
-        setToastMessage('Error al cancelar la inscripci?n');
+        setToastMessage('Error al cancelar la inscripción');
         setShowToast(true);
         return;
       }
 
-      setToastMessage('Inscripci?n cancelada');
+      setToastMessage('Inscripción cancelada');
       setShowToast(true);
       loadEvents();
     } catch (error) {
       console.error('[EventsPage] Exception cancelling:', error);
-      setToastMessage('Error al cancelar la inscripci?n');
+      setToastMessage('Error al cancelar la inscripción');
       setShowToast(true);
     }
   };
@@ -388,21 +404,21 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
           )}
         </div>
 
-        {/* Secci?n: Invitaci?n a organizar eventos - Solo visible en filtro "Todos" */}
+        {/* Sección: Invitación a organizar eventos - Solo visible en filtro "Todos" */}
         {filter === 'all' && (
           <div className="bg-gradient-to-br from-terreta-accent/10 via-terreta-card to-terreta-sidebar/30 rounded-2xl p-6 md:p-8 mb-8 border border-terreta-border/50 shadow-sm">
             <div className="flex flex-col md:flex-row gap-6 items-start">
               <div className="flex-1">
                 <h2 className="font-serif text-2xl md:text-3xl text-terreta-dark font-bold mb-3">
-                  ?Tienes una idea para un evento?
+                  ¿Tienes una idea para un evento?
                 </h2>
                 <p className="text-terreta-dark/80 text-base md:text-lg mb-4 leading-relaxed">
                   En Terreta Hub <strong>organizamos eventos</strong> y <strong>invitamos a todos los miembros de la comunidad</strong> a organizar sus propios eventos. 
                   Ya sea un workshop, una charla, un networking o cualquier actividad que quieras compartir, 
-                  ?estamos aqu? para apoyarte!
+                  ¡estamos aquí para apoyarte!
                 </p>
                 <p className="text-terreta-dark/70 text-sm md:text-base mb-4">
-                  Crea tu evento, comp?rtelo con la comunidad y construyamos juntos una red de conocimiento y colaboraci?n.
+                  Crea tu evento, compártelo con la comunidad y construyamos juntos una red de conocimiento y colaboración.
                 </p>
                 {user ? (
                   <button
@@ -417,12 +433,12 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                     onClick={onOpenAuth}
                     className="inline-flex items-center gap-2 bg-terreta-accent hover:opacity-90 text-white px-6 py-3 rounded-full font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
                   >
-                    Inicia sesi?n para crear eventos
+                    Inicia sesión para crear eventos
                   </button>
                 )}
               </div>
               
-              {/* Galer?a de ejemplos */}
+              {/* Galería de ejemplos */}
               <div className="w-full md:w-auto flex-shrink-0">
                 <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div className="relative rounded-xl overflow-hidden border-2 border-terreta-border/50 shadow-md hover:shadow-lg transition-all hover:scale-105">
@@ -462,7 +478,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                 : 'text-terreta-dark/70 hover:text-terreta-dark hover:bg-terreta-sidebar'
             }`}
           >
-            Pr?ximos
+            Próximos
           </button>
           <button
             onClick={() => setFilter('past')}
@@ -496,7 +512,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
             <CalendarDays size={48} className="mx-auto mb-4 text-terreta-dark/30" />
             <p className="text-terreta-dark/60 text-lg">
               {filter === 'upcoming' 
-                ? 'No hay eventos pr?ximos programados'
+                ? 'No hay eventos próximos programados'
                 : filter === 'past'
                 ? 'No hay eventos pasados'
                 : 'No hay eventos disponibles'}
@@ -577,7 +593,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                     {event.location && (
                       <div className="flex items-center gap-2 text-sm text-terreta-dark/70">
                         <MapPin size={16} />
-                        <span>{event.isOnline ? '?? ' : ''}{event.location}</span>
+                        <span>{event.isOnline ? 'En línea · ' : ''}{event.location}</span>
                       </div>
                     )}
 
@@ -585,13 +601,13 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                       <Users size={16} />
                       <span>
                         {event.attendeeCount} {event.attendeeCount === 1 ? 'asistente' : 'asistentes'}
-                        {event.maxAttendees && ` / ${event.maxAttendees} m?ximo`}
+                        {event.maxAttendees && ` / ${event.maxAttendees} máximo`}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    {event.registrationRequired && (
+                    {(event.admissionType === 'pre_registration' || (event.admissionType == null && event.registrationRequired)) && (
                       <>
                         {event.isUserRegistered ? (
                           <>
@@ -602,7 +618,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                               }}
                               className="w-full bg-terreta-sidebar hover:bg-terreta-border text-terreta-dark px-4 py-2 rounded-full font-semibold transition-all"
                             >
-                              Cancelar Inscripci?n
+                              Cancelar inscripción
                             </button>
                             <button
                               onClick={(e) => {
@@ -616,6 +632,16 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                               Agregar a Google Calendar
                             </button>
                           </>
+                        ) : event.isUserPending ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewEvent(event);
+                            }}
+                            className="w-full bg-terreta-accent/20 text-terreta-accent px-4 py-2 rounded-full font-semibold transition-all border border-terreta-accent/40"
+                          >
+                            Solicitud enviada · Ver evento
+                          </button>
                         ) : (
                           <button
                             onClick={(e) => {
@@ -624,7 +650,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                             }}
                             className="w-full bg-terreta-accent hover:opacity-90 text-white px-4 py-2 rounded-full font-semibold transition-all"
                           >
-                            Asistir
+                            Postularme
                           </button>
                         )}
                       </>
