@@ -23,6 +23,19 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [showPreInscriptionForm, setShowPreInscriptionForm] = useState(false);
+  const [preInscriptionPurpose, setPreInscriptionPurpose] = useState('');
+  const [preInscriptionAnswer, setPreInscriptionAnswer] = useState('');
+  const [pendingAttendances, setPendingAttendances] = useState<Array<{
+    id: string;
+    userId: string;
+    userName: string;
+    userUsername: string;
+    userAvatar: string;
+    purpose: string | null;
+    answerToQuestion: string | null;
+    registeredAt: string;
+  }>>([]);
   const [stats, setStats] = useState<{
     totalRegistrations: number;
     totalReferrals: number;
@@ -42,6 +55,14 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
       loadEvent();
     }
   }, [username, slug]);
+
+  useEffect(() => {
+    if (event && user && user.id === event.organizerId && event.admissionType === 'pre_registration') {
+      loadPendingAttendances(event.id);
+    } else {
+      setPendingAttendances([]);
+    }
+  }, [event?.id, user?.id, event?.organizerId, event?.admissionType]);
 
   useEffect(() => {
     // Guardar información del evento en localStorage para referidos
@@ -83,6 +104,13 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
           is_online,
           max_attendees,
           registration_required,
+          admission_type,
+          attendee_question,
+          date_public,
+          date_placeholder,
+          duration_minutes,
+          location_public,
+          location_placeholder,
           status,
           created_at,
           updated_at
@@ -117,21 +145,24 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
         return;
       }
 
-      // Verificar si el usuario está registrado
+      // Verificar si el usuario está registrado (confirmado) o con solicitud pendiente
       let isUserRegistered = false;
+      let isUserPending = false;
       if (user) {
         const { data: attendanceData } = await supabase
           .from('event_attendances')
-          .select('id')
+          .select('id, status')
           .eq('event_id', eventData.id)
           .eq('user_id', user.id)
-          .neq('status', 'cancelled')
           .maybeSingle();
-        
-        isUserRegistered = !!attendanceData;
+
+        if (attendanceData) {
+          isUserPending = attendanceData.status === 'pending';
+          isUserRegistered = attendanceData.status === 'registered' || attendanceData.status === 'attended';
+        }
       }
 
-      // Contar asistentes
+      // Contar asistentes (confirmados + pendientes para el cupo)
       const { count: attendeeCount } = await supabase
         .from('event_attendances')
         .select('*', { count: 'exact', head: true })
@@ -158,10 +189,18 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
         category: eventData.category,
         isOnline: eventData.is_online,
         maxAttendees: eventData.max_attendees,
-        registrationRequired: eventData.registration_required,
+        registrationRequired: eventData.registration_required ?? (eventData.admission_type === 'pre_registration'),
+        admissionType: eventData.admission_type ?? (eventData.registration_required ? 'pre_registration' : 'open'),
+        attendeeQuestion: eventData.attendee_question,
+        datePublic: eventData.date_public ?? true,
+        datePlaceholder: eventData.date_placeholder,
+        durationMinutes: eventData.duration_minutes,
+        locationPublic: eventData.location_public ?? true,
+        locationPlaceholder: eventData.location_placeholder,
         status: eventData.status,
         attendeeCount: attendeeCount || 0,
         isUserRegistered,
+        isUserPending,
         createdAt: eventData.created_at,
         updatedAt: eventData.updated_at,
       };
@@ -192,6 +231,41 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
     }
   };
 
+  const loadPendingAttendances = async (eventId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('event_attendances')
+        .select(`
+          id,
+          user_id,
+          purpose,
+          answer_to_question,
+          registered_at,
+          user:profiles!event_attendances_user_id_fkey(id, name, username, avatar)
+        `)
+        .eq('event_id', eventId)
+        .eq('status', 'pending');
+
+      if (error) {
+        console.error('[EventPage] Error loading pending attendances:', error);
+        return;
+      }
+      const list = (data || []).map((row: any) => ({
+        id: row.id,
+        userId: row.user_id,
+        userName: row.user?.name || 'Usuario',
+        userUsername: row.user?.username || 'usuario',
+        userAvatar: row.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${row.user?.username || 'user'}`,
+        purpose: row.purpose ?? null,
+        answerToQuestion: row.answer_to_question ?? null,
+        registeredAt: row.registered_at,
+      }));
+      setPendingAttendances(list);
+    } catch (err) {
+      console.error('[EventPage] Error loading pending:', err);
+    }
+  };
+
   const handleRegister = async () => {
     if (!user) {
       // Abrir modal de autenticación con referrer del organizador
@@ -215,14 +289,15 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
         return;
       }
 
-      if (!event.registrationRequired) {
-        setToastMessage('Este evento no requiere registro');
+      const isPreRegistration = event.admissionType === 'pre_registration';
+      if (!isPreRegistration) {
+        setToastMessage('Este evento es de acceso libre y no requiere inscripción');
         setShowToast(true);
         setIsRegistering(false);
         return;
       }
 
-      // Verificar si ya está registrado
+      // Verificar si ya está registrado o con solicitud pendiente
       const { data: existingAttendance } = await supabase
         .from('event_attendances')
         .select('id, status')
@@ -231,13 +306,13 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
         .maybeSingle();
 
       if (existingAttendance && existingAttendance.status !== 'cancelled') {
-        setToastMessage('Ya estás registrado en este evento');
+        setToastMessage(existingAttendance.status === 'pending' ? 'Ya tienes una solicitud pendiente' : 'Ya estás registrado en este evento');
         setShowToast(true);
         setIsRegistering(false);
         return;
       }
 
-      // Verificar si hay cupos disponibles
+      // Verificar si hay cupos disponibles (pendientes + confirmados)
       if (event.maxAttendees) {
         const { count } = await supabase
           .from('event_attendances')
@@ -253,40 +328,109 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
         }
       }
 
-      // Insertar nuevo registro
+      setShowPreInscriptionForm(true);
+      setIsRegistering(false);
+    } catch (error: unknown) {
+      console.error('[EventPage] Exception registering:', error);
+      setToastMessage('Error al procesar. Por favor, intenta nuevamente.');
+      setShowToast(true);
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  const handlePreInscriptionSubmit = async () => {
+    if (!user || !event) return;
+    const purposeTrim = preInscriptionPurpose.trim();
+    if (!purposeTrim) {
+      setToastMessage('El propósito es obligatorio: indica qué vas a aportar a Terreta Hub.');
+      setShowToast(true);
+      return;
+    }
+    setIsRegistering(true);
+    try {
       const { error } = await supabase
         .from('event_attendances')
         .insert({
           event_id: event.id,
           user_id: user.id,
-          status: 'registered',
+          status: 'pending',
+          purpose: purposeTrim,
+          answer_to_question: event.attendeeQuestion ? preInscriptionAnswer.trim() || null : null,
         });
 
       if (error) {
-        console.error('[EventPage] Error registering:', error);
-        
-        // Manejar errores específicos
-        if (error.code === '23505') { // Unique violation
-          setToastMessage('Ya estás registrado en este evento');
-        } else if (error.code === '42501') { // Insufficient privilege
-          setToastMessage('No tienes permiso para registrarte en este evento');
+        if (error.code === '23505') {
+          setToastMessage('Ya tienes una solicitud enviada para este evento.');
         } else {
-          setToastMessage(`Error al registrarse al evento: ${error.message || 'Por favor, intenta nuevamente'}`);
+          setToastMessage(error.message || 'Error al enviar la solicitud.');
         }
         setShowToast(true);
         setIsRegistering(false);
         return;
       }
-
-      setToastMessage('¡Te has registrado al evento exitosamente!');
+      setShowPreInscriptionForm(false);
+      setPreInscriptionPurpose('');
+      setPreInscriptionAnswer('');
+      setToastMessage('Solicitud enviada. Te notificaremos cuando sea revisada.');
       setShowToast(true);
       loadEvent();
-    } catch (error: any) {
-      console.error('[EventPage] Exception registering:', error);
-      setToastMessage(`Error al registrarse al evento: ${error.message || 'Por favor, intenta nuevamente'}`);
+    } catch (err) {
+      console.error('[EventPage] Error pre-inscription:', err);
+      setToastMessage('Error al enviar la solicitud.');
       setShowToast(true);
     } finally {
       setIsRegistering(false);
+    }
+  };
+
+  const handleApproveAttendance = async (attendanceId: string) => {
+    if (!event) return;
+    try {
+      const { error } = await supabase
+        .from('event_attendances')
+        .update({ status: 'registered' })
+        .eq('id', attendanceId)
+        .eq('event_id', event.id);
+
+      if (error) {
+        setToastMessage('Error al aprobar la solicitud');
+        setShowToast(true);
+        return;
+      }
+      setToastMessage('Solicitud aprobada');
+      setShowToast(true);
+      loadPendingAttendances(event.id);
+      loadEvent();
+    } catch (err) {
+      console.error('[EventPage] Error approving:', err);
+      setToastMessage('Error al aprobar');
+      setShowToast(true);
+    }
+  };
+
+  const handleRejectAttendance = async (attendanceId: string) => {
+    if (!event) return;
+    try {
+      const { error } = await supabase
+        .from('event_attendances')
+        .update({ status: 'cancelled' })
+        .eq('id', attendanceId)
+        .eq('event_id', event.id);
+
+      if (error) {
+        setToastMessage('Error al rechazar la solicitud');
+        setShowToast(true);
+        return;
+      }
+      setToastMessage('Solicitud rechazada');
+      setShowToast(true);
+      loadPendingAttendances(event.id);
+      loadEvent();
+    } catch (err) {
+      console.error('[EventPage] Error rejecting:', err);
+      setToastMessage('Error al rechazar');
+      setShowToast(true);
     }
   };
 
@@ -391,8 +535,13 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
   }
 
   const isOrganizer = user && user.id === event.organizerId;
-  const formattedStartDate = formatDate(event.startDate);
-  const formattedEndDate = formatDate(event.endDate);
+  const isConfirmed = isOrganizer || event.isUserRegistered;
+  const showDatePublic = event.datePublic ?? true;
+  const showLocationPublic = event.locationPublic ?? true;
+  const displayDate = showDatePublic || isConfirmed ? formatDate(event.startDate) : (event.datePlaceholder || 'Fecha por confirmar');
+  const displayEndDate = showDatePublic || isConfirmed ? formatDate(event.endDate) : (event.datePlaceholder || 'Fecha por confirmar');
+  const displayLocation = showLocationPublic || isConfirmed ? (event.location || (event.isOnline ? event.locationUrl : null)) : (event.locationPlaceholder || 'Ubicación por confirmar');
+  const displayLocationLabel = showLocationPublic || isConfirmed ? (event.isOnline ? 'Evento en línea' : 'Ubicación') : 'Ubicación';
 
   return (
     <div className="min-h-screen bg-terreta-bg py-8 px-4">
@@ -453,7 +602,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
               <Clock size={20} className="text-terreta-accent" />
               <div>
                 <p className="font-semibold">Inicio</p>
-                <p className="text-sm text-terreta-secondary">{formattedStartDate}</p>
+                <p className="text-sm text-terreta-secondary">{displayDate}</p>
               </div>
             </div>
             
@@ -461,26 +610,26 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
               <Clock size={20} className="text-terreta-accent" />
               <div>
                 <p className="font-semibold">Fin</p>
-                <p className="text-sm text-terreta-secondary">{formattedEndDate}</p>
+                <p className="text-sm text-terreta-secondary">{displayEndDate}</p>
               </div>
             </div>
 
-            {event.location && (
+            {(event.location || event.locationUrl || !showLocationPublic) && (
               <div className="flex items-center gap-3 text-terreta-dark">
                 <MapPin size={20} className="text-terreta-accent" />
                 <div>
-                  <p className="font-semibold">{event.isOnline ? 'Evento en línea' : 'Ubicación'}</p>
-                  {event.locationUrl ? (
+                  <p className="font-semibold">{displayLocationLabel}</p>
+                  {isConfirmed && event.locationUrl && event.isOnline ? (
                     <a
                       href={event.locationUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-terreta-accent hover:underline"
                     >
-                      {event.location}
+                      {event.location || event.locationUrl}
                     </a>
                   ) : (
-                    <p className="text-sm text-terreta-secondary">{event.location}</p>
+                    <p className="text-sm text-terreta-secondary">{displayLocation}</p>
                   )}
                 </div>
               </div>
@@ -515,20 +664,20 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
                 <div className="flex items-center gap-3 mb-3">
                   <UserPlus size={24} className="text-terreta-accent" />
                   <h3 className="font-serif text-xl font-bold text-terreta-dark">
-                    ¿Quieres asistir a este evento?
+                    {event.admissionType === 'pre_registration' ? '¿Quieres postularte a este evento?' : '¿Quieres asistir a este evento?'}
                   </h3>
                 </div>
                 <p className="text-terreta-dark/80 mb-4">
-                  Debes registrarte en Terreta Hub para poder asistir a este evento.
+                  Debes registrarte en Terreta Hub para poder {event.admissionType === 'pre_registration' ? 'postularte' : 'asistir'}.
                 </p>
                 <button
                   onClick={() => onOpenAuth(event.organizer.username)}
                   className="bg-terreta-accent hover:opacity-90 text-white px-6 py-3 rounded-full font-bold transition-all"
                 >
-                  Crear cuenta e inscribirse
+                  Crear cuenta {event.admissionType === 'pre_registration' ? 'y postularme' : 'e inscribirme'}
                 </button>
               </div>
-            ) : event.registrationRequired ? (
+            ) : event.admissionType === 'pre_registration' ? (
               event.isUserRegistered ? (
                 <>
                   <button
@@ -557,13 +706,67 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
                     </button>
                   </div>
                 </>
+              ) : event.isUserPending ? (
+                <div className="w-full bg-terreta-accent/10 border-2 border-terreta-accent rounded-xl p-6">
+                  <p className="font-semibold text-terreta-dark mb-2">Solicitud enviada</p>
+                  <p className="text-sm text-terreta-dark/80 mb-4">Te notificaremos cuando el organizador revise tu postulación.</p>
+                  <button
+                    onClick={handleCancelRegistration}
+                    disabled={isRegistering}
+                    className="bg-terreta-sidebar hover:bg-terreta-border text-terreta-dark px-6 py-2 rounded-full font-semibold transition-all disabled:opacity-50 text-sm"
+                  >
+                    {isRegistering ? 'Cancelando...' : 'Retirar solicitud'}
+                  </button>
+                </div>
+              ) : showPreInscriptionForm ? (
+                <div className="w-full bg-terreta-bg border-2 border-terreta-border rounded-xl p-6 space-y-4">
+                  <h3 className="font-serif text-lg font-bold text-terreta-dark">Completa tu postulación</h3>
+                  <div>
+                    <label className="block text-sm font-semibold text-terreta-dark mb-1">Propósito *</label>
+                    <p className="text-xs text-terreta-dark/70 mb-1">¿Qué vas a aportar al ecosistema de Terreta Hub?</p>
+                    <textarea
+                      value={preInscriptionPurpose}
+                      onChange={(e) => setPreInscriptionPurpose(e.target.value)}
+                      rows={3}
+                      className="w-full px-4 py-2 bg-terreta-card border border-terreta-border rounded-lg text-terreta-dark focus:outline-none focus:ring-2 focus:ring-terreta-accent resize-none text-sm"
+                      placeholder="Ej: Conectar con otros emprendedores y compartir mi experiencia en finanzas"
+                    />
+                  </div>
+                  {event.attendeeQuestion && (
+                    <div>
+                      <label className="block text-sm font-semibold text-terreta-dark mb-1">{event.attendeeQuestion}</label>
+                      <textarea
+                        value={preInscriptionAnswer}
+                        onChange={(e) => setPreInscriptionAnswer(e.target.value)}
+                        rows={2}
+                        className="w-full px-4 py-2 bg-terreta-card border border-terreta-border rounded-lg text-terreta-dark focus:outline-none focus:ring-2 focus:ring-terreta-accent resize-none text-sm"
+                        placeholder="Tu respuesta..."
+                      />
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowPreInscriptionForm(false)}
+                      className="px-4 py-2 bg-terreta-sidebar hover:bg-terreta-border text-terreta-dark rounded-full font-semibold text-sm"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handlePreInscriptionSubmit}
+                      disabled={isRegistering}
+                      className="px-6 py-2 bg-terreta-accent hover:opacity-90 text-white rounded-full font-semibold text-sm disabled:opacity-50"
+                    >
+                      {isRegistering ? 'Enviando...' : 'Enviar postulación'}
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <button
                   onClick={handleRegister}
                   disabled={isRegistering}
                   className="bg-terreta-accent hover:opacity-90 text-white px-6 py-3 rounded-full font-semibold transition-all disabled:opacity-50"
                 >
-                  {isRegistering ? 'Registrando...' : 'Asistir al Evento'}
+                  Postularme al evento
                 </button>
               )
             ) : null}

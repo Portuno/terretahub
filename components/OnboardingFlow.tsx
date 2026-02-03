@@ -11,7 +11,8 @@ import { useTheme } from '../context/ThemeContext';
 import { ProfileRenderer } from './ProfileEditor';
 import { uploadAvatarToStorage } from '../lib/avatarUtils';
 import { Upload, Camera } from 'lucide-react';
-import { MascotAnimation, MascotAnimationData } from './MascotAnimation';
+import { MascotAnimation } from './MascotAnimation';
+import { TERRE_MASCOT_ANIMATION } from '../lib/mascotConstants';
 
 interface ProjectPreview {
   id: string;
@@ -80,21 +81,6 @@ const COLOR_THEMES: Record<string, BioTheme> = {
     buttonTextColor: '#000000',
     font: 'sans'
   }
-};
-
-// Datos de la animación de la mascota
-const TERRE_MASCOT_ANIMATION: MascotAnimationData = {
-  collection: "Terre",
-  items: [
-    {
-      name: "Flap wings excitedly",
-      transparent_image: "https://assets.masco.dev/e56ea2/terre-4c48/flap-wings-excitedly-64aee966.png",
-      image: "https://assets.masco.dev/e56ea2/terre-4c48/flap-wings-excitedly-d498511f.png",
-      video: "https://assets.masco.dev/e56ea2/terre-4c48/flap-wings-excitedly-17ce3c0b.mp4",
-      animation_webm: "https://assets.masco.dev/e56ea2/terre-4c48/flap-wings-excitedly-c98d3563.webm",
-      animation_mov: "https://assets.masco.dev/e56ea2/terre-4c48/flap-wings-excitedly-eea067fe.mov"
-    }
-  ]
 };
 
 export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ user, onComplete }) => {

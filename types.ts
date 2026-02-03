@@ -168,12 +168,16 @@ export interface Notification {
 // --- EVENTS TYPES ---
 
 export type EventStatus = 'draft' | 'review' | 'published' | 'cancelled' | 'completed';
-export type AttendanceStatus = 'registered' | 'attended' | 'cancelled';
+/** open = acceso libre; pre_registration = pre-inscripción sujeta a aprobación */
+export type AdmissionType = 'open' | 'pre_registration';
+/** pending = solicitud enviada (pre-inscripción); registered = confirmado; attended = asistió; cancelled = cancelado */
+export type AttendanceStatus = 'pending' | 'registered' | 'attended' | 'cancelled';
 
 export interface Event {
   id: string;
   organizerId: string;
   organizer: {
+    id?: string;
     name: string;
     avatar: string;
     username: string;
@@ -189,10 +193,20 @@ export interface Event {
   category?: string;
   isOnline: boolean;
   maxAttendees?: number;
+  /** @deprecated Use admissionType === 'pre_registration' */
   registrationRequired: boolean;
+  admissionType: AdmissionType;
+  attendeeQuestion?: string;
+  datePublic: boolean;
+  datePlaceholder?: string;
+  durationMinutes?: number;
+  locationPublic: boolean;
+  locationPlaceholder?: string;
   status: EventStatus;
   attendeeCount: number;
   isUserRegistered: boolean;
+  /** Si el usuario tiene solicitud pendiente (pre-inscripción) */
+  isUserPending?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -202,6 +216,8 @@ export interface EventAttendance {
   eventId: string;
   userId: string;
   status: AttendanceStatus;
+  purpose?: string;
+  answerToQuestion?: string;
   registeredAt: string;
 }
 

@@ -203,32 +203,14 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ handle }) => {
     loadProfile();
   }, [cleanHandle]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full bg-gray-50 p-10 text-center">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#D97706] mb-4"></div>
-        <p className="text-gray-500">Cargando perfil...</p>
-      </div>
-    );
-  }
-
-  if (error || !profile) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full bg-gray-50 p-10 text-center">
-        <h2 className="text-2xl font-serif text-terreta-dark mb-2">Usuario no encontrado</h2>
-        <p className="text-gray-500">{error || 'El perfil que buscas no existe o ha sido eliminado.'}</p>
-      </div>
-    );
-  }
-
-  // Actualizar contadores cuando cambia el estado de follow
+  // Actualizar contadores cuando cambia el estado de follow (siempre mismo número de hooks)
   useEffect(() => {
     if (followHook.followersCount !== followersCount) {
       setFollowersCount(followHook.followersCount);
     }
   }, [followHook.followersCount]);
 
-  // Meta tags dinámicos y structured data para SEO
+  // Meta tags dinámicos y structured data para SEO (siempre llamar al hook, antes de cualquier return)
   const profileUrl = `/p/${cleanHandle}`;
   const profileName = profile?.displayName || cleanHandle;
   const profileBio = profile?.bio || `Perfil de ${profileName} en Terreta Hub`;
@@ -264,6 +246,24 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ handle }) => {
       }
     } : undefined
   });
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-gray-50 p-10 text-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#D97706] mb-4"></div>
+        <p className="text-gray-500">Cargando perfil...</p>
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-gray-50 p-10 text-center">
+        <h2 className="text-2xl font-serif text-terreta-dark mb-2">Usuario no encontrado</h2>
+        <p className="text-gray-500">{error || 'El perfil que buscas no existe o ha sido eliminado.'}</p>
+      </div>
+    );
+  }
 
   return (
       <div className="w-full h-full bg-white overflow-y-auto">

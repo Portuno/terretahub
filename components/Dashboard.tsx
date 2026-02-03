@@ -136,7 +136,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
 
         {/* Content Area */}
         <div className={`flex-1 overflow-y-auto ${location.pathname !== '/' ? 'px-4 md:px-8 pb-4' : ''}`}>
-          <Outlet />
+          <Outlet context={{ user: currentUser ?? user }} />
         </div>
 
         {/* Footer - Only show on home page */}
