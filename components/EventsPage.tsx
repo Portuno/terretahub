@@ -587,15 +587,21 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2 text-sm text-terreta-dark/70">
                       <Clock size={16} />
-                      <span>{formatDate(event.startDate)}</span>
+                      <span>
+                        {(event.datePublic ?? true)
+                          ? formatDate(event.startDate)
+                          : (event.datePlaceholder || 'Revelado tras confirmación')}
+                      </span>
                     </div>
                     
-                    {event.location && (
-                      <div className="flex items-center gap-2 text-sm text-terreta-dark/70">
-                        <MapPin size={16} />
-                        <span>{event.isOnline ? 'En línea · ' : ''}{event.location}</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 text-sm text-terreta-dark/70">
+                      <MapPin size={16} />
+                      <span>
+                        {(event.locationPublic ?? true)
+                          ? (event.isOnline ? 'En línea' + (event.location ? ` · ${event.location}` : '') : (event.location || '—'))
+                          : (event.locationPlaceholder || 'Revelado tras confirmación')}
+                      </span>
+                    </div>
 
                     <div className="flex items-center gap-2 text-sm text-terreta-dark/70">
                       <Users size={16} />
