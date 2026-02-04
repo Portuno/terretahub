@@ -126,6 +126,63 @@ export interface AgoraPost {
   dislikesCount?: number;
   userLikeType?: 'like' | 'dislike' | null; // Tipo de like del usuario actual
   poll?: Poll; // Encuesta asociada (opcional)
+  /** ISO date for feed sorting */
+  createdAt?: string;
+}
+
+// --- AGORA UNIFIED FEED TYPES ---
+
+export type AgoraFeedItemType = 'post' | 'resource_request' | 'profile_created' | 'event_created';
+
+export interface ResourceRequestFeedPayload {
+  id: string;
+  createdAt: string;
+  details: string;
+  verticals: string[];
+  formatTags: string[];
+  status?: string;
+  author: {
+    id: string;
+    name: string;
+    avatar: string;
+    username: string;
+  };
+}
+
+export interface ProfileCreatedPayload {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string;
+  createdAt: string;
+}
+
+export interface EventCreatedPayload {
+  id: string;
+  title: string;
+  slug: string;
+  startDate: string;
+  imageUrl?: string | null;
+  createdAt: string;
+  organizer: {
+    id: string;
+    name: string;
+    avatar: string;
+    username: string;
+  };
+}
+
+export type AgoraFeedItemPayload =
+  | AgoraPost
+  | ResourceRequestFeedPayload
+  | ProfileCreatedPayload
+  | EventCreatedPayload;
+
+export interface AgoraFeedItem {
+  type: AgoraFeedItemType;
+  id: string;
+  createdAt: string;
+  payload: AgoraFeedItemPayload;
 }
 
 // --- PROJECT TYPES ---

@@ -1,7 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, User, AlertTriangle, Image as ImageIcon, Video, Link as LinkIcon, X, BarChart3, Mic, Square } from 'lucide-react';
 import { AgoraPost as AgoraPostComponent } from './AgoraPost';
-import { AgoraPost, AuthUser } from '../types';
+import { AgoraCardResourceRequest } from './AgoraCardResourceRequest';
+import { AgoraCardProfileCreated } from './AgoraCardProfileCreated';
+import { AgoraCardEventCreated } from './AgoraCardEventCreated';
+import {
+  AgoraPost,
+  AuthUser,
+  AgoraFeedItem,
+  ResourceRequestFeedPayload,
+  ProfileCreatedPayload,
+  EventCreatedPayload
+} from '../types';
 import { supabase } from '../lib/supabase';
 import { executeQueryWithRetry, executeBatchedQuery } from '../lib/supabaseHelpers';
 import { isAdmin } from '../lib/userRoles';
@@ -36,9 +46,16 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   
+  // Feed unificado: otras fuentes además de posts
+  const [resourceNeedsFeed, setResourceNeedsFeed] = useState<ResourceRequestFeedPayload[]>([]);
+  const [eventsCreatedFeed, setEventsCreatedFeed] = useState<EventCreatedPayload[]>([]);
+  const [newProfilesFeed, setNewProfilesFeed] = useState<ProfileCreatedPayload[]>([]);
+
   // Filtros
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  type FeedTypeFilter = 'all' | 'post' | 'resource_request' | 'profile_created' | 'event_created';
+  const [feedTypeFilter, setFeedTypeFilter] = useState<FeedTypeFilter>('all');
   
   // Creación de post
   const [postTags, setPostTags] = useState<string[]>([]);
@@ -259,6 +276,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         },
         content: post.content,
         timestamp: formatTimestamp(post.created_at),
+        createdAt: post.created_at,
         imageUrls: post.image_urls || [],
         videoUrl: post.video_url || null,
         linkUrl: post.link_url || null,
@@ -342,6 +360,160 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
       console.error('Error loading tags:', err);
     }
   };
+
+  // Cargar solicitudes de recursos para el feed (solo con user_id para mostrar autor)
+  const loadResourceNeedsFeed = async () => {
+    try {
+      const { data: needsData } = await supabase
+        .from('resource_needs')
+        .select('id, user_id, details, verticals, format_tags, status, created_at')
+        .not('user_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (!needsData || needsData.length === 0) {
+        setResourceNeedsFeed([]);
+        return;
+      }
+
+      const userIds = [...new Set(needsData.map((r: any) => r.user_id).filter(Boolean))];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, name, username, avatar')
+        .in('id', userIds);
+
+      const profilesMap = new Map<string, any>();
+      (profilesData || []).forEach((p: any) => profilesMap.set(p.id, p));
+
+      const payloads: ResourceRequestFeedPayload[] = needsData.map((row: any) => {
+        const author = profilesMap.get(row.user_id);
+        return {
+          id: row.id,
+          createdAt: row.created_at,
+          details: row.details || '',
+          verticals: row.verticals || [],
+          formatTags: row.format_tags || [],
+          status: row.status,
+          author: {
+            id: author?.id || row.user_id,
+            name: author?.name || 'Usuario',
+            avatar: author?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${author?.username || 'user'}`,
+            username: author?.username || 'usuario'
+          }
+        };
+      });
+      setResourceNeedsFeed(payloads);
+    } catch (err) {
+      console.error('[AgoraFeed] Error loading resource needs:', err);
+    }
+  };
+
+  // Cargar eventos publicados para el feed
+  const loadEventsCreatedFeed = async () => {
+    try {
+      const { data: eventsData } = await supabase
+        .from('events')
+        .select('id, organizer_id, title, slug, start_date, image_url, created_at')
+        .eq('status', 'published')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (!eventsData || eventsData.length === 0) {
+        setEventsCreatedFeed([]);
+        return;
+      }
+
+      const organizerIds = [...new Set(eventsData.map((e: any) => e.organizer_id).filter(Boolean))];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, name, username, avatar')
+        .in('id', organizerIds);
+
+      const profilesMap = new Map<string, any>();
+      (profilesData || []).forEach((p: any) => profilesMap.set(p.id, p));
+
+      const payloads: EventCreatedPayload[] = eventsData.map((row: any) => {
+        const organizer = profilesMap.get(row.organizer_id);
+        return {
+          id: row.id,
+          title: row.title,
+          slug: row.slug || '',
+          startDate: row.start_date,
+          imageUrl: row.image_url || null,
+          createdAt: row.created_at,
+          organizer: {
+            id: organizer?.id || row.organizer_id,
+            name: organizer?.name || 'Organizador',
+            avatar: organizer?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${organizer?.username || 'user'}`,
+            username: organizer?.username || 'usuario'
+          }
+        };
+      });
+      setEventsCreatedFeed(payloads);
+    } catch (err) {
+      console.error('[AgoraFeed] Error loading events:', err);
+    }
+  };
+
+  // Cargar nuevos perfiles (show_in_community) para el feed
+  const loadNewProfilesFeed = async () => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, name, username, avatar, created_at')
+        .eq('show_in_community', true)
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+      if (!data) return;
+      const payloads: ProfileCreatedPayload[] = data.map((row: any) => ({
+        id: row.id,
+        name: row.name || 'Usuario',
+        username: row.username || 'usuario',
+        avatar: row.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${row.username || 'user'}`,
+        createdAt: row.created_at
+      }));
+      setNewProfilesFeed(payloads);
+    } catch (err) {
+      console.error('[AgoraFeed] Error loading new profiles:', err);
+    }
+  };
+
+  // Merge de todas las fuentes en un único feed ordenado por fecha
+  const feedItems: AgoraFeedItem[] = React.useMemo(() => {
+    const getItemCreatedAt = (item: AgoraFeedItem): string => {
+      if (item.type === 'post') return (item.payload as AgoraPost).createdAt ?? '';
+      return (item.payload as ResourceRequestFeedPayload | ProfileCreatedPayload | EventCreatedPayload).createdAt;
+    };
+    const items: AgoraFeedItem[] = [];
+    posts.forEach((post) => {
+      items.push({
+        type: 'post',
+        id: `post-${post.id}`,
+        createdAt: post.createdAt ?? post.timestamp,
+        payload: post
+      });
+    });
+    resourceNeedsFeed.forEach((p) => {
+      items.push({ type: 'resource_request', id: `resource-${p.id}`, createdAt: p.createdAt, payload: p });
+    });
+    eventsCreatedFeed.forEach((p) => {
+      items.push({ type: 'event_created', id: `event-${p.id}`, createdAt: p.createdAt, payload: p });
+    });
+    newProfilesFeed.forEach((p) => {
+      items.push({ type: 'profile_created', id: `profile-${p.id}`, createdAt: p.createdAt, payload: p });
+    });
+    return items.sort((a, b) => {
+      const dateA = getItemCreatedAt(a);
+      const dateB = getItemCreatedAt(b);
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
+    });
+  }, [posts, resourceNeedsFeed, eventsCreatedFeed, newProfilesFeed]);
+
+  const filteredFeedItems = React.useMemo(() => {
+    if (feedTypeFilter === 'all') return feedItems;
+    return feedItems.filter((item) => item.type === feedTypeFilter);
+  }, [feedItems, feedTypeFilter]);
 
   // Fallback method using the old approach (in case the RPC function doesn't exist)
   const loadPostsFallback = async () => {
@@ -567,10 +739,13 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     }
   };
 
-  // Cargar posts iniciales y tags disponibles
+  // Cargar feed unificado: posts, recursos, eventos, perfiles nuevos
   useEffect(() => {
     loadPosts(0, 12, true);
     loadAvailableTags();
+    loadResourceNeedsFeed();
+    loadEventsCreatedFeed();
+    loadNewProfilesFeed();
   }, [selectedTag]);
 
   // Función para cargar más posts
@@ -700,20 +875,25 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         return;
       }
 
-      // Crear encuesta si existe
+      // Crear encuesta si existe y obtener id para el post optimista
+      let createdPoll: { id: string; created_at: string } | null = null;
       if (pollData && newPost) {
-        const { error: pollError } = await supabase
+        const { data: pollRow, error: pollError } = await supabase
           .from('agora_polls')
           .insert({
             post_id: newPost.id,
             question: pollData.question,
             options: pollData.options,
             expires_at: pollData.expiresAt || null
-          });
+          })
+          .select('id, created_at')
+          .single();
 
         if (pollError) {
           console.error('Error al crear encuesta:', pollError);
           // No fallar el post si la encuesta falla
+        } else if (pollRow) {
+          createdPoll = pollRow;
         }
       }
 
@@ -749,7 +929,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         }
       }
 
-      // Formatear el nuevo post con datos actualizados de la BD
+      // Formatear el nuevo post con datos actualizados de la BD (incluir encuesta si se creó)
       const formattedPost: AgoraPost = {
         id: newPost.id,
         authorId: newPost.author_id,
@@ -761,6 +941,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         },
         content: newPost.content,
         timestamp: formatTimestamp(newPost.created_at),
+        createdAt: newPost.created_at,
         imageUrls: newPost.image_urls || [],
         videoUrl: newPost.video_url || null,
         linkUrl: newPost.link_url || null,
@@ -768,7 +949,18 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         likesCount: 0,
         dislikesCount: 0,
         userLikeType: null,
-        comments: []
+        comments: [],
+        ...(createdPoll && pollData && {
+          poll: {
+            id: createdPoll.id,
+            postId: newPost.id,
+            question: pollData.question,
+            options: pollData.options,
+            expiresAt: pollData.expiresAt || null,
+            createdAt: createdPoll.created_at,
+            userVote: undefined
+          }
+        })
       };
 
       // Agregar al inicio de la lista
@@ -1361,10 +1553,33 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                       >
                         {isRecording ? <Square size={18} /> : <Mic size={18} />}
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!pollData) setShowPollCreator(true);
+                        }}
+                        disabled={!!pollData}
+                        className={`p-1.5 rounded transition-colors cursor-pointer ${
+                          pollData
+                            ? 'text-terreta-accent opacity-70 cursor-default'
+                            : 'text-terreta-secondary hover:text-terreta-dark hover:bg-terreta-bg'
+                        }`}
+                        title={pollData ? 'Encuesta añadida' : 'Agregar encuesta'}
+                        aria-label={pollData ? 'Encuesta añadida' : 'Agregar encuesta'}
+                      >
+                        <BarChart3 size={18} />
+                      </button>
                     </div>
                     <button 
                       type="submit" 
-                      disabled={(!newPostContent.trim() && selectedFiles.length === 0 && !linkUrl.trim()) || isUploading || isTranscribing || isRecording}
+                      disabled={
+                        (() => {
+                          const hasContent = !!newPostContent.trim() || selectedFiles.length > 0 || !!linkUrl.trim();
+                          const hasValidPoll = pollData && pollData.question.trim() && pollData.options.filter(o => o.trim()).length >= 2;
+                          return (!hasContent && !hasValidPoll) || isUploading || isTranscribing || isRecording;
+                        })()
+                      }
                       className="bg-terreta-dark text-terreta-bg px-6 py-2 rounded-full font-bold text-sm hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {isUploading ? (
@@ -1393,9 +1608,28 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros por tipo y por tag */}
       <div className="mb-6 flex flex-wrap gap-2 items-center">
-        <span className="text-sm text-terreta-secondary">Filtros:</span>
+        <span className="text-sm text-terreta-secondary">Tipo:</span>
+        {(
+          [
+            { value: 'all' as const, label: 'Todos' },
+            { value: 'post' as const, label: 'Posts' }
+          ] as const
+        ).map(({ value, label }) => (
+          <button
+            key={value}
+            onClick={() => setFeedTypeFilter(value)}
+            className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+              feedTypeFilter === value
+                ? 'bg-terreta-accent text-white border-terreta-accent'
+                : 'bg-terreta-bg/50 text-terreta-secondary border-terreta-border hover:bg-terreta-bg'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+        <span className="text-sm text-terreta-secondary ml-4">Tags:</span>
         <button
           onClick={() => setSelectedTag(null)}
           className={`px-3 py-1 text-xs rounded-full border transition-colors ${
@@ -1425,30 +1659,50 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-terreta-accent mb-4"></div>
-          <p className="text-terreta-secondary">Cargando posts...</p>
+          <p className="text-terreta-secondary">Cargando feed...</p>
         </div>
-      ) : posts.length === 0 ? (
+      ) : filteredFeedItems.length === 0 ? (
         <div className="text-center py-12 text-terreta-secondary">
-          <p className="text-lg mb-2">Aún no hay posts</p>
-          <p className="text-sm">Sé el primero en compartir algo con la comunidad</p>
+          <p className="text-lg mb-2">
+            {feedTypeFilter === 'all' ? 'Aún no hay actividad' : 'No hay ítems de este tipo'}
+          </p>
+          <p className="text-sm">
+            {feedTypeFilter === 'all'
+              ? 'Sé el primero en compartir algo con la comunidad'
+              : 'Prueba con otro filtro o publica algo'}
+          </p>
         </div>
       ) : (
         <>
           <div className="space-y-4">
-            {posts.map(post => (
-              <AgoraPostComponent 
-                key={post.id} 
-                post={post} 
-                currentUser={user}
-                onReply={handleReply}
-                onDelete={handleDeletePost}
-                onOpenAuth={onOpenAuth}
-              />
-            ))}
+            {filteredFeedItems.map((item) => {
+              if (item.type === 'post') {
+                return (
+                  <AgoraPostComponent
+                    key={item.id}
+                    post={item.payload as AgoraPost}
+                    currentUser={user}
+                    onReply={handleReply}
+                    onDelete={handleDeletePost}
+                    onOpenAuth={onOpenAuth}
+                  />
+                );
+              }
+              if (item.type === 'resource_request') {
+                return <AgoraCardResourceRequest key={item.id} payload={item.payload as ResourceRequestFeedPayload} />;
+              }
+              if (item.type === 'profile_created') {
+                return <AgoraCardProfileCreated key={item.id} payload={item.payload as ProfileCreatedPayload} />;
+              }
+              if (item.type === 'event_created') {
+                return <AgoraCardEventCreated key={item.id} payload={item.payload as EventCreatedPayload} />;
+              }
+              return null;
+            })}
           </div>
           
-          {/* Botón Cargar más */}
-          {hasMore && (
+          {/* Botón Cargar más (solo cuando se muestra todo el feed, ya que solo los posts tienen paginación) */}
+          {feedTypeFilter === 'all' && hasMore && (
             <div className="flex justify-center mt-8">
               <button
                 onClick={handleLoadMore}
