@@ -32,6 +32,80 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Meta tags dinámicos y structured data para SEO
+  // IMPORTANTE: este hook debe llamarse siempre, antes de cualquier return condicional
+  const postUrl = id ? `/agora/post/${id}` : '/agora/post';
+  const postImageUrl = post?.imageUrls && post.imageUrls.length > 0 
+    ? post.imageUrls[0] 
+    : post?.author.avatar || '/logo.png';
+  const postContent = post?.content 
+    ? (post.content.length > 200 ? `${post.content.substring(0, 200)}...` : post.content)
+    : 'Post en el Ágora de Terreta Hub';
+
+  useDynamicMetaTags({
+    title: post ? `Post de ${post.author.name} | Ágora Terreta Hub` : 'Post | Terreta Hub',
+    description: postContent,
+    image: postImageUrl,
+    url: postUrl,
+    type: 'article',
+    author: post ? `${post.author.name} (${post.author.handle})` : undefined,
+    publishedTime: postCreatedAt || undefined,
+    tags: ['Ágora', 'Comunidad', 'Terreta Hub'],
+    structuredData: post
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'SocialMediaPosting',
+          '@id': `https://terretahub.com${postUrl}`,
+          headline: postContent.substring(0, 100),
+          description: postContent,
+          image: postImageUrl.startsWith('http')
+            ? postImageUrl
+            : `https://terretahub.com${postImageUrl}`,
+          datePublished: postCreatedAt || post.timestamp,
+          author: {
+            '@type': 'Person',
+            name: post.author.name,
+            alternateName: post.author.handle,
+            url: `https://terretahub.com/p/${post.author.handle.replace('@', '')}`,
+            image: post.author.avatar,
+          },
+          publisher: {
+            '@type': 'Organization',
+            name: 'Terreta Hub',
+            logo: {
+              '@type': 'ImageObject',
+              url: 'https://terretahub.com/logo.png',
+            },
+          },
+          mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': `https://terretahub.com${postUrl}`,
+          },
+          articleSection: 'Ágora',
+          keywords: 'Ágora, Comunidad, Terreta Hub, Networking, Valencia',
+          inLanguage: 'es-ES',
+          isAccessibleForFree: true,
+          commentCount: post.comments?.length || 0,
+          ...(post.videoUrl
+            ? {
+                video: {
+                  '@type': 'VideoObject',
+                  embedUrl: post.videoUrl,
+                },
+              }
+            : {}),
+          ...(post.linkUrl
+            ? {
+                sharedContent: {
+                  '@type': 'WebPage',
+                  url: post.linkUrl,
+                },
+              }
+            : {}),
+        }
+      : undefined,
+  });
+
   useEffect(() => {
     if (!id) {
       setError('ID de post no válido');
@@ -43,6 +117,13 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
       try {
         setLoading(true);
         setError(null);
+
+        // Cargar encuesta asociada (si existe) para este post
+        const { data: pollRow } = await supabase
+          .from('agora_polls')
+          .select('id, post_id, question, options, expires_at, created_at')
+          .eq('post_id', id)
+          .maybeSingle();
 
         // Intentar usar la función RPC primero
         const { data: feedData, error: feedError } = await executeQueryWithRetry(
@@ -68,6 +149,16 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
               imageUrls: foundPost.image_urls || [],
               videoUrl: foundPost.video_url || null,
               linkUrl: foundPost.link_url || null,
+              poll: pollRow
+                ? {
+                    id: pollRow.id,
+                    postId: pollRow.post_id,
+                    question: pollRow.question,
+                    options: pollRow.options,
+                    expiresAt: pollRow.expires_at || undefined,
+                    createdAt: pollRow.created_at,
+                  }
+                : undefined,
               comments: (foundPost.comments || []).map((comment: any) => ({
                 id: comment.id,
                 author: {
@@ -101,7 +192,7 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
           setLoading(false);
           return;
         }
-        
+
         setPostCreatedAt(postData.created_at);
 
         // Cargar perfil del autor
@@ -149,6 +240,16 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
           imageUrls: postData.image_urls || [],
           videoUrl: postData.video_url || null,
           linkUrl: postData.link_url || null,
+          poll: pollRow
+            ? {
+                id: pollRow.id,
+                postId: pollRow.post_id,
+                question: pollRow.question,
+                options: pollRow.options,
+                expiresAt: pollRow.expires_at || undefined,
+                createdAt: pollRow.created_at,
+              }
+            : undefined,
           comments: (commentsData || []).map((comment: any) => {
             const commentAuthor = profilesMap.get(comment.author_id);
             return {
@@ -260,71 +361,6 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
       </div>
     );
   }
-
-  // Meta tags dinámicos y structured data para SEO
-  const postUrl = `/agora/post/${id}`;
-  const postImageUrl = post?.imageUrls && post.imageUrls.length > 0 
-    ? post.imageUrls[0] 
-    : post?.author.avatar || '/logo.png';
-  const postContent = post?.content 
-    ? (post.content.length > 200 ? post.content.substring(0, 200) + '...' : post.content)
-    : 'Post en el Ágora de Terreta Hub';
-
-  useDynamicMetaTags({
-    title: post ? `Post de ${post.author.name} | Ágora Terreta Hub` : 'Post | Terreta Hub',
-    description: postContent,
-    image: postImageUrl,
-    url: postUrl,
-    type: 'article',
-    author: post ? `${post.author.name} (${post.author.handle})` : undefined,
-    publishedTime: postCreatedAt || undefined,
-    tags: ['Ágora', 'Comunidad', 'Terreta Hub'],
-    structuredData: post ? {
-      '@context': 'https://schema.org',
-      '@type': 'SocialMediaPosting',
-      '@id': `https://terretahub.com${postUrl}`,
-      'headline': postContent.substring(0, 100),
-      'description': postContent,
-      'image': postImageUrl.startsWith('http') ? postImageUrl : `https://terretahub.com${postImageUrl}`,
-      'datePublished': postCreatedAt || post.timestamp,
-      'author': {
-        '@type': 'Person',
-        'name': post.author.name,
-        'alternateName': post.author.handle,
-        'url': `https://terretahub.com/p/${post.author.handle.replace('@', '')}`,
-        'image': post.author.avatar
-      },
-      'publisher': {
-        '@type': 'Organization',
-        'name': 'Terreta Hub',
-        'logo': {
-          '@type': 'ImageObject',
-          'url': 'https://terretahub.com/logo.png'
-        }
-      },
-      'mainEntityOfPage': {
-        '@type': 'WebPage',
-        '@id': `https://terretahub.com${postUrl}`
-      },
-      'articleSection': 'Ágora',
-      'keywords': 'Ágora, Comunidad, Terreta Hub, Networking, Valencia',
-      'inLanguage': 'es-ES',
-      'isAccessibleForFree': true,
-      'commentCount': post.comments?.length || 0,
-      ...(post.videoUrl ? {
-        'video': {
-          '@type': 'VideoObject',
-          'embedUrl': post.videoUrl
-        }
-      } : {}),
-      ...(post.linkUrl ? {
-        'sharedContent': {
-          '@type': 'WebPage',
-          'url': post.linkUrl
-        }
-      } : {})
-    } : undefined
-  });
 
   return (
     <div className="min-h-screen bg-terreta-bg py-8 px-4">
