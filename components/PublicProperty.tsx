@@ -128,7 +128,7 @@ export const PublicProperty: React.FC = () => {
 
         const { data: propertyRow, error: propertyError } = await supabase
           .from('properties')
-          .select('*')
+          .select('*, contact_email, contact_phone, contact_website')
           .eq('owner_id', profile.id)
           .eq('slug', slug)
           .eq('status', 'published')
@@ -171,6 +171,13 @@ export const PublicProperty: React.FC = () => {
             avatar: finalAvatar,
           },
         };
+
+        // Debug: verificar campos de contacto
+        console.log('[PublicProperty] Contact fields:', {
+          contact_email: withOwner.contact_email,
+          contact_phone: withOwner.contact_phone,
+          contact_website: withOwner.contact_website,
+        });
 
         setProperty(withOwner);
       } catch (err) {
@@ -248,7 +255,7 @@ export const PublicProperty: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
-        <div className="grid md:grid-cols-2 gap-0 h-[600px]">
+        <div className="grid md:grid-cols-2 gap-0 min-h-[600px]">
           {/* Columna izquierda: Imágenes y videos */}
           <div className="bg-gray-50 overflow-y-auto flex flex-col">
             {property.images && property.images.length > 0 ? (
@@ -379,11 +386,59 @@ export const PublicProperty: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Contact Information - Left Column */}
+              {(() => {
+                const hasContactInfo = 
+                  (property.contact_email && property.contact_email.trim()) ||
+                  (property.contact_phone && property.contact_phone.trim()) ||
+                  (property.contact_website && property.contact_website.trim());
+                
+                return hasContactInfo ? (
+                  <div className="px-6 pb-6 pt-4 border-t border-terreta-border">
+                    <h3 className="font-bold text-terreta-dark mb-3 uppercase text-xs tracking-wide">
+                      Información de contacto
+                    </h3>
+                    <div className="space-y-2.5">
+                      {property.contact_email && property.contact_email.trim() && (
+                        <a
+                          href={`mailto:${property.contact_email.trim()}`}
+                          className="flex items-center gap-2 text-sm text-terreta-dark hover:text-terreta-accent transition-colors"
+                        >
+                          <Mail size={16} className="text-terreta-accent flex-shrink-0" />
+                          <span className="break-words">{property.contact_email.trim()}</span>
+                        </a>
+                      )}
+                      {property.contact_phone && property.contact_phone.trim() && (
+                        <a
+                          href={`tel:${property.contact_phone.trim()}`}
+                          className="flex items-center gap-2 text-sm text-terreta-dark hover:text-terreta-accent transition-colors"
+                        >
+                          <Phone size={16} className="text-terreta-accent flex-shrink-0" />
+                          <span>{property.contact_phone.trim()}</span>
+                        </a>
+                      )}
+                      {property.contact_website && property.contact_website.trim() && (
+                        <a
+                          href={normalizeUrl(property.contact_website.trim())}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-terreta-dark hover:text-terreta-accent transition-colors"
+                        >
+                          <Globe size={16} className="text-terreta-accent flex-shrink-0" />
+                          <span className="break-words">{property.contact_website.trim()}</span>
+                          <ExternalLink size={14} className="flex-shrink-0" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
             </div>
           </div>
 
           {/* Columna derecha: Descripción y detalles */}
-          <div className="px-6 py-6 overflow-y-auto">
+          <div className="px-6 py-6 overflow-y-auto min-h-[600px]">
 
           {/* Description */}
           <div className="mb-5">
@@ -450,45 +505,52 @@ export const PublicProperty: React.FC = () => {
           </div>
 
           {/* Contact Information */}
-          {(property.contact_email || property.contact_phone || property.contact_website) && (
-            <div className="mb-5 pt-5 border-t border-terreta-border">
-              <h3 className="font-bold text-terreta-dark mb-3 uppercase text-xs tracking-wide">
-                Información de contacto
-              </h3>
-              <div className="space-y-2">
-                {property.contact_email && (
-                  <a
-                    href={`mailto:${property.contact_email}`}
-                    className="flex items-center gap-2 text-sm text-terreta-dark hover:text-terreta-accent transition-colors"
-                  >
-                    <Mail size={16} className="text-terreta-accent" />
-                    <span>{property.contact_email}</span>
-                  </a>
-                )}
-                {property.contact_phone && (
-                  <a
-                    href={`tel:${property.contact_phone}`}
-                    className="flex items-center gap-2 text-sm text-terreta-dark hover:text-terreta-accent transition-colors"
-                  >
-                    <Phone size={16} className="text-terreta-accent" />
-                    <span>{property.contact_phone}</span>
-                  </a>
-                )}
-                {property.contact_website && (
-                  <a
-                    href={normalizeUrl(property.contact_website)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-terreta-dark hover:text-terreta-accent transition-colors"
-                  >
-                    <Globe size={16} className="text-terreta-accent" />
-                    <span className="truncate">{property.contact_website}</span>
-                    <ExternalLink size={14} className="flex-shrink-0" />
-                  </a>
-                )}
+          {(() => {
+            const hasContactInfo = 
+              (property.contact_email && property.contact_email.trim()) ||
+              (property.contact_phone && property.contact_phone.trim()) ||
+              (property.contact_website && property.contact_website.trim());
+            
+            return hasContactInfo ? (
+              <div className="mb-5 pt-5 border-t border-terreta-border">
+                <h3 className="font-bold text-terreta-dark mb-3 uppercase text-xs tracking-wide">
+                  Información de contacto
+                </h3>
+                <div className="space-y-2">
+                  {property.contact_email && property.contact_email.trim() && (
+                    <a
+                      href={`mailto:${property.contact_email.trim()}`}
+                      className="flex items-center gap-2 text-sm text-terreta-dark hover:text-terreta-accent transition-colors"
+                    >
+                      <Mail size={16} className="text-terreta-accent" />
+                      <span>{property.contact_email.trim()}</span>
+                    </a>
+                  )}
+                  {property.contact_phone && property.contact_phone.trim() && (
+                    <a
+                      href={`tel:${property.contact_phone.trim()}`}
+                      className="flex items-center gap-2 text-sm text-terreta-dark hover:text-terreta-accent transition-colors"
+                    >
+                      <Phone size={16} className="text-terreta-accent" />
+                      <span>{property.contact_phone.trim()}</span>
+                    </a>
+                  )}
+                  {property.contact_website && property.contact_website.trim() && (
+                    <a
+                      href={normalizeUrl(property.contact_website.trim())}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-terreta-dark hover:text-terreta-accent transition-colors"
+                    >
+                      <Globe size={16} className="text-terreta-accent" />
+                      <span className="truncate">{property.contact_website.trim()}</span>
+                      <ExternalLink size={14} className="flex-shrink-0" />
+                    </a>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            ) : null;
+          })()}
 
           {/* External link */}
           {property.external_link && (
