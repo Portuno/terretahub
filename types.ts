@@ -369,6 +369,43 @@ export interface PollResult {
   percentage: number;
 }
 
+// --- PROPERTIES (REAL ESTATE) TYPES ---
+
+export type PropertyStatus = 'draft' | 'published' | 'archived';
+export type PropertyOperationType = 'rent' | 'sale' | 'roomshare';
+export type PropertyType = 'room' | 'apartment' | 'house' | 'studio' | 'office' | 'other';
+
+export interface Property {
+  id: string;
+  ownerId: string;
+  title: string;
+  description: string;
+  operationType: PropertyOperationType;
+  propertyType: PropertyType;
+  status: PropertyStatus;
+  price: number;
+  currency: string;
+  pricePeriod: 'per_month' | 'per_week' | 'per_night' | 'total';
+  depositAmount?: number | null;
+  billsIncluded: boolean;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  sizeM2?: number | null;
+  floor?: number | null;
+  furnished: boolean;
+  petsAllowed: boolean;
+  address?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  country?: string | null;
+  images: string[];
+  videoUrls: string[];
+  externalLink?: string | null;
+  slug: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Follow {
   id: string;
   followerId: string;

@@ -30,6 +30,8 @@ import { BlogPostPage } from './components/BlogPostPage';
 import { isAdmin } from './lib/userRoles';
 import { ThemeProvider } from './context/ThemeContext';
 import { OnboardingFlow } from './components/OnboardingFlow';
+import { PropertiesPage } from './components/PropertiesPage';
+import { PublicProperty } from './components/PublicProperty';
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -469,6 +471,7 @@ const AppContent: React.FC = () => {
           <Route path="agora" element={<AgoraFeed user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="comunidad" element={<CommunityPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="proyectos" element={<ProjectsPage user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="propiedades" element={<PropertiesPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="recursos" element={<ResourceCollabPanel user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="eventos" element={<EventsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="blogs" element={<BlogsPage user={user} onOpenAuth={handleOpenAuth} />} />
@@ -490,6 +493,10 @@ const AppContent: React.FC = () => {
         <Route 
           path="/proyecto/:slug" 
           element={<PublicProject />} 
+        />
+        <Route 
+          path="/propiedad/:username/:slug" 
+          element={<PublicProperty />} 
         />
         <Route 
           path="/terminos-y-condiciones" 

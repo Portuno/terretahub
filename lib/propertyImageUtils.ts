@@ -5,7 +5,6 @@
 
 import { supabase } from './supabase';
 
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB (por si necesitas validaciones futuras)
 const MAX_DIMENSION = 1920; // Máximo 1920px (Full HD)
 const QUALITY = 0.85; // Calidad JPEG/WebP
 
@@ -192,6 +191,66 @@ export const uploadPropertyImagesToStorage = async (
         }
       }
     }
+  }
+
+  return uploadedUrls;
+};
+
+/**
+ * Sube un vídeo de propiedad a Storage y retorna la URL pública
+ */
+export const uploadPropertyVideoToStorage = async (
+  ownerId: string,
+  propertyId: string,
+  file: File | Blob,
+  videoIndex: number
+): Promise<string> => {
+  try {
+    const mime = (file as any).type || 'video/mp4';
+    let ext = 'mp4';
+    if (mime.includes('webm')) ext = 'webm';
+    if (mime.includes('ogg')) ext = 'ogg';
+
+    const timestamp = Date.now();
+    const filePath = `${ownerId}/${propertyId}/video_${timestamp}_${videoIndex}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('properties')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: mime,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from('properties').getPublicUrl(filePath);
+
+    return publicUrl;
+  } catch (error: any) {
+    console.error('[propertyImageUtils] Error al subir vídeo de propiedad:', error);
+    throw error;
+  }
+};
+
+/**
+ * Sube múltiples vídeos de propiedad a Storage (máx. recomendado: 2)
+ */
+export const uploadPropertyVideosToStorage = async (
+  ownerId: string,
+  propertyId: string,
+  videos: (File | Blob)[]
+): Promise<string[]> => {
+  const uploadedUrls: string[] = [];
+
+  for (let index = 0; index < videos.length; index++) {
+    const video = videos[index];
+    const url = await uploadPropertyVideoToStorage(ownerId, propertyId, video, index);
+    uploadedUrls.push(url);
   }
 
   return uploadedUrls;
