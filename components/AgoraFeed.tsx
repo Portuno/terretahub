@@ -4,15 +4,18 @@ import { AgoraPost as AgoraPostComponent } from './AgoraPost';
 import { AgoraCardResourceRequest } from './AgoraCardResourceRequest';
 import { AgoraCardProfileCreated } from './AgoraCardProfileCreated';
 import { AgoraCardEventCreated } from './AgoraCardEventCreated';
+import { AgoraCardBlogPublished } from './AgoraCardBlogPublished';
 import {
   AgoraPost,
   AuthUser,
   AgoraFeedItem,
   ResourceRequestFeedPayload,
   ProfileCreatedPayload,
-  EventCreatedPayload
+  EventCreatedPayload,
+  BlogPublishedPayload
 } from '../types';
 import { supabase } from '../lib/supabase';
+import { getBlogImageUrl } from '../lib/blogUtils';
 import { executeQueryWithRetry, executeBatchedQuery } from '../lib/supabaseHelpers';
 import { isAdmin } from '../lib/userRoles';
 import { uploadAgoraMedia, validateAgoraMedia, validateLinkUrl } from '../lib/agoraMediaUtils';
@@ -50,6 +53,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
   const [resourceNeedsFeed, setResourceNeedsFeed] = useState<ResourceRequestFeedPayload[]>([]);
   const [eventsCreatedFeed, setEventsCreatedFeed] = useState<EventCreatedPayload[]>([]);
   const [newProfilesFeed, setNewProfilesFeed] = useState<ProfileCreatedPayload[]>([]);
+  const [blogsFeed, setBlogsFeed] = useState<BlogPublishedPayload[]>([]);
 
   // Filtros
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -479,11 +483,59 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     }
   };
 
+  // Cargar blogs publicados para el feed
+  const loadBlogsFeed = async () => {
+    try {
+      const { data: blogsData } = await supabase
+        .from('blogs')
+        .select('id, author_id, title, slug, excerpt, card_image_path, primary_tag, created_at')
+        .eq('status', 'published')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (!blogsData || blogsData.length === 0) {
+        setBlogsFeed([]);
+        return;
+      }
+
+      const authorIds = [...new Set(blogsData.map((b: any) => b.author_id).filter(Boolean))];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, name, username, avatar')
+        .in('id', authorIds);
+
+      const profilesMap = new Map<string, any>();
+      (profilesData || []).forEach((p: any) => profilesMap.set(p.id, p));
+
+      const payloads: BlogPublishedPayload[] = blogsData.map((row: any) => {
+        const author = profilesMap.get(row.author_id);
+        return {
+          id: row.id,
+          title: row.title,
+          slug: row.slug,
+          excerpt: row.excerpt || null,
+          cardImageUrl: row.card_image_path ? getBlogImageUrl(row.card_image_path) : null,
+          primaryTag: row.primary_tag || '',
+          createdAt: row.created_at,
+          author: {
+            id: author?.id || row.author_id,
+            name: author?.name || 'Autor',
+            avatar: author?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${author?.username || 'user'}`,
+            username: author?.username || 'usuario'
+          }
+        };
+      });
+      setBlogsFeed(payloads);
+    } catch (err) {
+      console.error('[AgoraFeed] Error loading blogs:', err);
+    }
+  };
+
   // Merge de todas las fuentes en un único feed ordenado por fecha
   const feedItems: AgoraFeedItem[] = React.useMemo(() => {
     const getItemCreatedAt = (item: AgoraFeedItem): string => {
       if (item.type === 'post') return (item.payload as AgoraPost).createdAt ?? '';
-      return (item.payload as ResourceRequestFeedPayload | ProfileCreatedPayload | EventCreatedPayload).createdAt;
+      return (item.payload as ResourceRequestFeedPayload | ProfileCreatedPayload | EventCreatedPayload | BlogPublishedPayload).createdAt;
     };
     const items: AgoraFeedItem[] = [];
     posts.forEach((post) => {
@@ -503,12 +555,15 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     newProfilesFeed.forEach((p) => {
       items.push({ type: 'profile_created', id: `profile-${p.id}`, createdAt: p.createdAt, payload: p });
     });
+    blogsFeed.forEach((p) => {
+      items.push({ type: 'blog_published', id: `blog-${p.id}`, createdAt: p.createdAt, payload: p });
+    });
     return items.sort((a, b) => {
       const dateA = getItemCreatedAt(a);
       const dateB = getItemCreatedAt(b);
       return new Date(dateB).getTime() - new Date(dateA).getTime();
     });
-  }, [posts, resourceNeedsFeed, eventsCreatedFeed, newProfilesFeed]);
+  }, [posts, resourceNeedsFeed, eventsCreatedFeed, newProfilesFeed, blogsFeed]);
 
   const filteredFeedItems = React.useMemo(() => {
     if (feedTypeFilter === 'all') return feedItems;
@@ -746,6 +801,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     loadResourceNeedsFeed();
     loadEventsCreatedFeed();
     loadNewProfilesFeed();
+    loadBlogsFeed();
   }, [selectedTag]);
 
   // Función para cargar más posts
@@ -1696,6 +1752,9 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
               }
               if (item.type === 'event_created') {
                 return <AgoraCardEventCreated key={item.id} payload={item.payload as EventCreatedPayload} />;
+              }
+              if (item.type === 'blog_published') {
+                return <AgoraCardBlogPublished key={item.id} payload={item.payload as BlogPublishedPayload} />;
               }
               return null;
             })}

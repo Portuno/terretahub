@@ -132,7 +132,7 @@ export interface AgoraPost {
 
 // --- AGORA UNIFIED FEED TYPES ---
 
-export type AgoraFeedItemType = 'post' | 'resource_request' | 'profile_created' | 'event_created';
+export type AgoraFeedItemType = 'post' | 'resource_request' | 'profile_created' | 'event_created' | 'blog_published';
 
 export interface ResourceRequestFeedPayload {
   id: string;
@@ -172,11 +172,28 @@ export interface EventCreatedPayload {
   };
 }
 
+export interface BlogPublishedPayload {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt?: string | null;
+  cardImageUrl: string | null;
+  primaryTag: string;
+  createdAt: string;
+  author: {
+    id: string;
+    name: string;
+    avatar: string;
+    username: string;
+  };
+}
+
 export type AgoraFeedItemPayload =
   | AgoraPost
   | ResourceRequestFeedPayload
   | ProfileCreatedPayload
-  | EventCreatedPayload;
+  | EventCreatedPayload
+  | BlogPublishedPayload;
 
 export interface AgoraFeedItem {
   type: AgoraFeedItemType;
