@@ -116,10 +116,10 @@ export const PollDisplay: React.FC<PollDisplayProps> = ({ poll, currentUserId, o
                       {voteCount} votos ({percentage}%)
                     </span>
                   </div>
-                  <div className="w-full bg-terreta-border rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-terreta-bg border border-terreta-border/60 rounded-full h-2 overflow-hidden">
                     <div
-                      className={`h-full transition-all duration-300 ${
-                        isSelected ? 'bg-terreta-accent' : 'bg-terreta-accent/60'
+                      className={`h-full transition-[width] duration-300 ${
+                        isSelected ? 'bg-terreta-accent' : 'bg-terreta-accent/70'
                       }`}
                       style={{ width: `${percentage}%` }}
                     />
