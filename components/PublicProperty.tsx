@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useDynamicMetaTags } from '../hooks/useDynamicMetaTags';
 import { renderMarkdown, normalizeUrl } from '../lib/utils';
-import { MapPin, Home, Euro, Image as ImageIcon, ExternalLink, ArrowLeft } from 'lucide-react';
+import { MapPin, Home, Euro, Image as ImageIcon, ExternalLink, ArrowLeft, Video, Mail, Phone, Globe } from 'lucide-react';
 
 interface PropertyFromDB {
   id: string;
@@ -32,6 +32,9 @@ interface PropertyFromDB {
   video_url: string | null;
   video_urls: string[] | null;
   external_link: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  contact_website: string | null;
   slug: string;
   created_at: string;
   updated_at: string;
@@ -244,119 +247,143 @@ export const PublicProperty: React.FC = () => {
         </button>
       </div>
 
-      <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
-        {/* Hero */}
-        {property.images && property.images.length > 0 ? (
-          <div className="relative w-full h-56 bg-gray-50 overflow-hidden">
-            <img
-              src={property.images[currentImageIndex]}
-              alt={property.title}
-              className="w-full h-full object-cover"
-            />
-            {property.images.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={prevImage}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm text-terreta-dark p-2 rounded-full hover:bg-white transition-colors shadow-lg"
-                >
-                  ←
-                </button>
-                <button
-                  type="button"
-                  onClick={nextImage}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm text-terreta-dark p-2 rounded-full hover:bg-white transition-colors shadow-lg"
-                >
-                  →
-                </button>
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
-                  {property.images.map((_, index) => (
+      <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="grid md:grid-cols-2 gap-0 h-[600px]">
+          {/* Columna izquierda: Imágenes y videos */}
+          <div className="bg-gray-50 overflow-y-auto flex flex-col">
+            {property.images && property.images.length > 0 ? (
+              <div className="relative w-full h-64 md:h-[400px] bg-gray-50 overflow-hidden flex-shrink-0">
+                <img
+                  src={property.images[currentImageIndex]}
+                  alt={property.title}
+                  className="w-full h-full object-cover"
+                />
+                {property.images.length > 1 && (
+                  <>
                     <button
-                      key={index}
                       type="button"
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`h-2 rounded-full transition-all ${
-                        index === currentImageIndex ? 'bg-white w-8' : 'bg-white/50 w-2'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="relative w-full h-56 bg-gradient-to-br from-terreta-bg to-terreta-sidebar flex items-center justify-center">
-            <ImageIcon size={56} className="text-terreta-accent/30" />
-          </div>
-        )}
-
-        <div className="px-6 py-6">
-          {/* Header */}
-          <div className="mb-5">
-            <div className="flex items-start justify-between mb-3 flex-wrap gap-3">
-              <div className="flex-1">
-                <h1 className="font-serif text-2xl md:text-3xl text-terreta-dark mb-1.5">
-                  {property.title}
-                </h1>
-                {(property.neighborhood || property.city) && (
-                  <div className="flex items-center gap-1.5 text-sm text-terreta-secondary">
-                    <MapPin size={16} />
-                    <span>
-                      {property.neighborhood}
-                      {property.neighborhood && property.city && ' · '}
-                      {property.city}
-                    </span>
-                  </div>
+                      onClick={prevImage}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm text-terreta-dark p-2 rounded-full hover:bg-white transition-colors shadow-lg"
+                    >
+                      ←
+                    </button>
+                    <button
+                      type="button"
+                      onClick={nextImage}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm text-terreta-dark p-2 rounded-full hover:bg-white transition-colors shadow-lg"
+                    >
+                      →
+                    </button>
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+                      {property.images.map((_, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => setCurrentImageIndex(index)}
+                          className={`h-2 rounded-full transition-all ${
+                            index === currentImageIndex ? 'bg-white w-8' : 'bg-white/50 w-2'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
-              <div className="text-right">
-                <div className="flex items-center justify-end gap-2 mb-1">
-                  <Euro size={18} className="text-terreta-accent" />
-                  <span className="text-xl font-bold text-terreta-accent">
-                    {property.price.toLocaleString('es-ES')} {property.currency}
-                  </span>
-                </div>
-                <p className="text-xs text-terreta-secondary">
-                  {property.price_period === 'per_month'
-                    ? 'al mes'
-                    : property.price_period === 'per_week'
-                    ? 'por semana'
-                    : property.price_period === 'per_night'
-                    ? 'por noche'
-                    : 'precio total'}
-                </p>
+            ) : (
+              <div className="relative w-full h-64 md:h-[400px] bg-gradient-to-br from-terreta-bg to-terreta-sidebar flex items-center justify-center flex-shrink-0">
+                <ImageIcon size={56} className="text-terreta-accent/30" />
               </div>
-            </div>
+            )}
 
-            {/* Owner & date */}
-            <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-terreta-border">
-              <div className="flex items-center gap-2.5">
-                <img
-                  src={property.owner.avatar}
-                  alt={property.owner.name}
-                  className="w-9 h-9 rounded-full object-cover border border-terreta-border"
-                />
-                <div>
-                  <p className="font-bold text-sm text-terreta-dark">
-                    {property.owner.name}
-                  </p>
-                  <p className="text-xs text-terreta-secondary">
-                    @{property.owner.username}
-                  </p>
-                </div>
+            {/* Videos debajo de las imágenes */}
+            {property.video_urls && property.video_urls.length > 0 && (
+              <div className="p-4 space-y-3">
+                {property.video_urls.slice(0, 2).map((url, index) => (
+                  <video
+                    key={index}
+                    src={url}
+                    controls
+                    className="w-full rounded-lg border border-terreta-border bg-terreta-bg"
+                  >
+                    Tu navegador no soporta la reproducción de vídeo.
+                  </video>
+                ))}
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-terreta-secondary">
-                <span>
-                  Publicado el{' '}
-                  {new Date(property.created_at).toLocaleDateString('es-ES', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </span>
+            )}
+
+            {/* Información básica debajo de imágenes/videos */}
+            <div className="px-6 py-6 border-t border-terreta-border flex-shrink-0">
+              {/* Header */}
+              <div className="mb-5">
+                <div className="flex items-start justify-between mb-3 flex-wrap gap-3">
+                  <div className="flex-1">
+                    <h1 className="font-serif text-2xl md:text-3xl text-terreta-dark mb-1.5">
+                      {property.title}
+                    </h1>
+                    {(property.neighborhood || property.city) && (
+                      <div className="flex items-center gap-1.5 text-sm text-terreta-secondary">
+                        <MapPin size={16} />
+                        <span>
+                          {property.neighborhood}
+                          {property.neighborhood && property.city && ' · '}
+                          {property.city}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center justify-end gap-2 mb-1">
+                      <Euro size={18} className="text-terreta-accent" />
+                      <span className="text-xl font-bold text-terreta-accent">
+                        {property.price.toLocaleString('es-ES')} {property.currency}
+                      </span>
+                    </div>
+                    <p className="text-xs text-terreta-secondary">
+                      {property.price_period === 'per_month'
+                        ? 'al mes'
+                        : property.price_period === 'per_week'
+                        ? 'por semana'
+                        : property.price_period === 'per_night'
+                        ? 'por noche'
+                        : 'precio total'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Owner & date */}
+                <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-terreta-border">
+                  <div className="flex items-center gap-2.5">
+                    <img
+                      src={property.owner.avatar}
+                      alt={property.owner.name}
+                      className="w-9 h-9 rounded-full object-cover border border-terreta-border"
+                    />
+                    <div>
+                      <p className="font-bold text-sm text-terreta-dark">
+                        {property.owner.name}
+                      </p>
+                      <p className="text-xs text-terreta-secondary">
+                        @{property.owner.username}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-terreta-secondary">
+                    <span>
+                      Publicado el{' '}
+                      {new Date(property.created_at).toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Columna derecha: Descripción y detalles */}
+          <div className="px-6 py-6 overflow-y-auto">
 
           {/* Description */}
           <div className="mb-5">
@@ -367,28 +394,6 @@ export const PublicProperty: React.FC = () => {
               {renderMarkdown(property.description)}
             </div>
           </div>
-
-          {/* Videos */}
-          {property.video_urls && property.video_urls.length > 0 && (
-            <div className="mb-5">
-              <h3 className="font-bold text-terreta-dark mb-2 uppercase text-xs tracking-wide flex items-center gap-2">
-                <Video size={14} />
-                Vídeos del espacio
-              </h3>
-              <div className="grid md:grid-cols-2 gap-3">
-                {property.video_urls.slice(0, 2).map((url, index) => (
-                  <video
-                    key={index}
-                    src={url}
-                    controls
-                    className="w-full max-h-64 rounded-lg border border-terreta-border bg-terreta-bg"
-                  >
-                    Tu navegador no soporta la reproducción de vídeo.
-                  </video>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Details */}
           <div className="grid md:grid-cols-2 gap-5 mb-5">
@@ -444,6 +449,47 @@ export const PublicProperty: React.FC = () => {
             </div>
           </div>
 
+          {/* Contact Information */}
+          {(property.contact_email || property.contact_phone || property.contact_website) && (
+            <div className="mb-5 pt-5 border-t border-terreta-border">
+              <h3 className="font-bold text-terreta-dark mb-3 uppercase text-xs tracking-wide">
+                Información de contacto
+              </h3>
+              <div className="space-y-2">
+                {property.contact_email && (
+                  <a
+                    href={`mailto:${property.contact_email}`}
+                    className="flex items-center gap-2 text-sm text-terreta-dark hover:text-terreta-accent transition-colors"
+                  >
+                    <Mail size={16} className="text-terreta-accent" />
+                    <span>{property.contact_email}</span>
+                  </a>
+                )}
+                {property.contact_phone && (
+                  <a
+                    href={`tel:${property.contact_phone}`}
+                    className="flex items-center gap-2 text-sm text-terreta-dark hover:text-terreta-accent transition-colors"
+                  >
+                    <Phone size={16} className="text-terreta-accent" />
+                    <span>{property.contact_phone}</span>
+                  </a>
+                )}
+                {property.contact_website && (
+                  <a
+                    href={normalizeUrl(property.contact_website)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-terreta-dark hover:text-terreta-accent transition-colors"
+                  >
+                    <Globe size={16} className="text-terreta-accent" />
+                    <span className="truncate">{property.contact_website}</span>
+                    <ExternalLink size={14} className="flex-shrink-0" />
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* External link */}
           {property.external_link && (
             <div className="mb-5">
@@ -458,6 +504,7 @@ export const PublicProperty: React.FC = () => {
               </a>
             </div>
           )}
+          </div>
         </div>
       </div>
 

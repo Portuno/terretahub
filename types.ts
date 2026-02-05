@@ -401,6 +401,9 @@ export interface Property {
   images: string[];
   videoUrls: string[];
   externalLink?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  contactWebsite?: string | null;
   slug: string;
   createdAt: string;
   updatedAt: string;

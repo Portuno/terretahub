@@ -73,6 +73,9 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({ user, onOpenAuth
           country: formValues.country ?? null,
           video_urls: [],
           external_link: formValues.externalLink ?? null,
+          contact_email: formValues.contactEmail ?? null,
+          contact_phone: formValues.contactPhone ?? null,
+          contact_website: formValues.contactWebsite ?? null,
           images: [],
           slug: 'temp',
         })
@@ -110,6 +113,9 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({ user, onOpenAuth
           video_urls: videoUrls,
           status: 'published',
           slug,
+          contact_email: formValues.contactEmail ?? null,
+          contact_phone: formValues.contactPhone ?? null,
+          contact_website: formValues.contactWebsite ?? null,
         })
         .eq('id', propertyId);
 
