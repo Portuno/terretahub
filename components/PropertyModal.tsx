@@ -104,7 +104,7 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
 
       {/* Modal */}
       <div
-        className={`relative bg-terreta-card w-full max-w-4xl my-8 rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-in-out flex flex-col ${
+        className={`relative bg-terreta-card w-full max-w-3xl my-8 rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ease-in-out flex flex-col ${
           isVisible
             ? 'scale-100 translate-y-0 opacity-100'
             : 'scale-95 translate-y-8 opacity-0'
@@ -125,7 +125,7 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
         <div className="overflow-y-auto flex-1 min-h-0">
           {/* Hero image */}
           {property.images && property.images.length > 0 ? (
-            <div className="relative w-full h-64 bg-terreta-bg overflow-hidden">
+            <div className="relative w-full h-52 md:h-64 bg-terreta-bg overflow-hidden">
               <img
                 src={property.images[currentImageIndex]}
                 alt={property.title}

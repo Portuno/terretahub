@@ -54,6 +54,51 @@ export const PublicProperty: React.FC = () => {
   const [error, setError] = useState<'not-found' | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // Hook de meta tags SIEMPRE al principio para no romper el orden de hooks
+  const publicPath =
+    username && slug ? `/propiedad/${username}/${slug}` : '/propiedad';
+  const propertyImageUrl =
+    property && property.images && property.images.length > 0
+      ? property.images[0]
+      : '/logo.png';
+  const propertyDescription = property?.description
+    ? property.description.substring(0, 200)
+    : 'Propiedad disponible en Terreta Hub';
+
+  useDynamicMetaTags({
+    title: property
+      ? `${property.title} | Espacio en Terreta Hub`
+      : 'Espacio en Terreta Hub',
+    description: propertyDescription,
+    image: propertyImageUrl,
+    url: publicPath,
+    type: 'product',
+    author: property
+      ? `${property.owner.name} (@${property.owner.username})`
+      : undefined,
+    publishedTime: property?.created_at,
+    modifiedTime: property?.updated_at,
+    structuredData: property
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          '@id': `https://terretahub.com${publicPath}`,
+          name: property.title,
+          description: property.description,
+          image: propertyImageUrl.startsWith('http')
+            ? propertyImageUrl
+            : `https://terretahub.com${propertyImageUrl}`,
+          offers: {
+            '@type': 'Offer',
+            price: property.price,
+            priceCurrency: property.currency,
+            availability: 'https://schema.org/InStock',
+          },
+          areaServed: property.city || undefined,
+        }
+      : undefined,
+  });
+
   useEffect(() => {
     if (!username || !slug) {
       setError('not-found');
@@ -178,39 +223,6 @@ export const PublicProperty: React.FC = () => {
       </div>
     );
   }
-
-  const publicPath = `/propiedad/${property.owner.username}/${property.slug}`;
-  const propertyImageUrl =
-    property.images && property.images.length > 0 ? property.images[0] : '/logo.png';
-  const propertyDescription = property.description.substring(0, 200);
-
-  useDynamicMetaTags({
-    title: `${property.title} | Espacio en Terreta Hub`,
-    description: propertyDescription,
-    image: propertyImageUrl,
-    url: publicPath,
-    type: 'product',
-    author: `${property.owner.name} (@${property.owner.username})`,
-    publishedTime: property.created_at,
-    modifiedTime: property.updated_at,
-    structuredData: {
-      '@context': 'https://schema.org',
-      '@type': 'Product',
-      '@id': `https://terretahub.com${publicPath}`,
-      name: property.title,
-      description: property.description,
-      image: propertyImageUrl.startsWith('http')
-        ? propertyImageUrl
-        : `https://terretahub.com${propertyImageUrl}`,
-      offers: {
-        '@type': 'Offer',
-        price: property.price,
-        priceCurrency: property.currency,
-        availability: 'https://schema.org/InStock',
-      },
-      areaServed: property.city || undefined,
-    },
-  });
 
   return (
     <div className="min-h-screen bg-terreta-bg relative py-8 px-4">

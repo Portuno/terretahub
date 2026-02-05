@@ -15,6 +15,7 @@ interface PropertiesPageProps {
 export const PropertiesPage: React.FC<PropertiesPageProps> = ({ user, onOpenAuth }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   type PropertyFormValues = Omit<
     Property,
@@ -34,12 +35,17 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({ user, onOpenAuth
   };
 
   const handlePropertySave = async (formValues: PropertyFormValues) => {
+    if (isSaving) {
+      return;
+    }
+
     if (!user) {
       onOpenAuth();
       return;
     }
 
     try {
+      setIsSaving(true);
       // 1. Crear fila mínima como draft para obtener id
       const { data: draftRow, error: insertError } = await supabase
         .from('properties')
@@ -118,6 +124,8 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({ user, onOpenAuth
     } catch (err: any) {
       console.error('[PropertiesPage] Exception saving property:', err);
       alert('Error inesperado al guardar la propiedad. Intenta nuevamente.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -127,6 +135,7 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({ user, onOpenAuth
         user={user}
         onCancel={() => setIsCreating(false)}
         onSave={handlePropertySave}
+        isSaving={isSaving}
       />
     );
   }

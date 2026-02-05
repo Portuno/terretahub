@@ -31,6 +31,7 @@ interface PropertyEditorProps {
       contactWebsite?: string | null;
     }
   ) => void;
+  isSaving?: boolean;
 }
 
 type OperationOption = {
@@ -62,6 +63,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   user,
   onCancel,
   onSave,
+  isSaving = false,
 }) => {
   // Información básica
   const [title, setTitle] = useState('');
@@ -685,9 +687,10 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="flex-[2] py-3 bg-terreta-accent text-white font-bold rounded-xl hover:bg-terreta-dark shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+                disabled={isSaving}
+                className="flex-[2] py-3 bg-terreta-accent text-white font-bold rounded-xl hover:bg-terreta-dark shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Publicar propiedad
+                {isSaving ? 'Publicando...' : 'Publicar propiedad'}
               </button>
             </section>
           </div>
