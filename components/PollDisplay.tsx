@@ -83,7 +83,9 @@ export const PollDisplay: React.FC<PollDisplayProps> = ({ poll, currentUserId, o
     }
   };
 
-  const showResults = userVote !== null || hasExpired || totalVotes > 0;
+  // Mostrar resultados solo cuando el usuario ya votó o la encuesta expiró.
+  // Así, quienes aún no han votado siempre ven los botones de voto.
+  const showResults = userVote !== null || hasExpired;
 
   return (
     <div className="bg-terreta-bg/50 border border-terreta-border rounded-lg p-4 mb-4">
