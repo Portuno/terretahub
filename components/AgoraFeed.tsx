@@ -868,14 +868,21 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     setMediaError(null);
   };
 
-  const createPost = async (options?: { contentOverride?: string; ignoreMedia?: boolean }) => {
+  type PollDraft = { question: string; options: string[]; expiresAt?: string | null };
+
+  const createPost = async (options?: { contentOverride?: string; ignoreMedia?: boolean; pollOverride?: PollDraft | null }) => {
     const contentToPublish = (options?.contentOverride ?? newPostContent).trim();
     const shouldIgnoreMedia = options?.ignoreMedia ?? false;
     const hasMedia = !shouldIgnoreMedia && selectedFiles.length > 0;
     const hasLink = !shouldIgnoreMedia && linkUrl.trim().length > 0;
+    const pollDraft = options?.pollOverride ?? pollData;
+    const hasValidPoll =
+      !!pollDraft &&
+      !!pollDraft.question.trim() &&
+      pollDraft.options.some(opt => opt.trim().length > 0);
 
-    if (!user || (!contentToPublish && !hasMedia && !hasLink)) {
-      alert('El post debe tener contenido, media o un enlace.');
+    if (!user || (!contentToPublish && !hasMedia && !hasLink && !hasValidPoll)) {
+      alert('El post debe tener contenido, media, enlace o una encuesta.');
       return;
     }
 
@@ -933,20 +940,22 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
 
       // Crear encuesta si existe y obtener id para el post optimista
       let createdPoll: { id: string; created_at: string } | null = null;
-      if (pollData && newPost) {
+      if (pollDraft && newPost) {
         const { data: pollRow, error: pollError } = await supabase
           .from('agora_polls')
           .insert({
             post_id: newPost.id,
-            question: pollData.question,
-            options: pollData.options,
-            expires_at: pollData.expiresAt || null
+            question: pollDraft.question,
+            options: pollDraft.options,
+            expires_at: pollDraft.expiresAt || null
           })
           .select('id, created_at')
           .single();
 
         if (pollError) {
           console.error('Error al crear encuesta:', pollError);
+          // Mostrar el error al usuario para poder depurar RLS u otros problemas
+          alert(`Error al crear la encuesta: ${pollError.message || 'consulta rechazada por el servidor'}`);
           // No fallar el post si la encuesta falla
         } else if (pollRow) {
           createdPoll = pollRow;
@@ -1006,13 +1015,13 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         dislikesCount: 0,
         userLikeType: null,
         comments: [],
-        ...(createdPoll && pollData && {
+        ...(createdPoll && pollDraft && {
           poll: {
             id: createdPoll.id,
             postId: newPost.id,
-            question: pollData.question,
-            options: pollData.options,
-            expiresAt: pollData.expiresAt || null,
+            question: pollDraft.question,
+            options: pollDraft.options,
+            expiresAt: pollDraft.expiresAt || null,
             createdAt: createdPoll.created_at,
             userVote: undefined
           }
@@ -1359,19 +1368,25 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                     <div className="relative">
                       <textarea
                           ref={textareaRef}
-                          placeholder="Comparte algo con la comunidad"
-                          className="w-full bg-transparent border-none focus:ring-0 text-lg placeholder-terreta-secondary/50 resize-none h-24 p-0 pb-2 font-sans text-terreta-dark"
-                          value={newPostContent}
+                          placeholder={pollData ? 'Este post será una encuesta. El texto está desactivado.' : 'Comparte algo con la comunidad'}
+                          className="w-full bg-transparent border-none focus:ring-0 text-lg placeholder-terreta-secondary/50 resize-none h-24 p-0 pb-2 font-sans text-terreta-dark disabled:text-terreta-secondary/60"
+                          value={pollData ? '' : newPostContent}
+                          disabled={!!pollData}
                           onChange={(e) => {
+                            if (pollData) return;
                             setNewPostContent(e.target.value);
                             if (textareaRef.current) {
                               handleMentionTextChange(e.target.value, textareaRef.current.selectionStart);
                             }
                           }}
                           onKeyDown={(e) => {
+                            if (pollData) return;
                             handleMentionKeyDown(e);
                           }}
-                          onPaste={handlePaste}
+                          onPaste={(e) => {
+                            if (pollData) return;
+                            handlePaste(e);
+                          }}
                       />
                       <MentionSuggestions
                         suggestions={suggestions}
@@ -1534,9 +1549,10 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                    {/* Poll Creator */}
                    {showPollCreator && (
                      <PollCreator
-                       onSave={(poll) => {
-                         setPollData(poll);
+                       onSave={async (poll) => {
+                         // Publicar inmediatamente como post de solo encuesta usando el borrador recibido
                          setShowPollCreator(false);
+                         await createPost({ contentOverride: '', ignoreMedia: true, pollOverride: poll });
                        }}
                        onCancel={() => {
                          setShowPollCreator(false);
