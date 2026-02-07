@@ -39,6 +39,7 @@ export default async function handler(
       { loc: '/', priority: '1.0', changefreq: 'weekly' },
       { loc: '/agora', priority: '0.9', changefreq: 'daily' },
       { loc: '/comunidad', priority: '0.9', changefreq: 'daily' },
+      { loc: '/miembros', priority: '0.9', changefreq: 'daily' },
       { loc: '/proyectos', priority: '0.9', changefreq: 'daily' },
       { loc: '/recursos', priority: '0.8', changefreq: 'weekly' },
       { loc: '/eventos', priority: '0.8', changefreq: 'weekly' },

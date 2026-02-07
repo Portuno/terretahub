@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { User } from 'lucide-react';
 import { FeedbackModal } from './FeedbackModal';
+import { GruposComingModal } from './GruposComingModal';
 import { Notifications } from './Notifications';
 import { Footer } from './Footer';
 import { supabase } from '../lib/supabase';
@@ -19,8 +20,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
   const location = useLocation();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(user);
   
-  // Feedback Modal State
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isGruposModalOpen, setIsGruposModalOpen] = useState(false);
 
   // Actualizar usuario cuando cambia el prop o cuando se actualiza el perfil
   useEffect(() => {
@@ -74,7 +75,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/agora': return 'Ágora Comunitario';
-      case '/comunidad': return 'Explorar Comunidad';
+      case '/comunidad': return 'Miembros';
+      case '/miembros': return 'Miembros';
       case '/proyectos': return 'Proyectos Destacados';
       case '/recursos': return "L'Almoina";
       case '/eventos': return 'Próximos Eventos';
@@ -97,6 +99,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
         onOpenAuth={onOpenAuth}
         onLogout={onLogout}
         onOpenFeedback={() => setIsFeedbackOpen(true)}
+        onOpenGruposModal={() => setIsGruposModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -148,6 +151,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
       <FeedbackModal 
         isOpen={isFeedbackOpen} 
         onClose={() => setIsFeedbackOpen(false)} 
+      />
+      <GruposComingModal 
+        isOpen={isGruposModalOpen} 
+        onClose={() => setIsGruposModalOpen(false)} 
+        user={user} 
+        onOpenAuth={onOpenAuth} 
       />
     </div>
   );

@@ -469,7 +469,8 @@ const AppContent: React.FC = () => {
         <Route path="/" element={<Dashboard user={user} onOpenAuth={handleOpenAuth} onLogout={handleLogout} />}>
           <Route index element={<LandingPage />} />
           <Route path="agora" element={<AgoraFeed user={user} onOpenAuth={handleOpenAuth} />} />
-          <Route path="comunidad" element={<CommunityPage user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="comunidad" element={<Navigate to="/miembros" replace />} />
+          <Route path="miembros" element={<CommunityPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="proyectos" element={<ProjectsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="propiedades" element={<PropertiesPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="recursos" element={<ResourceCollabPanel user={user} onOpenAuth={handleOpenAuth} />} />

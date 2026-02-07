@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, MessageSquareText, MessageCircle, Shield, Menu, X, Mountain, Wind, Flame, Droplets, FileText } from 'lucide-react';
+import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, MessageSquareText, MessageCircle, Shield, Menu, X, Mountain, Wind, Flame, Droplets, FileText, ChevronDown, ChevronUp, User, UsersRound } from 'lucide-react';
 import { AuthUser } from '../types';
 import { isAdmin } from '../lib/userRoles';
 import { useTheme, THEMES, Theme } from '../context/ThemeContext';
@@ -10,6 +10,7 @@ interface SidebarProps {
   onOpenAuth: (referrerUsername?: string) => void;
   onLogout: () => void;
   onOpenFeedback?: () => void;
+  onOpenGruposModal?: () => void;
 }
 
 const ThemeOracle = () => {
@@ -101,32 +102,48 @@ const ThemeOracle = () => {
   );
 };
 
-export const Sidebar: React.FC<SidebarProps> = ({ 
-  user, 
+export const Sidebar: React.FC<SidebarProps> = ({
+  user,
   onOpenAuth,
   onLogout,
-  onOpenFeedback
+  onOpenFeedback,
+  onOpenGruposModal,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isComunidadOpen, setIsComunidadOpen] = useState(false);
+  const comunidadRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
-  
-  // Close mobile menu when location changes
+
+  const isComunidadActive = location.pathname === '/miembros' || location.pathname === '/proyectos';
+
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    setIsComunidadOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (comunidadRef.current && !comunidadRef.current.contains(event.target as Node)) {
+        setIsComunidadOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const menuItems = [
     { id: 'agora', path: '/agora', label: 'Ágora', icon: <MessageSquareText size={20} /> },
-    { id: 'comunidad', path: '/comunidad', label: 'Comunidad', icon: <Users size={20} /> },
-    { id: 'proyectos', path: '/proyectos', label: 'Proyectos', icon: <FolderKanban size={20} /> },
+    { id: 'comunidad', path: '/miembros', label: 'Comunidad', icon: <Users size={20} /> },
     { id: 'recursos', path: '/recursos', label: 'Recursos', icon: <BookOpen size={20} /> },
     { id: 'eventos', path: '/eventos', label: 'Eventos', icon: <CalendarDays size={20} /> },
     { id: 'blogs', path: '/blogs', label: 'Blogs', icon: <FileText size={20} /> },
   ];
 
-  // Agregar sección Admin si el usuario es admin
   if (user && isAdmin(user)) {
     menuItems.push({ id: 'admin', path: '/admin', label: 'Admin', icon: <Shield size={20} /> });
   }
@@ -185,40 +202,136 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Navigation */}
       <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
-        {menuItems.map((item) => (
-          <NavLink
-            key={item.id}
-            to={item.path}
-            className={({ isActive }) =>
-              `w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group border ${
-                isActive
-                  ? 'bg-terreta-card text-terreta-dark shadow-lg border-terreta-accent/40'
-                  : 'text-terreta-dark/70 hover:bg-terreta-card/40 hover:text-terreta-dark border-transparent'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <span
-                  className={
-                    isActive
-                      ? 'text-terreta-accent'
-                      : 'text-current opacity-70 group-hover:opacity-100'
-                  }
-                >
-                  {item.icon}
-                </span>
-                <span
-                  className={`font-sans font-medium text-sm tracking-wide ${
-                    isActive ? 'font-bold' : ''
+        {menuItems.map((item) => {
+          if (item.id === 'comunidad') {
+            return (
+              <div key={item.id} ref={comunidadRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsComunidadOpen((prev) => !prev)}
+                  className={`w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl transition-all duration-200 group border ${
+                    isComunidadActive
+                      ? 'bg-terreta-card text-terreta-dark shadow-lg border-terreta-accent/40'
+                      : 'text-terreta-dark/70 hover:bg-terreta-card/40 hover:text-terreta-dark border-transparent'
                   }`}
+                  aria-expanded={isComunidadOpen}
+                  aria-haspopup="true"
+                  aria-label="Comunidad: Miembros, Proyectos, Grupos"
                 >
-                  {item.label}
-                </span>
-              </>
-            )}
-          </NavLink>
-        ))}
+                  <div className="flex items-center gap-4 min-w-0">
+                    <span
+                      className={
+                        isComunidadActive
+                          ? 'text-terreta-accent'
+                          : 'text-current opacity-70 group-hover:opacity-100'
+                      }
+                    >
+                      {item.icon}
+                    </span>
+                    <span
+                      className={`font-sans font-medium text-sm tracking-wide truncate ${
+                        isComunidadActive ? 'font-bold' : ''
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </div>
+                  {isComunidadOpen ? (
+                    <ChevronUp size={18} className="flex-shrink-0 text-terreta-dark/70" />
+                  ) : (
+                    <ChevronDown size={18} className="flex-shrink-0 text-terreta-dark/70" />
+                  )}
+                </button>
+                {isComunidadOpen && (
+                  <div className="mt-1 ml-4 pl-4 border-l-2 border-terreta-border space-y-1">
+                    <NavLink
+                      to="/miembros"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={({ isActive }) =>
+                        `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 border ${
+                          isActive
+                            ? 'bg-terreta-card text-terreta-dark border-terreta-accent/40'
+                            : 'text-terreta-dark/70 hover:bg-terreta-card/40 border-transparent'
+                        }`
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <User size={18} className={isActive ? 'text-terreta-accent' : 'opacity-70'} />
+                          <span className="font-sans font-medium text-sm">Miembros</span>
+                        </>
+                      )}
+                    </NavLink>
+                    <NavLink
+                      to="/proyectos"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={({ isActive }) =>
+                        `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 border ${
+                          isActive
+                            ? 'bg-terreta-card text-terreta-dark border-terreta-accent/40'
+                            : 'text-terreta-dark/70 hover:bg-terreta-card/40 border-transparent'
+                        }`
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <FolderKanban size={18} className={isActive ? 'text-terreta-accent' : 'opacity-70'} />
+                          <span className="font-sans font-medium text-sm">Proyectos</span>
+                        </>
+                      )}
+                    </NavLink>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        onOpenGruposModal?.();
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 border border-transparent text-terreta-dark/70 hover:bg-terreta-card/40 hover:text-terreta-dark text-left"
+                      aria-label="Grupos – Próximamente"
+                    >
+                      <UsersRound size={18} className="opacity-70" />
+                      <span className="font-sans font-medium text-sm">Grupos</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          }
+          return (
+            <NavLink
+              key={item.id}
+              to={item.path}
+              className={({ isActive }) =>
+                `w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group border ${
+                  isActive
+                    ? 'bg-terreta-card text-terreta-dark shadow-lg border-terreta-accent/40'
+                    : 'text-terreta-dark/70 hover:bg-terreta-card/40 hover:text-terreta-dark border-transparent'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <span
+                    className={
+                      isActive
+                        ? 'text-terreta-accent'
+                        : 'text-current opacity-70 group-hover:opacity-100'
+                    }
+                  >
+                    {item.icon}
+                  </span>
+                  <span
+                    className={`font-sans font-medium text-sm tracking-wide ${
+                      isActive ? 'font-bold' : ''
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </>
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* Footer / User Auth */}
