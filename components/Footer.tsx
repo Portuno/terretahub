@@ -33,6 +33,13 @@ export const Footer: React.FC = () => {
           >
             Documentación
           </Link>
+          <span className="text-terreta-border/50">|</span>
+          <Link 
+            to="/StartUpWeekend" 
+            className="hover:text-terreta-accent transition-colors text-terreta-dark/70 hover:text-terreta-accent"
+          >
+            StartUp Weekend Valencia
+          </Link>
         </div>
         <div className="text-xs md:text-sm text-terreta-dark/60">
           <span className="text-terreta-dark/50">Plataforma creada por </span>

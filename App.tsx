@@ -32,6 +32,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { OnboardingFlow } from './components/OnboardingFlow';
 import { PropertiesPage } from './components/PropertiesPage';
 import { PublicProperty } from './components/PublicProperty';
+import { StartUpWeekendPage } from './components/StartUpWeekendPage';
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -510,6 +511,10 @@ const AppContent: React.FC = () => {
         <Route 
           path="/docs" 
           element={<Documentation />} 
+        />
+        <Route 
+          path="/StartUpWeekend" 
+          element={<StartUpWeekendPage />} 
         />
         <Route 
           path="/agora/post/:id" 

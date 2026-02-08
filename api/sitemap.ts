@@ -47,6 +47,7 @@ export default async function handler(
       { loc: '/terminos-y-condiciones', priority: '0.3', changefreq: 'monthly' },
       { loc: '/politica-de-privacidad', priority: '0.3', changefreq: 'monthly' },
       { loc: '/docs', priority: '0.5', changefreq: 'monthly' },
+      { loc: '/StartUpWeekend', priority: '0.8', changefreq: 'weekly' },
     ];
 
     // Cargar blogs publicados
