@@ -6,6 +6,16 @@ export interface Pillar {
   icon?: React.ReactNode;
 }
 
+export type DomainId = 'propiedades' | 'framehack';
+
+export interface DomainDefinition {
+  id: DomainId;
+  name: string;
+  description: string;
+  routePath: string;
+  icon?: React.ReactNode;
+}
+
 export interface ContactFormState {
   name: string;
   email: string;
@@ -30,6 +40,8 @@ export interface UserProfile {
 export type AppView = 'landing' | 'app' | 'public_profile';
 
 // --- AUTH TYPES ---
+export type ProfileElement = 'tierra' | 'agua' | 'fuego' | 'aire';
+
 export interface AuthUser {
   id: string;
   name: string;
@@ -37,6 +49,7 @@ export interface AuthUser {
   username: string; // The slug for the link-in-bio
   avatar: string;
   role: 'normal' | 'admin';
+  element?: ProfileElement | null; // Asignado por Avatar API; base para gamificación
 }
 
 // --- LINK IN BIO TYPES ---
@@ -407,6 +420,8 @@ export interface Property {
   slug: string;
   createdAt: string;
   updatedAt: string;
+  /** Fecha desde la que la propiedad está disponible (ISO string o YYYY-MM-DD) */
+  availableFrom?: string | null;
 }
 
 export interface Follow {

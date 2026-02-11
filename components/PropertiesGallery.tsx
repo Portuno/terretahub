@@ -35,6 +35,8 @@ interface PropertyFromDB {
   slug: string;
   created_at: string;
   updated_at: string;
+   /** Fecha desde la que la propiedad está disponible (columna available_from) */
+   available_from: string | null;
 }
 
 export interface PropertyWithOwner extends PropertyFromDB {
@@ -541,6 +543,16 @@ export const PropertiesGallery: React.FC<PropertiesGalleryProps> = ({
                           ? 'por noche'
                           : 'total'}
                       </div>
+                      {property.available_from && (
+                        <div className="text-[11px] text-terreta-secondary mt-1">
+                          Disponible a partir de{' '}
+                          {new Date(property.available_from).toLocaleDateString('es-ES', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
 

@@ -78,6 +78,7 @@ export const PropertiesPage: React.FC<PropertiesPageProps> = ({ user, onOpenAuth
           contact_website: formValues.contactWebsite ?? null,
           images: [],
           slug: 'temp',
+          available_from: formValues.availableFrom ?? null,
         })
         .select('id')
         .single();

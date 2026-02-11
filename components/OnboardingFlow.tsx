@@ -511,12 +511,19 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ user, onComplete
         }
       }
       
-      // Actualizar onboarding_completed
+      // Actualizar onboarding_completed, avatar y element en profiles (sincronizar con link_bio)
+      const profileUpdate: { onboarding_completed: boolean; avatar: string; element?: string } = {
+        onboarding_completed: true,
+        avatar,
+      };
+      if (user.element) {
+        profileUpdate.element = user.element;
+      }
       const { error: onboardingError } = await supabase
         .from('profiles')
-        .update({ onboarding_completed: true })
+        .update(profileUpdate)
         .eq('id', user.id);
-      
+
       if (onboardingError) {
         throw onboardingError;
       }

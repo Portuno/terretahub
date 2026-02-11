@@ -88,6 +88,15 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
     }
   };
 
+  const availableFromLabel =
+    property.available_from && !Number.isNaN(new Date(property.available_from).getTime())
+      ? new Date(property.available_from).toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : null;
+
   return (
     <div
       className={`fixed inset-0 z-[80] flex items-start justify-center p-4 overflow-y-auto transition-all duration-300 ease-in-out ${
@@ -246,6 +255,12 @@ export const PropertyModal: React.FC<PropertyModalProps> = ({
                       day: 'numeric',
                     })}
                   </span>
+                  {availableFromLabel && (
+                    <>
+                      <span className="mx-1.5">·</span>
+                      <span>Disponible a partir de {availableFromLabel}</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

@@ -28,11 +28,14 @@ import { AgoraPostPage } from './components/AgoraPostPage';
 import { BlogsPage } from './components/BlogsPage';
 import { BlogPostPage } from './components/BlogPostPage';
 import { isAdmin } from './lib/userRoles';
+import { fetchAvatarAndElement } from './lib/avatarApi';
 import { ThemeProvider } from './context/ThemeContext';
 import { OnboardingFlow } from './components/OnboardingFlow';
 import { PropertiesPage } from './components/PropertiesPage';
 import { PublicProperty } from './components/PublicProperty';
 import { StartUpWeekendPage } from './components/StartUpWeekendPage';
+import { DominioPage } from './components/DominioPage';
+import { FrameHackPage } from './components/FrameHackPage';
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -60,7 +63,7 @@ const AppContent: React.FC = () => {
       // Optimized: Select only needed columns instead of *
       const profileQuery = supabase
         .from('profiles')
-        .select('id, name, username, email, avatar, role, onboarding_completed')
+        .select('id, name, username, email, avatar, role, onboarding_completed, element')
         .eq('id', userId)
         .single();
       
@@ -117,18 +120,29 @@ const AppContent: React.FC = () => {
         }
 
         if (profile) {
-          const loadedUser = {
+          const avatarApiUrl = typeof import.meta !== 'undefined' && import.meta.env?.VITE_AVATAR_API_URL;
+          const needsAvatarApi = avatarApiUrl && !profile.element;
+          if (needsAvatarApi) {
+            const apiResult = await fetchAvatarAndElement(profile.id);
+            if (apiResult) {
+              await supabase
+                .from('profiles')
+                .update({ avatar: apiResult.avatarUrl, element: apiResult.element })
+                .eq('id', profile.id);
+              profile.avatar = apiResult.avatarUrl;
+              profile.element = apiResult.element;
+            }
+          }
+          const loadedUser: AuthUser = {
             id: profile.id,
             name: profile.name,
             username: profile.username,
             email: profile.email,
             avatar: profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`,
             role: (profile.role as 'normal' | 'admin') || 'normal',
+            element: profile.element ?? undefined,
           };
-          
-          // Actualizar estado de onboarding
           setOnboardingCompleted(profile.onboarding_completed ?? false);
-          
           return loadedUser;
         }
         return null;
@@ -474,6 +488,8 @@ const AppContent: React.FC = () => {
           <Route path="miembros" element={<CommunityPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="proyectos" element={<ProjectsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="propiedades" element={<PropertiesPage user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="dominio" element={<DominioPage user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="framehack" element={<FrameHackPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="recursos" element={<ResourceCollabPanel user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="eventos" element={<EventsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="blogs" element={<BlogsPage user={user} onOpenAuth={handleOpenAuth} />} />

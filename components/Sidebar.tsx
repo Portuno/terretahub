@@ -139,6 +139,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const menuItems = [
     { id: 'agora', path: '/agora', label: 'Ágora', icon: <MessageSquareText size={20} /> },
     { id: 'comunidad', path: '/miembros', label: 'Comunidad', icon: <Users size={20} /> },
+    { id: 'dominio', path: '/dominio', label: 'Dominios', icon: <FolderKanban size={20} /> },
     { id: 'recursos', path: '/recursos', label: 'Recursos', icon: <BookOpen size={20} /> },
     { id: 'eventos', path: '/eventos', label: 'Eventos', icon: <CalendarDays size={20} /> },
     { id: 'blogs', path: '/blogs', label: 'Blogs', icon: <FileText size={20} /> },

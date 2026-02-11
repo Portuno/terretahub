@@ -38,6 +38,8 @@ interface PropertyFromDB {
   slug: string;
   created_at: string;
   updated_at: string;
+  /** Fecha desde la que la propiedad está disponible (columna available_from) */
+  available_from: string | null;
 }
 
 interface PropertyWithOwner extends PropertyFromDB {
@@ -234,6 +236,15 @@ export const PublicProperty: React.FC = () => {
     );
   }
 
+  const availableFromLabel =
+    property.available_from && !Number.isNaN(new Date(property.available_from).getTime())
+      ? new Date(property.available_from).toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : null;
+
   return (
     <div className="min-h-screen bg-terreta-bg relative py-8 px-4">
       {/* Logo */}
@@ -383,6 +394,14 @@ export const PublicProperty: React.FC = () => {
                         day: 'numeric',
                       })}
                     </span>
+                    {availableFromLabel && (
+                      <>
+                        <span className="mx-1.5">·</span>
+                        <span>
+                          Disponible a partir de {availableFromLabel}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

@@ -77,6 +77,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
   const [pricePeriod, setPricePeriod] = useState<'per_month' | 'per_week' | 'per_night' | 'total'>('per_month');
   const [depositAmount, setDepositAmount] = useState<string>('');
   const [billsIncluded, setBillsIncluded] = useState<boolean>(false);
+  const [availableFrom, setAvailableFrom] = useState<string>('');
 
   // Características físicas
   const [bedrooms, setBedrooms] = useState<string>('');
@@ -184,6 +185,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
       contactEmail: contactEmail.trim() || null,
       contactPhone: contactPhone.trim() || null,
       contactWebsite: contactWebsite.trim() || null,
+      availableFrom: availableFrom || null,
     };
 
     onSave(propertyPayload);
@@ -340,7 +342,7 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-terreta-secondary uppercase tracking-wide mb-1.5">
                     Fianza (opcional)
@@ -367,6 +369,18 @@ export const PropertyEditor: React.FC<PropertyEditorProps> = ({
                   <span>Gastos incluidos</span>
                   {billsIncluded && <Check size={18} />}
                 </button>
+
+                <div>
+                  <label className="block text-xs font-bold text-terreta-secondary uppercase tracking-wide mb-1.5">
+                    Disponible a partir de
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full bg-white border border-terreta-border rounded-xl px-4 py-2.5 text-sm text-terreta-dark focus:border-terreta-accent focus:ring-1 focus:ring-terreta-accent outline-none"
+                    value={availableFrom}
+                    onChange={(event) => setAvailableFrom(event.target.value)}
+                  />
+                </div>
               </div>
             </section>
 
