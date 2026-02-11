@@ -1,18 +1,17 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import QRCode from 'react-qr-code';
-import { jsPDF } from 'jspdf';
 import { supabase } from '../lib/supabase';
 import type { AuthUser, QRCodeRecord, QRCodeType, QRInternalLinkType, Project, Event } from '../types';
-import { Link as LinkIcon, FileText, QrCode, Copy, Check, Trash2, ExternalLink, Loader2 } from 'lucide-react';
+import { Link as LinkIcon, QrCode, Copy, Check, Trash2, ExternalLink, Loader2 } from 'lucide-react';
 
 interface QRPageProps {
   user: AuthUser | null;
   onOpenAuth: (referrerUsername?: string) => void;
 }
 
-type QRFormType = 'external' | 'internal' | 'pdf';
+type QRFormType = 'external' | 'internal';
 
-type InternalCategory = 'profile' | 'link_bio' | 'project' | 'event';
+type InternalCategory = 'profile' | 'project' | 'event';
 
 interface QRFormState {
   title: string;
@@ -60,9 +59,6 @@ const normalizeUrl = (value: string): string => {
 };
 
 const getQRCodeTypeFromForm = (formType: QRFormType): QRCodeType => {
-  if (formType === 'pdf') {
-    return 'pdf';
-  }
   if (formType === 'internal') {
     return 'internal_link';
   }
@@ -73,9 +69,6 @@ const getInternalTypeFromCategory = (category: InternalCategory): QRInternalLink
   if (category === 'profile') {
     return 'profile';
   }
-  if (category === 'link_bio') {
-    return 'link_bio';
-  }
   if (category === 'project') {
     return 'project';
   }
@@ -85,9 +78,6 @@ const getInternalTypeFromCategory = (category: InternalCategory): QRInternalLink
 const getInternalUrl = (user: AuthUser, category: InternalCategory, options: { project?: Project | null; event?: Event | null }): string => {
   const baseUrl = getBaseUrl();
   if (category === 'profile') {
-    return `${baseUrl}/p/${user.username}`;
-  }
-  if (category === 'link_bio') {
     return `${baseUrl}/p/${user.username}`;
   }
   if (category === 'project' && options.project) {
@@ -222,38 +212,6 @@ const QRPreview: React.FC<{ value: string; title?: string }> = ({ value, title }
     document.body.removeChild(link);
   };
 
-  const handleDownloadPdf = async () => {
-    const svgString = getSvgString();
-    if (!svgString) {
-      return;
-    }
-    const dataUrl = await generatePngDataUrlWithWatermark(svgString);
-    if (!dataUrl) {
-      return;
-    }
-
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-    });
-
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-
-    const imgAspectRatio = PNG_CANVAS_HEIGHT / PNG_CANVAS_WIDTH;
-    const maxImgWidth = pageWidth - 40; // 20mm de margen a cada lado
-    const imgWidth = Math.min(120, maxImgWidth);
-    const imgHeight = imgWidth * imgAspectRatio;
-
-    const x = (pageWidth - imgWidth) / 2;
-    const y = (pageHeight - imgHeight) / 2;
-
-    pdf.addImage(dataUrl, 'PNG', x, y, imgWidth, imgHeight);
-
-    pdf.save(`${fileBaseName}.pdf`);
-  };
-
   if (!value) {
     return (
       <div className="flex flex-col items-center justify-center h-full rounded-2xl border border-dashed border-terreta-border bg-terreta-card/40 px-6 py-8 text-center">
@@ -302,13 +260,6 @@ const QRPreview: React.FC<{ value: string; title?: string }> = ({ value, title }
             >
               PNG
             </button>
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              className="rounded-full px-2 py-0.5 hover:bg-terreta-dark/20 transition-colors"
-            >
-              PDF
-            </button>
           </div>
         </div>
       </div>
@@ -349,8 +300,6 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
-  const [pdfUploadProgress, setPdfUploadProgress] = useState<'idle' | 'uploading' | 'uploaded' | 'error'>('idle');
-  const [pdfTargetUrl, setPdfTargetUrl] = useState<string>('');
   const [filterType, setFilterType] = useState<'all' | QRCodeType>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -580,10 +529,6 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
       });
     }
 
-    if (formState.type === 'pdf') {
-      return pdfTargetUrl;
-    }
-
     return '';
   }, [user, formState, selectedProject, selectedEvent, pdfTargetUrl]);
 
@@ -610,10 +555,6 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
       ...prev,
       type,
     }));
-    if (type !== 'pdf') {
-      setPdfTargetUrl('');
-      setPdfUploadProgress('idle');
-    }
   };
 
   const handleFilterChange = (value: 'all' | QRCodeType) => {
@@ -672,57 +613,6 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
     }
   };
 
-  const handlePdfChange: React.ChangeEventHandler<HTMLInputElement> = async (event) => {
-    if (!user) {
-      onOpenAuth();
-      return;
-    }
-    const files = event.target.files;
-    if (!files || files.length === 0) {
-      return;
-    }
-    const file = files[0];
-    if (file.type !== 'application/pdf') {
-      window.alert('Por favor selecciona un archivo PDF válido.');
-      return;
-    }
-
-    setPdfUploadProgress('uploading');
-
-    try {
-      const extension = file.name.split('.').pop() || 'pdf';
-      const filePath = `qr_pdfs/${user.id}/${createRandomId()}.${extension}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('qr_assets')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (uploadError) {
-        console.error('[QRPage] Error uploading PDF:', uploadError);
-        setPdfUploadProgress('error');
-        window.alert('Error al subir el PDF. Revisa el bucket `qr_assets` en Supabase.');
-        return;
-      }
-
-      const { data: publicData } = supabase.storage.from('qr_assets').getPublicUrl(filePath);
-      if (!publicData || !publicData.publicUrl) {
-        setPdfUploadProgress('error');
-        window.alert('No se pudo obtener la URL pública del PDF.');
-        return;
-      }
-
-      setPdfTargetUrl(publicData.publicUrl);
-      setPdfUploadProgress('uploaded');
-    } catch (error) {
-      console.error('[QRPage] Exception uploading PDF:', error);
-      setPdfUploadProgress('error');
-      window.alert('Error inesperado al subir el PDF.');
-    }
-  };
-
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (event) => {
     event.preventDefault();
     if (!user) {
@@ -755,17 +645,6 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
       }
       if (formState.internalCategory === 'profile' || formState.internalCategory === 'link_bio') {
         internalRef = user.username;
-      }
-    }
-
-    if (formState.type === 'pdf') {
-      if (!pdfTargetUrl) {
-        window.alert('Primero debes subir un PDF para generar el QR.');
-        return;
-      }
-      const baseUrl = getBaseUrl();
-      if (pdfTargetUrl.startsWith(baseUrl)) {
-        filePath = pdfTargetUrl;
       }
     }
 
@@ -819,8 +698,6 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
         ...createInitialFormState(),
         type: prev.type,
       }));
-      setPdfTargetUrl('');
-      setPdfUploadProgress('idle');
     } catch (error) {
       console.error('[QRPage] Exception creating QR code:', error);
       window.alert('Error inesperado al crear el QR.');
@@ -863,8 +740,8 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
             Creador de códigos QR
           </h1>
           <p className="mt-1 text-sm md:text-base text-terreta-dark/70">
-            Genera códigos QR persistentes para compartir enlaces externos, recursos de Terreta
-            (perfil, proyectos, eventos) y PDFs. Todos tus QR se guardan para que puedas usarlos en
+            Genera códigos QR persistentes para compartir enlaces externos y recursos de Terreta
+            (perfil, proyectos, eventos). Todos tus QR se guardan para que puedas usarlos en
             cartelería, redes o material físico.
           </p>
         </div>
@@ -910,19 +787,6 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
               >
                 <QrCode size={14} />
                 <span>Enlace Terreta</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTypeChange('pdf')}
-                aria-pressed={formState.type === 'pdf'}
-                className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  formState.type === 'pdf'
-                    ? 'bg-terreta-accent text-white'
-                    : 'text-terreta-dark/70 hover:bg-terreta-card'
-                }`}
-              >
-                <FileText size={14} />
-                <span>PDF</span>
               </button>
             </div>
           </div>
@@ -982,7 +846,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
                     Enlace interno de Terreta
                   </p>
                   <p className="text-xs text-terreta-dark/70">
-                    Elige qué recurso quieres enlazar: tu perfil, link-in-bio, proyectos o eventos.
+                    Elige qué recurso quieres enlazar: tu perfil, proyectos o eventos.
                   </p>
                 </div>
                 <div className="inline-flex items-center gap-1 rounded-full border border-terreta-border bg-terreta-card p-1">
@@ -997,18 +861,6 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
                     }`}
                   >
                     Perfil público
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleFieldChange('internalCategory', 'link_bio')}
-                    aria-pressed={formState.internalCategory === 'link_bio'}
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                      formState.internalCategory === 'link_bio'
-                        ? 'bg-terreta-accent text-white'
-                        : 'text-terreta-dark/70 hover:bg-terreta-bg'
-                    }`}
-                  >
-                    Link-in-bio
                   </button>
                   <button
                     type="button"
@@ -1105,7 +957,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
                 </div>
               ) : null}
 
-              {formState.internalCategory === 'profile' || formState.internalCategory === 'link_bio' ? (
+              {formState.internalCategory === 'profile' ? (
                 <div className="rounded-lg bg-terreta-card/80 px-3 py-2 text-xs text-terreta-dark/80">
                   <p className="font-semibold">
                     Enlace sugerido:{' '}

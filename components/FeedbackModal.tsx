@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Send, MessageCircle } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -26,7 +28,6 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose })
       // Cargar username del usuario para preseleccionar identidad
       (async () => {
         try {
-          const { supabase } = await import('../lib/supabase');
           const { data: authData } = await supabase.auth.getUser();
           const userId = authData?.user?.id;
           if (!userId) {
@@ -70,7 +71,6 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose })
     setError('');
 
     try {
-      const { supabase } = await import('../lib/supabase');
       const userAgent = typeof window !== 'undefined' ? navigator.userAgent : null;
       const authorUsername = identityMode === 'anon' ? 'anonimo' : username || 'anonimo';
 
