@@ -64,11 +64,13 @@ export const executeQueryWithRetry = async <T = any>(
 ): Promise<{ data: T | null; error: any }> => {
   const MAX_RETRIES = 2;
   // Timeouts más largos para queries que sabemos pueden ser lentas (debido a RLS)
-  const TIMEOUT = customTimeout || (
-    queryName.includes('community') || queryName.includes('profiles') 
-      ? 20000 // 20 segundos para queries de perfiles/comunidad
-      : 10000 // 10 segundos para otras queries
-  );
+  const lowerCaseQueryName = queryName.toLowerCase();
+  const isLongRunningQuery =
+    lowerCaseQueryName.includes('community') ||
+    lowerCaseQueryName.includes('profiles') ||
+    lowerCaseQueryName.includes('agora'); // incluye feed de agora (posts, comments, polls)
+
+  const TIMEOUT = customTimeout || (isLongRunningQuery ? 20000 : 10000);
   
   try {
     const queryStart = Date.now();

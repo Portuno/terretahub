@@ -92,8 +92,8 @@ const AppContent: React.FC = () => {
         console.log('[App] Profile query completed', { duration: `${queryDuration}ms`, hasError: !!profileError, retryCount });
 
         if (profileError) {
-          // Errores que no deberían retry (errores de autenticación, no encontrado, etc.)
-          const nonRetryableErrors = ['PGRST116', '23505', '42501'];
+          // Errores que no deberían retry (errores de autenticación, no encontrado, errores de esquema, etc.)
+          const nonRetryableErrors = ['PGRST116', '23505', '42501', '42703'];
           const isRetryable = !nonRetryableErrors.some(code => 
             profileError.code === code || profileError.message?.includes(code)
           );

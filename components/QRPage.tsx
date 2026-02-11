@@ -9,7 +9,7 @@ interface QRPageProps {
   onOpenAuth: (referrerUsername?: string) => void;
 }
 
-type QRFormType = 'external' | 'internal';
+type QRFormType = 'external' | 'internal' | 'pdf';
 
 type InternalCategory = 'profile' | 'project' | 'event';
 
@@ -302,6 +302,58 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [filterType, setFilterType] = useState<'all' | QRCodeType>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [pdfUploadProgress, setPdfUploadProgress] = useState<'idle' | 'uploading' | 'uploaded' | 'error'>('idle');
+  const [pdfTargetUrl, setPdfTargetUrl] = useState<string>('');
+
+  const handlePdfChange: React.ChangeEventHandler<HTMLInputElement> = async (event) => {
+    const file = event.target.files?.[0];
+    if (!user || !file) {
+      return;
+    }
+
+    if (file.type !== 'application/pdf') {
+      window.alert('Solo se permiten archivos PDF.');
+      event.target.value = '';
+      return;
+    }
+
+    setPdfUploadProgress('uploading');
+    setPdfTargetUrl('');
+
+    try {
+      const ownerFolder = user.id;
+      const randomId = createRandomId();
+      const filePath = `${ownerFolder}/${randomId}.pdf`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('qr_assets')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: 'application/pdf',
+        });
+
+      if (uploadError) {
+        console.error('[QRPage] Error uploading PDF to Storage:', uploadError);
+        setPdfUploadProgress('error');
+        window.alert(
+          'Error al subir el PDF. Revisa que el bucket "qr_assets" exista y que el usuario tenga permisos.'
+        );
+        return;
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('qr_assets').getPublicUrl(filePath);
+
+      setPdfTargetUrl(publicUrl);
+      setPdfUploadProgress('uploaded');
+    } catch (error) {
+      console.error('[QRPage] Exception uploading PDF:', error);
+      setPdfUploadProgress('error');
+      window.alert('Hubo un problema al subir el PDF. Intenta nuevamente.');
+    }
+  };
 
   useEffect(() => {
     if (!user) {
@@ -527,6 +579,10 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
         project: selectedProject,
         event: selectedEvent,
       });
+    }
+
+    if (formState.type === 'pdf') {
+      return pdfTargetUrl;
     }
 
     return '';
