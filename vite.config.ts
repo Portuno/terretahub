@@ -33,9 +33,6 @@ export default defineConfig(({ mode }) => {
                 if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
                   return 'react-vendor';
                 }
-                if (id.includes('@supabase')) {
-                  return 'supabase-vendor';
-                }
                 if (id.includes('lucide-react')) {
                   return 'lucide-vendor';
                 }
