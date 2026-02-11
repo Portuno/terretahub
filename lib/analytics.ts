@@ -1,4 +1,5 @@
 // Helper functions for analytics tracking
+import { supabase } from './supabase';
 
 /**
  * Detecta el tipo de dispositivo basado en el user agent
@@ -34,7 +35,6 @@ export const trackProfileView = async (
 ): Promise<void> => {
   try {
     const deviceType = detectDeviceType();
-    const { supabase } = await import('./supabase');
 
     await supabase.from('profile_views').insert({
       profile_user_id: profileUserId,
@@ -61,7 +61,6 @@ export const trackLinkClick = async (
 ): Promise<void> => {
   try {
     const deviceType = detectDeviceType();
-    const { supabase } = await import('./supabase');
 
     await supabase.from('link_clicks').insert({
       profile_user_id: profileUserId,
@@ -94,8 +93,6 @@ export const getProfileViewsStats = async (
   views_this_month: number;
 } | null> => {
   try {
-    const { supabase } = await import('./supabase');
-
     const { data, error } = await supabase.rpc('get_profile_views_stats', {
       p_user_id: profileUserId,
       days_back: daysBack
@@ -140,8 +137,6 @@ export const getLinkClicksStats = async (
   top_link_clicks: number;
 } | null> => {
   try {
-    const { supabase } = await import('./supabase');
-
     const { data, error } = await supabase.rpc('get_link_clicks_stats', {
       p_user_id: profileUserId,
       days_back: daysBack
