@@ -83,6 +83,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
       case '/recursos': return "L'Almoina";
       case '/eventos': return 'Próximos Eventos';
       case '/blogs': return 'Blogs';
+      case '/qr': return 'Creador de QR';
       case '/perfil': return 'Editor de Perfil';
       case '/admin': return 'Panel de Administración';
       case '/': return ''; // Landing has its own hero

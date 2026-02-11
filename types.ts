@@ -6,7 +6,7 @@ export interface Pillar {
   icon?: React.ReactNode;
 }
 
-export type DomainId = 'propiedades' | 'framehack';
+export type DomainId = 'propiedades' | 'framehack' | 'qr';
 
 export interface DomainDefinition {
   id: DomainId;
@@ -429,4 +429,25 @@ export interface Follow {
   followerId: string;
   followingId: string;
   createdAt: string;
+}
+
+// --- QR CODES TYPES ---
+
+export type QRCodeType = 'external_link' | 'internal_link' | 'pdf';
+
+export type QRInternalLinkType = 'profile' | 'link_bio' | 'project' | 'event' | 'other';
+
+export interface QRCodeRecord {
+  id: string;
+  userId: string;
+  type: QRCodeType;
+  title: string;
+  description?: string | null;
+  targetUrl: string;
+  internalType?: QRInternalLinkType | null;
+  internalRef?: string | null;
+  filePath?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }

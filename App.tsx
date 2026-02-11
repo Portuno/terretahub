@@ -36,6 +36,7 @@ import { PublicProperty } from './components/PublicProperty';
 import { StartUpWeekendPage } from './components/StartUpWeekendPage';
 import { DominioPage } from './components/DominioPage';
 import { FrameHackPage } from './components/FrameHackPage';
+import { QRPage } from './components/QRPage';
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -493,6 +494,7 @@ const AppContent: React.FC = () => {
           <Route path="recursos" element={<ResourceCollabPanel user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="eventos" element={<EventsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="blogs" element={<BlogsPage user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="qr" element={<QRPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="perfil" element={
             user ? <ProfileEditor user={user} /> : <Navigate to="/" replace />
           } />
