@@ -22,6 +22,14 @@ export const FallasPetsPage: React.FC = () => {
           · Durante mascletàs, Nit del Foc y la noche de la Cremà, mantén puertas y ventanas cerradas y crea un espacio
           interior donde el animal pueda refugiarse con mantas y música suave.
         </p>
+        <p>
+          · Horas de descanso: se recomienda no disparar petardos entre las 15:00 y las 17:00 h, y de 09:00 a 10:00 h, para
+          respetar el descanso vecinal y el bienestar animal (según el Bando Fallas 2026 del Ajuntament de València).
+        </p>
+        <p>
+          · Zonas prohibidas: está prohibido el disparo de cualquier artificio pirotécnico en todo el Jardín del Turia y en
+          las zonas de juegos infantiles.
+        </p>
       </section>
     </div>
   );

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, MapPin, Shield, PawPrint, Landmark, Lightbulb, Route, BookOpen, Flame } from 'lucide-react';
+import { useFallasLanguage } from './FallasLanguageContext';
 
 const sections = [
   {
@@ -76,40 +77,111 @@ const sections = [
 ];
 
 export const FallasGuideHomePage: React.FC = () => {
+  const { language } = useFallasLanguage();
+  const t = (es: string, en: string) => (language === 'es' ? es : en);
+
   return (
     <div className="space-y-8 text-terreta-dark">
       <section className="grid gap-8 md:grid-cols-[2fr,3fr] items-start">
         <div className="space-y-4">
-          <p className="text-xs md:text-sm text-terreta-secondary font-semibold uppercase tracking-[0.18em]">
-            Fallas festival in Valencia
+          <p className="text-xs md:text-sm text-terreta-secondary font-semibold uppercase tracking-[0.18em] whitespace-nowrap">
+            {t('Festival de Fallas en València', 'Fallas festival in Valencia')}
           </p>
-          <h2 className="text-2xl md:text-3xl font-serif font-bold tracking-tight text-terreta-dark">
-            Fallas 2026: The Complete Guide
+          <h2 className="text-3xl md:text-4xl font-serif font-bold tracking-tight text-terreta-dark">
+            {t('Fallas 2026: Guía completa', 'Fallas 2026: The Complete Guide')}
           </h2>
-          <p className="text-xs md:text-sm text-terreta-secondary">
-            Publicado 19 de febrero de 2026 · Lectura 12 min · Actualizado para visitantes, recién llegados y gente local
-            que quiere sobrevivir a su primera semana fallera.
-          </p>
-          <p className="text-sm md:text-base leading-relaxed text-terreta-dark/90">
-            Esta guía está pensada como tu mando a distancia para Fallas: qué es exactamente la fiesta, cuándo pasa cada
-            cosa importante, por dónde moverte y cómo no acabar odiando los petardos. Todo explicado en lenguaje claro,
-            con ejemplos reales y contexto local.
+          <p className="text-base md:text-lg leading-relaxed text-terreta-dark/90">
+            {t(
+              'Esta guía está pensada como tu mando a distancia para Fallas: qué es exactamente la fiesta, cuándo pasa cada cosa importante, por dónde moverte y cómo no acabar odiando los petardos. Todo explicado en lenguaje claro, con ejemplos reales y contexto local.',
+              'This guide is meant to be your remote control for Fallas: what the festival actually is, when the key moments happen, how to move around and how not to end up hating firecrackers. All explained in clear language, with real examples and local context.'
+            )}
           </p>
         </div>
 
         <div className="rounded-2xl border border-terreta-border bg-terreta-bg p-5 md:p-6 shadow-sm">
           <h3 className="text-sm md:text-base font-semibold text-terreta-dark mb-3 uppercase tracking-[0.16em]">
-            En esta guía encontrarás
+            {t('En esta guía encontrarás', 'In this guide you will find')}
           </h3>
           <ul className="space-y-2 text-sm md:text-base text-terreta-dark leading-relaxed list-disc pl-5">
-            <li>Resumen claro de qué es Fallas y por qué es tan importante en Valencia.</li>
-            <li>Calendario 2026 con los momentos que no te puedes perder.</li>
-            <li>Dónde colocarte para ver mascletàs, castillos y la Cremà sin agobios extremos.</li>
-            <li>Cómo moverte por la ciudad cuando el tráfico está patas arriba.</li>
-            <li>Consejos muy concretos sobre ruido, humo, niños y mascotas.</li>
+            <li>
+              {t(
+                'Resumen claro de qué es Fallas y por qué es tan importante en Valencia.',
+                'Clear summary of what Fallas is and why it matters so much in Valencia.'
+              )}
+            </li>
+            <li>
+              {t(
+                'Calendario 2026 con los momentos que no te puedes perder.',
+                '2026 calendar with the moments you should not miss.'
+              )}
+            </li>
+            <li>
+              {t(
+                'Dónde colocarte para ver mascletàs, castillos y la Cremà sin agobios extremos.',
+                'Where to stand to watch mascletàs, fireworks and the Cremà without overwhelming crowds.'
+              )}
+            </li>
+            <li>
+              {t(
+                'Cómo moverte por la ciudad cuando el tráfico está patas arriba.',
+                'How to move around the city when traffic is upside down.'
+              )}
+            </li>
+            <li>
+              {t(
+                'Consejos muy concretos sobre ruido, humo, niños y mascotas.',
+                'Very concrete tips about noise, smoke, kids and pets.'
+              )}
+            </li>
           </ul>
           <p className="text-xs md:text-sm text-terreta-secondary mt-4">
-            Todo el contenido estará disponible en español e inglés. Ahora mismo ves la versión en español.
+            {t(
+              'Todo el contenido estará disponible en español e inglés. Ahora mismo ves la versión en español.',
+              'All content will be available in Spanish and English. Right now you are seeing the English version.'
+            )}
+          </p>
+          <p className="text-[11px] md:text-xs text-terreta-secondary mt-2 space-x-1">
+            <span>
+              {t(
+                'Fuente oficial de normas y horarios:',
+                'Official source for rules and schedules:'
+              )}
+            </span>
+            <a
+              href="https://www.valencia.es/documents/d/guest/20260204-bando-fallas"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 decoration-terreta-accent hover:text-terreta-accent"
+            >
+              {t('Bando Fallas 2026 del Ajuntament de València', 'Fallas 2026 municipal bylaw (bando)')}
+            </a>
+            <span>·</span>
+            <a
+              href="https://www.valencia.es/cas/fallas"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 decoration-terreta-accent hover:text-terreta-accent"
+            >
+              {t('Portal Fallas del Ajuntament de València', 'City of València Fallas portal')}
+            </a>
+            <span>·</span>
+            <a
+              href="https://www.fallas.com/"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 decoration-terreta-accent hover:text-terreta-accent"
+            >
+              {t('Junta Central Fallera (fallas.com)', 'Junta Central Fallera (fallas.com)')}
+            </a>
+            <span>·</span>
+            <a
+              href="https://www.visitvalencia.com/fallas"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2 decoration-terreta-accent hover:text-terreta-accent"
+            >
+              {t('Visit València: guía oficial de Fallas', 'Visit València: official Fallas guide')}
+            </a>
           </p>
         </div>
       </section>

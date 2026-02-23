@@ -175,7 +175,7 @@ const FallasGuideLayoutInner: React.FC = () => {
             </div>
 
             <div className="bg-terreta-card rounded-lg border border-terreta-border shadow-sm overflow-hidden">
-              <div className="px-3 py-3 border-b border-terreta-border/70 flex items-center justify-between gap-2">
+              <div className="px-3 py-3 border-b border-terreta-border/70 flex flex-col items-start gap-2">
                 <div className="flex flex-col">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-terreta-secondary">
                     {language === 'es' ? 'Versión descargable' : 'Downloadable guide'}
@@ -247,7 +247,7 @@ const FallasGuideLayoutInner: React.FC = () => {
           </aside>
 
           {/* Contenido principal (4/5 aprox.) */}
-          <section className="bg-terreta-card rounded-lg border border-terreta-border shadow-sm p-4 md:p-6 lg:p-8">
+          <section className="bg-terreta-card rounded-lg border border-terreta-border shadow-sm p-4 md:p-6 lg:p-8 lg:max-h-[calc(100vh-180px)] lg:overflow-y-auto">
             <Routes>
               <Route path="/" element={<FallasGuideHomePage />} />
               <Route path="que-es" element={<FallasWhatIsPage />} />
