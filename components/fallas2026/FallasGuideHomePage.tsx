@@ -134,55 +134,6 @@ export const FallasGuideHomePage: React.FC = () => {
               )}
             </li>
           </ul>
-          <p className="text-xs md:text-sm text-terreta-secondary mt-4">
-            {t(
-              'Todo el contenido estará disponible en español e inglés. Ahora mismo ves la versión en español.',
-              'All content will be available in Spanish and English. Right now you are seeing the English version.'
-            )}
-          </p>
-          <p className="text-[11px] md:text-xs text-terreta-secondary mt-2 space-x-1">
-            <span>
-              {t(
-                'Fuente oficial de normas y horarios:',
-                'Official source for rules and schedules:'
-              )}
-            </span>
-            <a
-              href="https://www.valencia.es/documents/d/guest/20260204-bando-fallas"
-              target="_blank"
-              rel="noreferrer"
-              className="underline underline-offset-2 decoration-terreta-accent hover:text-terreta-accent"
-            >
-              {t('Bando Fallas 2026 del Ajuntament de València', 'Fallas 2026 municipal bylaw (bando)')}
-            </a>
-            <span>·</span>
-            <a
-              href="https://www.valencia.es/cas/fallas"
-              target="_blank"
-              rel="noreferrer"
-              className="underline underline-offset-2 decoration-terreta-accent hover:text-terreta-accent"
-            >
-              {t('Portal Fallas del Ajuntament de València', 'City of València Fallas portal')}
-            </a>
-            <span>·</span>
-            <a
-              href="https://www.fallas.com/"
-              target="_blank"
-              rel="noreferrer"
-              className="underline underline-offset-2 decoration-terreta-accent hover:text-terreta-accent"
-            >
-              {t('Junta Central Fallera (fallas.com)', 'Junta Central Fallera (fallas.com)')}
-            </a>
-            <span>·</span>
-            <a
-              href="https://www.visitvalencia.com/fallas"
-              target="_blank"
-              rel="noreferrer"
-              className="underline underline-offset-2 decoration-terreta-accent hover:text-terreta-accent"
-            >
-              {t('Visit València: guía oficial de Fallas', 'Visit València: official Fallas guide')}
-            </a>
-          </p>
         </div>
       </section>
 
@@ -211,6 +162,49 @@ export const FallasGuideHomePage: React.FC = () => {
             </Link>
           ))}
         </div>
+        <p className="text-[11px] md:text-xs text-terreta-secondary mt-2 space-x-1">
+          <span>
+            {t(
+              'Fuente oficial de normas y horarios:',
+              'Official source for rules and schedules:'
+            )}
+          </span>
+          <a
+            href="https://www.valencia.es/documents/d/guest/20260204-bando-fallas"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2 decoration-terreta-accent hover:text-terreta-accent"
+          >
+            {t('Bando Fallas 2026 del Ajuntament de València', 'Fallas 2026 municipal bylaw (bando)')}
+          </a>
+          <span>·</span>
+          <a
+            href="https://www.valencia.es/cas/fallas"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2 decoration-terreta-accent hover:text-terreta-accent"
+          >
+            {t('Portal Fallas del Ajuntament de València', 'City of València Fallas portal')}
+          </a>
+          <span>·</span>
+          <a
+            href="https://www.fallas.com/"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2 decoration-terreta-accent hover:text-terreta-accent"
+          >
+            {t('Junta Central Fallera (fallas.com)', 'Junta Central Fallera (fallas.com)')}
+          </a>
+          <span>·</span>
+          <a
+            href="https://www.visitvalencia.com/fallas"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2 decoration-terreta-accent hover:text-terreta-accent"
+          >
+            {t('Visit València: guía oficial de Fallas', 'Visit València: official Fallas guide')}
+          </a>
+        </p>
       </section>
     </div>
   );

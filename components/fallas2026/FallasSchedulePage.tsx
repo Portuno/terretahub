@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { useFallasLanguage } from './FallasLanguageContext';
 
 type EventCategory = 'polvora' | 'flores' | 'fuego' | 'musica';
@@ -623,6 +623,7 @@ export const FallasSchedulePage: React.FC = () => {
   const { language } = useFallasLanguage();
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const isScrollingFromClick = useRef(false);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const handleDateClick = (dateKey: string) => {
     const el = dayRefs.current[dateKey];
@@ -635,31 +636,50 @@ export const FallasSchedulePage: React.FC = () => {
   };
 
   const t = (es: string, en: string) => (language === 'es' ? es : en);
+  const handleStep = (direction: 'prev' | 'next') => {
+    const offset = direction === 'prev' ? -1 : 1;
+    const nextIndex = Math.min(
+      Math.max(activeIndex + offset, 0),
+      SCHEDULE_2026.length - 1
+    );
+    if (nextIndex === activeIndex) return;
+    const targetDay = SCHEDULE_2026[nextIndex];
+    setActiveIndex(nextIndex);
+    handleDateClick(targetDay.dateKey);
+  };
+
+  const activeDay = SCHEDULE_2026[activeIndex];
 
   return (
     <div className="space-y-6 text-terreta-dark">
-      <header>
+      <header className="flex items-center justify-between gap-3 flex-wrap">
         <h2 className="text-2xl md:text-3xl font-serif font-bold tracking-tight text-terreta-dark">
           {t('Fechas y programa 2026', 'Dates & Schedule 2026')}
         </h2>
-      </header>
-
-      {/* Sticky date selector (mobile-first) */}
-      <div className="sticky top-[var(--header-offset,64px)] z-10 -mx-4 px-4 py-3 bg-terreta-bg/95 backdrop-blur-sm border-y border-terreta-border md:static md:top-auto md:bg-transparent md:border-none md:px-0 md:py-0 md:mx-0 md:shadow-none">
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide snap-x snap-mandatory">
-          {SCHEDULE_2026.map(({ dateKey, day }) => (
-            <button
-              key={dateKey}
-              type="button"
-              onClick={() => handleDateClick(dateKey)}
-              className="shrink-0 w-12 h-12 rounded-xl bg-terreta-card border border-terreta-border text-terreta-dark font-bold text-lg shadow-sm hover:border-terreta-accent hover:bg-terreta-accent/10 hover:shadow-md transition-all snap-start focus:outline-none focus:ring-2 focus:ring-terreta-accent focus:ring-offset-2"
-              aria-label={t(`Ir al día ${day}`, `Go to day ${day}`)}
-            >
-              {day}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 text-sm text-terreta-secondary">
+          <button
+            type="button"
+            onClick={() => handleStep('prev')}
+            disabled={activeIndex === 0}
+            className="px-2 py-1 rounded-full border border-terreta-border text-terreta-dark disabled:opacity-40 disabled:cursor-not-allowed hover:bg-terreta-bg transition-colors"
+            aria-label={t('Ir al día anterior', 'Go to previous day')}
+          >
+            ‹
+          </button>
+          <span className="font-semibold text-terreta-dark">
+            {language === 'es' ? activeDay.dayLabelEs : activeDay.dayLabelEn}
+          </span>
+          <button
+            type="button"
+            onClick={() => handleStep('next')}
+            disabled={activeIndex === SCHEDULE_2026.length - 1}
+            className="px-2 py-1 rounded-full border border-terreta-border text-terreta-dark disabled:opacity-40 disabled:cursor-not-allowed hover:bg-terreta-bg transition-colors"
+            aria-label={t('Ir al día siguiente', 'Go to next day')}
+          >
+            ›
+          </button>
         </div>
-      </div>
+      </header>
 
       {/* Vertical timeline */}
       <div className="relative space-y-8">
