@@ -70,14 +70,6 @@ export function getFallasGuidePdfContent(lang: Lang): { title: string; sections:
         ],
       },
       {
-        title: t('Mascotas y bienestar animal', 'Pets and animal welfare'),
-        lines: [
-          t('Para muchos perros y gatos, Fallas no es una fiesta: es semanas de explosiones constantes. Habla con tu veterinario con tiempo si tu mascota es sensible al ruido.', 'For many dogs and cats, Fallas is not a party: it is weeks of constant explosions. Talk to your vet in advance if your pet is noise-sensitive.'),
-          t('Durante mascletàs, Nit del Foc y la noche de la Cremà, mantén puertas y ventanas cerradas y crea un espacio interior donde el animal pueda refugiarse.', 'During mascletàs, Nit del Foc and Cremà night, keep doors and windows closed and create an indoor space where the animal can take refuge.'),
-          t('Horas de descanso recomendadas (Bando 2026): no disparar petardos entre 15:00 y 17:00 h ni entre 09:00 y 10:00 h. Prohibido disparar pirotecnia en el Jardín del Turia y zonas de juegos infantiles.', 'Recommended rest times (2026 bylaw): do not set off firecrackers between 15:00 and 17:00 or between 09:00 and 10:00. Fireworks are prohibited in the Turia Gardens and children’s play areas.'),
-        ],
-      },
-      {
         title: t('Cultura y exposiciones', 'Culture and exhibitions'),
         lines: [
           t('Exposición del Ninot en la Ciutat de les Arts: ver de cerca cientos de figuras y votar el Ninot Indultat. El Museo Fallero guarda décadas de ninots indultados y muestra la evolución del humor y la política local.', 'Ninot Exhibition at the City of Arts and Sciences: see hundreds of figures up close and vote for the Ninot Indultat. The Fallero Museum holds decades of indulted ninots and shows the evolution of local humour and politics.'),
