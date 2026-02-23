@@ -207,7 +207,7 @@ const FallasGuideLayoutInner: React.FC = () => {
                             (item.path === '' && isOverviewActive);
 
                           const baseClasses =
-                            'flex items-center gap-2 px-3 py-2 text-sm rounded-md mx-1 my-0.5 cursor-pointer transition-colors';
+                            'flex items-center gap-2 px-3 py-2 text-sm rounded-md mx-1 my-0.5 cursor-pointer transition-colors whitespace-nowrap';
 
                           if (active) {
                             return `${baseClasses} bg-terreta-accent/10 text-terreta-dark border-l-2 border-terreta-accent`;
