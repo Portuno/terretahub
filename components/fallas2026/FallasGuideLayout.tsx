@@ -1,20 +1,19 @@
 import React from 'react';
 import { Routes, Route, NavLink, Outlet, useLocation, Link } from 'react-router-dom';
-import { Flame, CalendarDays, MapPin, Shield, PawPrint, Landmark, Lightbulb, Route as RouteIcon, Globe2, BookOpen, Download } from 'lucide-react';
+import { Flame, CalendarDays, Shield, Landmark, Lightbulb, Route as RouteIcon, Globe2, BookOpen, Download } from 'lucide-react';
 
 import { FallasGuideHomePage } from './FallasGuideHomePage';
 import { FallasWhatIsPage } from './FallasWhatIsPage';
 import { FallasSchedulePage } from './FallasSchedulePage';
-import { FallasWhereToWatchPage } from './FallasWhereToWatchPage';
 import { FallasGettingAroundPage } from './FallasGettingAroundPage';
-import { FallasSafetyPage } from './FallasSafetyPage';
-import { FallasPetsPage } from './FallasPetsPage';
+import { FallasSafetyAndPetsPage } from './FallasSafetyAndPetsPage';
 import { FallasCulturePage } from './FallasCulturePage';
 import { FallasTipsPage } from './FallasTipsPage';
 import { FallasBeyondValenciaPage } from './FallasBeyondValenciaPage';
 import { FallasGlossaryPage } from './FallasGlossaryPage';
 import { FallasLanguageProvider, useFallasLanguage } from './FallasLanguageContext';
 import { LanguageToggle } from './LanguageToggle';
+import { downloadFallasGuidePdf } from './fallasGuidePdfGenerator';
 
 const navItems = [
   {
@@ -36,28 +35,16 @@ const navItems = [
     labelEn: 'Dates & Schedule',
   },
   {
-    id: 'where-to-watch',
-    path: 'donde-ver',
-    labelEs: 'Dónde ver',
-    labelEn: 'Where to watch',
-  },
-  {
     id: 'getting-around',
     path: 'moverse',
     labelEs: 'Cómo moverse',
     labelEn: 'Getting around',
   },
   {
-    id: 'safety',
-    path: 'seguridad',
-    labelEs: 'Seguridad',
-    labelEn: 'Safety',
-  },
-  {
-    id: 'pets',
-    path: 'mascotas',
-    labelEs: 'Mascotas',
-    labelEn: 'Pets',
+    id: 'safety-pets',
+    path: 'seguridad-mascotas',
+    labelEs: 'Seguridad & Mascotas',
+    labelEn: 'Safety & Pets',
   },
   {
     id: 'culture',
@@ -95,17 +82,11 @@ const getNavIcon = (id: string) => {
   if (id === 'schedule') {
     return <CalendarDays size={16} />;
   }
-  if (id === 'where-to-watch') {
-    return <MapPin size={16} />;
-  }
   if (id === 'getting-around') {
     return <RouteIcon size={16} />;
   }
-  if (id === 'safety') {
+  if (id === 'safety-pets') {
     return <Shield size={16} />;
-  }
-  if (id === 'pets') {
-    return <PawPrint size={16} />;
   }
   if (id === 'culture') {
     return <Landmark size={16} />;
@@ -126,11 +107,11 @@ const FallasGuideLayoutInner: React.FC = () => {
   const location = useLocation();
   const { language } = useFallasLanguage();
 
-  const downloadHref =
-    language === 'es'
-      ? '/fallas2026/guia-fallas-2026-es.pdf'
-      : '/fallas2026/guia-fallas-2026-en.pdf';
   const downloadLabel = language === 'es' ? 'Descargar guía' : 'Download guide';
+
+  const handleDownloadGuide = () => {
+    downloadFallasGuidePdf(language);
+  };
   const titleText =
     language === 'es' ? 'Fallas 2026: Guía Completa' : 'Fallas 2026: Complete Guide';
   const subtitle =
@@ -181,17 +162,20 @@ const FallasGuideLayoutInner: React.FC = () => {
                     {language === 'es' ? 'Versión descargable' : 'Downloadable guide'}
                   </span>
                   <span className="text-xs text-terreta-dark/70">
-                    PDF offline para llevar en el móvil.
+                    {language === 'es'
+                      ? 'PDF offline para llevar en el móvil.'
+                      : 'Offline PDF to take on your phone.'}
                   </span>
                 </div>
-                <a
-                  href={downloadHref}
-                  download
+                <button
+                  type="button"
+                  onClick={handleDownloadGuide}
                   className="inline-flex items-center gap-1.5 rounded-full bg-terreta-accent text-white px-3 py-1.5 text-[11px] font-semibold tracking-wide shadow-sm hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-terreta-accent focus:ring-offset-2 focus:ring-offset-terreta-card transition-colors"
+                  aria-label={downloadLabel}
                 >
                   <Download size={14} />
                   <span>{downloadLabel}</span>
-                </a>
+                </button>
               </div>
 
               <nav aria-label={language === 'es' ? 'Navegación Fallas 2026' : 'Fallas 2026 navigation'}>
@@ -252,10 +236,8 @@ const FallasGuideLayoutInner: React.FC = () => {
               <Route path="/" element={<FallasGuideHomePage />} />
               <Route path="que-es" element={<FallasWhatIsPage />} />
               <Route path="fechas-y-programa" element={<FallasSchedulePage />} />
-              <Route path="donde-ver" element={<FallasWhereToWatchPage />} />
               <Route path="moverse" element={<FallasGettingAroundPage />} />
-              <Route path="seguridad" element={<FallasSafetyPage />} />
-              <Route path="mascotas" element={<FallasPetsPage />} />
+              <Route path="seguridad-mascotas" element={<FallasSafetyAndPetsPage />} />
               <Route path="cultura-y-exposiciones" element={<FallasCulturePage />} />
               <Route path="consejos-practicos" element={<FallasTipsPage />} />
               <Route path="mas-alla-de-valencia" element={<FallasBeyondValenciaPage />} />

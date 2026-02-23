@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, MapPin, Shield, PawPrint, Landmark, Lightbulb, Route, BookOpen, Flame } from 'lucide-react';
+import { CalendarDays, Shield, Landmark, Lightbulb, Route, BookOpen, Flame } from 'lucide-react';
 import { useFallasLanguage } from './FallasLanguageContext';
 
 const sections = [
@@ -9,70 +9,72 @@ const sections = [
     path: '/fallas2026/que-es',
     icon: <Flame size={20} />,
     titleEs: 'Qué es Fallas',
+    titleEn: 'What is Fallas',
     descriptionEs: 'Entiende el origen del festival, sus figuras clave y por qué Valencia arde (literalmente) cada marzo.',
+    descriptionEn: 'Understand the origins of the festival, its key figures and why Valencia literally burns every March.',
   },
   {
     id: 'schedule',
     path: '/fallas2026/fechas-y-programa',
     icon: <CalendarDays size={20} />,
     titleEs: 'Fechas y programa 2026',
+    titleEn: 'Dates & Schedule 2026',
     descriptionEs: 'Calendario día a día, incluyendo mascletàs, castillos, Ofrenda, Nit del Foc y la Cremà.',
-  },
-  {
-    id: 'where-to-watch',
-    path: '/fallas2026/donde-ver',
-    icon: <MapPin size={20} />,
-    titleEs: 'Dónde ver los mejores eventos',
-    descriptionEs: 'Barrios, plazas y rutas recomendadas para vivir Fallas sin morir en el intento.',
+    descriptionEn: 'Day-by-day calendar, including mascletàs, firework castles, flower offering, Nit del Foc and the Cremà.',
   },
   {
     id: 'getting-around',
     path: '/fallas2026/moverse',
     icon: <Route size={20} />,
     titleEs: 'Cómo moverse por la ciudad',
+    titleEn: 'Getting around the city',
     descriptionEs: 'Metro, buses, trenes, bicis y por qué no deberías coger el coche al centro.',
+    descriptionEn: 'Metro, buses, trains, bikes and why you should not drive to the centre.',
   },
   {
-    id: 'safety',
-    path: '/fallas2026/seguridad',
+    id: 'safety-pets',
+    path: '/fallas2026/seguridad-mascotas',
     icon: <Shield size={20} />,
-    titleEs: 'Seguridad y multitudes',
-    descriptionEs: 'Consejos para manejar petardos, humo, aglomeraciones y calor de las fallas.',
-  },
-  {
-    id: 'pets',
-    path: '/fallas2026/mascotas',
-    icon: <PawPrint size={20} />,
-    titleEs: 'Mascotas y bienestar animal',
-    descriptionEs: 'Guía para proteger a tus animales del ruido extremo de Fallas.',
+    titleEs: 'Seguridad & Mascotas',
+    titleEn: 'Safety & Pets',
+    descriptionEs: 'Consejos de seguridad en multitudes y para proteger a tus animales del ruido de Fallas.',
+    descriptionEn: 'Safety tips in crowds and how to protect your animals from Fallas noise.',
   },
   {
     id: 'culture',
     path: '/fallas2026/cultura-y-exposiciones',
     icon: <Landmark size={20} />,
     titleEs: 'Cultura y exposiciones',
+    titleEn: 'Culture & exhibitions',
     descriptionEs: 'Exposición del Ninot, Museo Fallero y el lado artístico y político de la fiesta.',
+    descriptionEn: 'Ninot Exhibition, Fallero Museum and the artistic and political side of the festival.',
   },
   {
     id: 'tips',
     path: '/fallas2026/consejos-practicos',
     icon: <Lightbulb size={20} />,
     titleEs: 'Consejos prácticos',
+    titleEn: 'Practical tips',
     descriptionEs: 'Qué comer, cómo vestir, horarios clave y trucos de gente local.',
+    descriptionEn: 'What to eat, how to dress, key schedules and tips from locals.',
   },
   {
     id: 'beyond',
     path: '/fallas2026/mas-alla-de-valencia',
     icon: <Route size={20} />,
     titleEs: 'Más allá de Valencia',
+    titleEn: 'Beyond Valencia',
     descriptionEs: 'Fallas en Torrent, Cartagena y otros municipios de la Comunitat Valenciana.',
+    descriptionEn: 'Fallas in Torrent, Cartagena and other towns in the Valencian Community.',
   },
   {
     id: 'glossary',
     path: '/fallas2026/glosario',
     icon: <BookOpen size={20} />,
     titleEs: 'Glosario fallero',
+    titleEn: 'Fallas glossary',
     descriptionEs: 'Traducción rápida de palabras como mascletà, cremà, ninot o despertà.',
+    descriptionEn: 'Quick translation of words like mascletà, cremà, ninot or despertà.',
   },
 ];
 
@@ -139,7 +141,7 @@ export const FallasGuideHomePage: React.FC = () => {
 
       <section className="space-y-4">
         <h3 className="text-base md:text-lg font-semibold text-terreta-dark">
-          Explora por tema
+          {t('Explora por tema', 'Explore by topic')}
         </h3>
         <div className="grid gap-4 md:grid-cols-2">
           {sections.map((section) => (
@@ -153,10 +155,10 @@ export const FallasGuideHomePage: React.FC = () => {
               </div>
               <div>
                 <h4 className="text-sm font-semibold text-terreta-dark mb-1 group-hover:text-terreta-accent">
-                  {section.titleEs}
+                  {language === 'es' ? section.titleEs : section.titleEn}
                 </h4>
                 <p className="text-xs md:text-sm text-terreta-secondary leading-relaxed">
-                  {section.descriptionEs}
+                  {language === 'es' ? section.descriptionEs : section.descriptionEn}
                 </p>
               </div>
             </Link>
@@ -209,4 +211,3 @@ export const FallasGuideHomePage: React.FC = () => {
     </div>
   );
 };
-
