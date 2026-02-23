@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Send, MessageCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { supabase } from '../lib/supabase';
 
 interface FeedbackModalProps {
   isOpen: boolean;

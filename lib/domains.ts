@@ -19,5 +19,11 @@ export const DOMAINS: DomainDefinition[] = [
     description: 'Crea y gestiona códigos QR para tus enlaces y recursos de Terreta.',
     routePath: '/qr',
   },
+  {
+    id: 'fallas2026',
+    name: 'Fallas 2026',
+    description: 'Guía completa de Fallas 2026 en Valencia: calendario, barrios y consejos prácticos.',
+    routePath: '/fallas2026',
+  },
 ];
 

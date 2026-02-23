@@ -655,6 +655,8 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
   const displayEndDate = showDatePublic ? formatDate(event.endDate) : (event.datePlaceholder || 'Fecha por confirmar');
   const displayLocation = showLocationPublic ? (event.location || (event.isOnline ? event.locationUrl : null)) : (event.locationPlaceholder || 'Ubicación por confirmar');
   const displayLocationLabel = showLocationPublic ? (event.isOnline ? 'Evento en línea' : 'Ubicación') : 'Ubicación';
+  const now = new Date();
+  const isPastEvent = new Date(event.endDate) < now;
 
   return (
     <div className="min-h-screen bg-terreta-bg py-8 px-4">
@@ -898,16 +900,18 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
               </div>
             )}
 
-            <div className="flex items-center gap-3 text-terreta-dark">
-              <Users size={20} className="text-terreta-accent" />
-              <div>
-                <p className="font-semibold">Asistentes</p>
-                <p className="text-sm text-terreta-secondary">
-                  {event.attendeeCount} {event.attendeeCount === 1 ? 'asistente' : 'asistentes'}
-                  {event.maxAttendees && ` / ${event.maxAttendees} máximo`}
-                </p>
+            {!isPastEvent && (
+              <div className="flex items-center gap-3 text-terreta-dark">
+                <Users size={20} className="text-terreta-accent" />
+                <div>
+                  <p className="font-semibold">Asistentes</p>
+                  <p className="text-sm text-terreta-secondary">
+                    {event.attendeeCount} {event.attendeeCount === 1 ? 'asistente' : 'asistentes'}
+                    {event.maxAttendees && ` / ${event.maxAttendees} máximo`}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Descripción */}

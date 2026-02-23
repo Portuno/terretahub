@@ -37,6 +37,7 @@ import { StartUpWeekendPage } from './components/StartUpWeekendPage';
 import { DominioPage } from './components/DominioPage';
 import { FrameHackPage } from './components/FrameHackPage';
 import { QRPage } from './components/QRPage';
+import { FallasGuideLayout } from './components/fallas2026/FallasGuideLayout';
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -505,6 +506,11 @@ const AppContent: React.FC = () => {
             user && isAdmin(user) ? <AdminBlogsPanel user={user} /> : <Navigate to="/" replace />
           } />
         </Route>
+
+        <Route 
+          path="/fallas2026/*" 
+          element={<FallasGuideLayout />} 
+        />
 
         <Route 
           path="/p/:extension" 

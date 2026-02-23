@@ -368,6 +368,8 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
     });
   };
 
+  const now = new Date();
+
   return (
     <>
       {isCreating && user && (
@@ -603,13 +605,15 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-sm text-terreta-dark/70">
-                      <Users size={16} />
-                      <span>
-                        {event.attendeeCount} {event.attendeeCount === 1 ? 'asistente' : 'asistentes'}
-                        {event.maxAttendees && ` / ${event.maxAttendees} máximo`}
-                      </span>
-                    </div>
+                    {new Date(event.startDate) >= now && (
+                      <div className="flex items-center gap-2 text-sm text-terreta-dark/70">
+                        <Users size={16} />
+                        <span>
+                          {event.attendeeCount} {event.attendeeCount === 1 ? 'asistente' : 'asistentes'}
+                          {event.maxAttendees && ` / ${event.maxAttendees} máximo`}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-2">
