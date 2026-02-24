@@ -15,6 +15,7 @@ import { FallasLanguageProvider, useFallasLanguage } from './FallasLanguageConte
 import { LanguageToggle } from './LanguageToggle';
 import { downloadFallasGuidePdf } from './fallasGuidePdfGenerator';
 import { ThemeOracle } from '../ThemeOracle';
+import { supabase } from '../../lib/supabase';
 
 const navItems = [
   {
@@ -112,6 +113,23 @@ const FallasGuideLayoutInner: React.FC = () => {
 
   const handleDownloadGuide = () => {
     downloadFallasGuidePdf(language);
+
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        const userId = data?.user?.id ?? null;
+
+        await supabase.from('fallas_guide_downloads').insert({
+          language,
+          user_id: userId,
+          user_agent:
+            typeof window !== 'undefined' ? window.navigator.userAgent : null,
+        });
+      } catch (error) {
+        // No romper la experiencia de usuario si el tracking falla
+        console.error('[FallasGuide] Error tracking PDF download', error);
+      }
+    })();
   };
   const titleText =
     language === 'es' ? 'Fallas 2026: Guía Completa' : 'Fallas 2026: Complete Guide';
