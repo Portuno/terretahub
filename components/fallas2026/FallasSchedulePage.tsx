@@ -1169,7 +1169,7 @@ export const FallasSchedulePage: React.FC = () => {
                   <div className="bg-white rounded-2xl border border-terreta-border shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
                     {/* Star event strip */}
                     <div className="px-4 py-3 sm:px-5 sm:py-4 border-b border-terreta-border/70 bg-terreta-bg/50 flex flex-wrap items-center gap-2">
-                      <span className="font-sans font-bold text-terreta-dark text-sm sm:text-base">
+                      <span className="font-sans font-bold text-slate-900 text-sm sm:text-base">
                         {language === 'es'
                           ? daySchedule.starEvent.titleEs
                           : daySchedule.starEvent.titleEn}
@@ -1184,16 +1184,16 @@ export const FallasSchedulePage: React.FC = () => {
                             key={event.id}
                             className="px-4 py-3 sm:px-5 sm:py-3.5 flex flex-wrap items-center gap-2"
                           >
-                            <span className="font-mono text-sm font-semibold text-terreta-secondary tabular-nums w-12 shrink-0">
+                            <span className="font-mono text-sm font-semibold text-slate-500 tabular-nums w-12 shrink-0">
                               {event.time}
                             </span>
-                            <span className="font-sans font-medium text-terreta-dark text-sm sm:text-base">
+                            <span className="font-sans font-medium text-slate-900 text-sm sm:text-base">
                               {language === 'es'
                                 ? event.titleEs
                                 : event.titleEn}
                             </span>
                             {(event.locationEs ?? event.locationEn) && (
-                              <span className="w-full text-xs text-terreta-secondary pl-14 sm:pl-16">
+                              <span className="w-full text-xs text-slate-600 pl-14 sm:pl-16">
                                 {language === 'es'
                                   ? event.locationEs
                                   : event.locationEn}

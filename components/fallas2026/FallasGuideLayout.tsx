@@ -14,6 +14,7 @@ import { FallasGlossaryPage } from './FallasGlossaryPage';
 import { FallasLanguageProvider, useFallasLanguage } from './FallasLanguageContext';
 import { LanguageToggle } from './LanguageToggle';
 import { downloadFallasGuidePdf } from './fallasGuidePdfGenerator';
+import { ThemeOracle } from '../ThemeOracle';
 
 const navItems = [
   {
@@ -123,7 +124,7 @@ const FallasGuideLayoutInner: React.FC = () => {
     location.pathname === '/fallas2026' || location.pathname === '/fallas2026/';
 
   return (
-    <div className="min-h-screen bg-terreta-bg text-terreta-dark">
+    <div className="min-h-screen bg-terreta-bg text-terreta-dark relative">
       <header className="border-b border-terreta-border bg-terreta-card/90 backdrop-blur-md sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -227,6 +228,10 @@ const FallasGuideLayoutInner: React.FC = () => {
                   ))}
                 </ul>
               </nav>
+            </div>
+
+            <div className="pt-4">
+              <ThemeOracle />
             </div>
           </aside>
 
