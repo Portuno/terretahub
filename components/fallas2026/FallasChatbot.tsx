@@ -1,8 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Send, Loader2, Flame } from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useFallasLanguage } from './FallasLanguageContext';
+import { TERRE_MASCOT_ANIMATION } from '../../lib/mascotConstants';
+
+const MASCOT_IMAGE =
+  TERRE_MASCOT_ANIMATION.items[0]?.transparent_image ||
+  TERRE_MASCOT_ANIMATION.items[0]?.image ||
+  '';
 
 interface ChatMessage {
   role: 'user' | 'model';
@@ -116,8 +122,12 @@ export const FallasChatbot: React.FC = () => {
           {messages.length === 0 ? (
             <div className="max-w-lg mx-auto text-center">
               <div className="flex justify-center mb-3">
-                <div className="w-12 h-12 rounded-full bg-terreta-accent/10 border border-terreta-accent/30 flex items-center justify-center">
-                  <Flame className="w-6 h-6 text-terreta-accent" aria-hidden />
+                <div className="w-12 h-12 rounded-full bg-terreta-accent/10 border border-terreta-accent/30 flex items-center justify-center overflow-hidden">
+                  {MASCOT_IMAGE ? (
+                    <img src={MASCOT_IMAGE} alt="" className="w-10 h-10 object-contain" />
+                  ) : (
+                    <span className="text-terreta-accent text-lg font-serif">T</span>
+                  )}
                 </div>
               </div>
               <p className="font-serif text-terreta-dark font-semibold text-lg mb-1">
@@ -153,8 +163,10 @@ export const FallasChatbot: React.FC = () => {
                   <div className="flex-shrink-0 w-7 h-7 rounded-full overflow-hidden bg-terreta-card border border-terreta-border flex items-center justify-center">
                     {msg.role === 'user' ? (
                       <span className="text-terreta-dark/60 text-xs font-bold">U</span>
+                    ) : MASCOT_IMAGE ? (
+                      <img src={MASCOT_IMAGE} alt="" className="w-full h-full object-contain" />
                     ) : (
-                      <Flame className="w-3.5 h-3.5 text-terreta-accent" aria-hidden />
+                      <span className="text-terreta-accent text-sm font-serif">T</span>
                     )}
                   </div>
                   <div
@@ -201,8 +213,12 @@ export const FallasChatbot: React.FC = () => {
               ))}
               {isLoading && (
                 <div className="flex gap-2.5">
-                  <div className="flex-shrink-0 w-7 h-7 rounded-full bg-terreta-card border border-terreta-border flex items-center justify-center">
-                    <Flame className="w-3.5 h-3.5 text-terreta-accent" aria-hidden />
+                  <div className="flex-shrink-0 w-7 h-7 rounded-full overflow-hidden bg-terreta-card border border-terreta-border flex items-center justify-center">
+                    {MASCOT_IMAGE ? (
+                      <img src={MASCOT_IMAGE} alt="" className="w-full h-full object-contain" />
+                    ) : (
+                      <span className="text-terreta-accent text-sm font-serif">T</span>
+                    )}
                   </div>
                   <div className="bg-terreta-card border border-terreta-border rounded-2xl px-3.5 py-2.5 flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin text-terreta-accent" aria-hidden />
