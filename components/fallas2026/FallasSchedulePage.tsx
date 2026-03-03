@@ -1071,11 +1071,41 @@ export const SCHEDULE_2026: DaySchedule[] = [
   },
 ];
 
+const SCHEDULE_YEAR = 2026;
+
+const getInitialActiveIndex = (): number => {
+  const todayReal = new Date();
+  const todayInScheduleYear = new Date(
+    SCHEDULE_YEAR,
+    todayReal.getMonth(),
+    todayReal.getDate()
+  );
+
+  let bestFutureIndex: number | null = null;
+  let bestFutureDate: Date | null = null;
+
+  SCHEDULE_2026.forEach((day, index) => {
+    const date = new Date(SCHEDULE_YEAR, day.month - 1, day.day);
+    if (date >= todayInScheduleYear) {
+      if (!bestFutureDate || date < bestFutureDate) {
+        bestFutureDate = date;
+        bestFutureIndex = index;
+      }
+    }
+  });
+
+  if (bestFutureIndex !== null) {
+    return bestFutureIndex;
+  }
+
+  return SCHEDULE_2026.length - 1;
+};
+
 export const FallasSchedulePage: React.FC = () => {
   const { language } = useFallasLanguage();
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const isScrollingFromClick = useRef(false);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState<number>(() => getInitialActiveIndex());
 
   const handleDateClick = (dateKey: string) => {
     const el = dayRefs.current[dateKey];
@@ -1103,9 +1133,9 @@ export const FallasSchedulePage: React.FC = () => {
   const activeDay = SCHEDULE_2026[activeIndex];
 
   return (
-    <div className="flex flex-col text-terreta-dark min-h-0">
-      <header
-        className="sticky top-0 z-10 flex items-center justify-between gap-3 flex-wrap bg-terreta-card py-3 border-b border-terreta-border/70 mb-4"
+    <div className="flex flex-col text-terreta-dark min-h-0 h-full">
+      <div
+        className="flex-shrink-0 flex items-center justify-between gap-3 flex-wrap bg-terreta-card py-3 border-b border-terreta-border/70 mb-3"
         aria-label={t('Cabecera del programa', 'Schedule header')}
       >
         <h2 className="text-2xl md:text-3xl font-serif font-bold tracking-tight text-terreta-dark">
@@ -1134,10 +1164,10 @@ export const FallasSchedulePage: React.FC = () => {
             ›
           </button>
         </div>
-      </header>
+      </div>
 
       {/* Vertical timeline */}
-      <div className="relative space-y-8">
+      <div className="relative space-y-8 flex-1 min-h-0 overflow-y-auto pr-0.5">
         {SCHEDULE_2026.map((daySchedule, index) => {
           return (
             <div
