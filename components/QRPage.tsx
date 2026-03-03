@@ -774,7 +774,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
           </h1>
           <p className="mb-4 text-sm text-terreta-dark/70">
             Inicia sesión para crear, guardar y gestionar tus códigos QR para enlaces, proyectos,
-            eventos y PDFs dentro de Terreta Hub.
+            quedadas y PDFs dentro de Terreta Hub.
           </p>
           <button
             type="button"
@@ -797,7 +797,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
           </h1>
           <p className="mt-1 text-sm md:text-base text-terreta-dark/70">
             Genera códigos QR persistentes para compartir enlaces externos y recursos de Terreta
-            (perfil, proyectos, eventos). Todos tus QR se guardan para que puedas usarlos en
+            (perfil, proyectos, quedadas). Todos tus QR se guardan para que puedas usarlos en
             cartelería, redes o material físico.
           </p>
         </div>
@@ -902,7 +902,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
                     Enlace interno de Terreta
                   </p>
                   <p className="text-xs text-terreta-dark/70">
-                    Elige qué recurso quieres enlazar: tu perfil, proyectos o eventos.
+                    Elige qué recurso quieres enlazar: tu perfil, proyectos o quedadas.
                   </p>
                 </div>
                 <div className="inline-flex items-center gap-1 rounded-full border border-terreta-border bg-terreta-card p-1">
@@ -988,12 +988,12 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
                   {isLoadingEvents ? (
                     <div className="flex items-center gap-2 text-xs text-terreta-dark/70">
                       <Loader2 className="animate-spin text-terreta-accent" size={16} />
-                      <span>Cargando tus eventos...</span>
+                      <span>Cargando tus quedadas...</span>
                     </div>
                   ) : events.length === 0 ? (
                     <p className="text-xs text-terreta-dark/70">
-                      No tienes eventos publicados todavía. Crea uno en la sección{' '}
-                      <span className="font-semibold">Eventos</span> y vuelve aquí para generar su
+                      No tienes quedadas publicadas todavía. Crea una en la sección{' '}
+                      <span className="font-semibold">Quedadas</span> y vuelve aquí para generar su
                       QR.
                     </p>
                   ) : (
@@ -1161,7 +1161,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
               Aún no has creado ningún código QR.
             </p>
             <p className="text-xs text-terreta-dark/70">
-              Empieza creando uno arriba para tu perfil, tus proyectos o tus eventos.
+              Empieza creando uno arriba para tu perfil, tus proyectos o tus quedadas.
             </p>
           </div>
         ) : (

@@ -388,10 +388,10 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
             <h1 className="font-sans text-3xl md:text-4xl text-terreta-dark font-bold mb-2">
-              Eventos
+              Quedadas
             </h1>
             <p className="text-terreta-dark/60">
-              Descubre y participa en eventos de la comunidad Terreta Hub
+              Descubre y participa en quedadas de la comunidad Terreta Hub
             </p>
           </div>
           
@@ -406,7 +406,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
           )}
         </div>
 
-        {/* Sección: Invitación a organizar eventos - Solo visible en filtro "Todos" */}
+        {/* Sección: Invitación a organizar quedadas - Solo visible en filtro "Todos" */}
         {filter === 'all' && (
           <div className="bg-gradient-to-br from-terreta-accent/10 via-terreta-card to-terreta-sidebar/30 rounded-2xl p-6 md:p-8 mb-8 border border-terreta-border/50 shadow-sm">
             <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -415,12 +415,12 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                   ¿Tienes una idea para un evento?
                 </h2>
                 <p className="text-terreta-dark/80 text-base md:text-lg mb-4 leading-relaxed">
-                  En Terreta Hub <strong>organizamos eventos</strong> y <strong>invitamos a todos los miembros de la comunidad</strong> a organizar sus propios eventos. 
+                  En Terreta Hub <strong>organizamos quedadas y eventos</strong> y <strong>invitamos a todos los miembros de la comunidad</strong> a organizar sus propias actividades. 
                   Ya sea un workshop, una charla, un networking o cualquier actividad que quieras compartir, 
                   ¡estamos aquí para apoyarte!
                 </p>
                 <p className="text-terreta-dark/70 text-sm md:text-base mb-4">
-                  Crea tu evento, compártelo con la comunidad y construyamos juntos una red de conocimiento y colaboración.
+                  Crea tu quedada, compártela con la comunidad y construyamos juntos una red de conocimiento y colaboración.
                 </p>
                 {user ? (
                   <button
@@ -435,7 +435,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                     onClick={onOpenAuth}
                     className="inline-flex items-center gap-2 bg-terreta-accent hover:opacity-90 text-white px-6 py-3 rounded-full font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
                   >
-                    Inicia sesión para crear eventos
+                    Inicia sesión para crear quedadas
                   </button>
                 )}
               </div>
@@ -463,7 +463,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                   </div>
                 </div>
                 <p className="text-xs text-terreta-dark/50 mt-2 text-center md:text-left">
-                  Ejemplos de eventos organizados por la comunidad
+                  Ejemplos de quedadas organizadas por la comunidad
                 </p>
               </div>
             </div>
@@ -514,10 +514,10 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
             <CalendarDays size={48} className="mx-auto mb-4 text-terreta-dark/30" />
             <p className="text-terreta-dark/60 text-lg">
               {filter === 'upcoming' 
-                ? 'No hay eventos próximos programados'
+                ? 'No hay quedadas próximas programadas'
                 : filter === 'past'
-                ? 'No hay eventos pasados'
-                : 'No hay eventos disponibles'}
+                ? 'No hay quedadas pasadas'
+                : 'No hay quedadas disponibles'}
             </p>
           </div>
         ) : (

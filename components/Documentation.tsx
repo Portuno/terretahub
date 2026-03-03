@@ -64,9 +64,9 @@ export const Documentation: React.FC = () => {
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold text-terreta-dark mb-2">Eventos</h3>
+                <h3 className="font-semibold text-terreta-dark mb-2">Quedadas</h3>
                 <p className="text-terreta-dark/80 leading-relaxed">
-                  Mantente al día con los próximos eventos de la comunidad. Los eventos pueden incluir 
+                  Mantente al día con las próximas quedadas de la comunidad. Estas pueden incluir 
                   información sobre ubicación, fecha, hora y descripción detallada.
                 </p>
               </div>

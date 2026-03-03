@@ -638,7 +638,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
             onClick={() => navigate('/eventos')}
             className="bg-terreta-accent text-white px-6 py-2 rounded-full font-bold hover:opacity-90 transition-opacity"
           >
-            Volver a Eventos
+            Volver a Quedadas
           </button>
         </div>
       </div>
@@ -667,7 +667,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
             className="text-terreta-accent hover:text-terreta-dark transition-colors text-sm font-semibold flex items-center gap-2"
           >
             <ArrowLeft size={18} />
-            Volver a Eventos
+            Volver a Quedadas
           </button>
           {isOrganizer && (
             <div className="flex rounded-full border border-terreta-border bg-terreta-card p-1">

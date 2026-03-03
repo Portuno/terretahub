@@ -1,6 +1,6 @@
 import React from 'react';
-import { Routes, Route, NavLink, Outlet, useLocation, Link } from 'react-router-dom';
-import { Flame, CalendarDays, Shield, Landmark, Lightbulb, Route as RouteIcon, Globe2, BookOpen, Download } from 'lucide-react';
+import { Routes, Route, NavLink, useLocation, Link } from 'react-router-dom';
+import { Flame, CalendarDays, Shield, Landmark, Lightbulb, Route as RouteIcon, MessageCircle, BookOpen, Download } from 'lucide-react';
 
 import { FallasGuideHomePage } from './FallasGuideHomePage';
 import { FallasWhatIsPage } from './FallasWhatIsPage';
@@ -21,8 +21,8 @@ const navItems = [
   {
     id: 'overview',
     path: '',
-    labelEs: 'Portada',
-    labelEn: 'Overview',
+    labelEs: 'Asistente Fallas',
+    labelEn: 'Fallas Assistant',
   },
   {
     id: 'what-is',
@@ -76,7 +76,7 @@ const navItems = [
 
 const getNavIcon = (id: string) => {
   if (id === 'overview') {
-    return <Globe2 size={16} />;
+    return <MessageCircle size={16} />;
   }
   if (id === 'what-is') {
     return <Flame size={16} />;
@@ -142,11 +142,11 @@ const FallasGuideLayoutInner: React.FC = () => {
     location.pathname === '/fallas2026' || location.pathname === '/fallas2026/';
 
   return (
-    <div className="min-h-screen bg-terreta-bg text-terreta-dark relative">
-      <header className="border-b border-terreta-border bg-terreta-card/90 backdrop-blur-md sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-col min-h-screen lg:h-screen lg:overflow-hidden bg-terreta-bg text-terreta-dark relative">
+      <header className="border-b border-terreta-border bg-terreta-card/90 backdrop-blur-md flex-shrink-0 z-20">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-terreta-secondary mb-1">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-terreta-secondary mb-0.5">
               <Link
                 to="/"
                 className="font-semibold text-terreta-dark hover:text-terreta-accent transition-colors"
@@ -155,19 +155,18 @@ const FallasGuideLayoutInner: React.FC = () => {
                 Terreta Hub
               </Link>
             </p>
-            <h1 className="text-2xl md:text-3xl font-serif font-bold tracking-tight text-terreta-dark">
+            <h1 className="text-xl md:text-2xl font-serif font-bold tracking-tight text-terreta-dark">
               {titleText}
             </h1>
-            <p className="text-xs text-terreta-dark/70 mt-1">{subtitle}</p>
+            <p className="text-xs text-terreta-dark/70">{subtitle}</p>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6 md:py-10">
-        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
-          {/* Sidebar de navegación (1/5 aprox.) */}
-          <aside className="lg:sticky lg:top-24 space-y-4">
-            <div className="flex items-center justify-between gap-2 mb-1">
+      <main className="flex-1 min-h-0 max-w-6xl mx-auto px-4 py-3 w-full">
+        <div className="h-full flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)] lg:gap-5">
+          <aside className="lg:overflow-y-auto lg:min-h-0 space-y-3">
+            <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-terreta-secondary">
                 {language === 'es' ? 'Índice de la guía' : 'Guide index'}
               </span>
@@ -175,7 +174,7 @@ const FallasGuideLayoutInner: React.FC = () => {
             </div>
 
             <div className="bg-terreta-card rounded-lg border border-terreta-border shadow-sm overflow-hidden">
-              <div className="px-3 py-3 border-b border-terreta-border/70 flex flex-col items-start gap-2">
+              <div className="px-3 py-2.5 border-b border-terreta-border/70 flex flex-col items-start gap-1.5">
                 <div className="flex flex-col">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-terreta-secondary">
                     {language === 'es' ? 'Versión descargable' : 'Downloadable guide'}
@@ -198,7 +197,7 @@ const FallasGuideLayoutInner: React.FC = () => {
               </div>
 
               <nav aria-label={language === 'es' ? 'Navegación Fallas 2026' : 'Fallas 2026 navigation'}>
-                <ul className="py-2">
+                <ul className="py-1">
                   {navItems.map((item) => (
                     <li key={item.id}>
                       <NavLink
@@ -210,7 +209,7 @@ const FallasGuideLayoutInner: React.FC = () => {
                             (item.path === '' && isOverviewActive);
 
                           const baseClasses =
-                            'flex items-center gap-2 px-3 py-2 text-sm rounded-md mx-1 my-0.5 cursor-pointer transition-colors whitespace-nowrap';
+                            'flex items-center gap-2 px-3 py-1.5 text-sm rounded-md mx-1 my-0.5 cursor-pointer transition-colors whitespace-nowrap';
 
                           if (active) {
                             return `${baseClasses} bg-terreta-accent/10 text-terreta-dark border-l-2 border-terreta-accent`;
@@ -248,13 +247,12 @@ const FallasGuideLayoutInner: React.FC = () => {
               </nav>
             </div>
 
-            <div className="pt-4">
+            <div className="pt-2">
               <ThemeOracle />
             </div>
           </aside>
 
-          {/* Contenido principal (4/5 aprox.) */}
-          <section className="bg-terreta-card rounded-lg border border-terreta-border shadow-sm p-4 md:p-6 lg:p-8 lg:max-h-[calc(100vh-180px)] lg:overflow-y-auto">
+          <section className="flex flex-col flex-1 min-h-0 bg-terreta-card rounded-lg border border-terreta-border shadow-sm p-4 md:p-6 lg:p-6 overflow-y-auto">
             <Routes>
               <Route path="/" element={<FallasGuideHomePage />} />
               <Route path="que-es" element={<FallasWhatIsPage />} />

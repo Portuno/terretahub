@@ -28,7 +28,7 @@ Terreta Hub es mucho más que una red social: es un **ecosistema completo** dise
 
 - **🔗 Conector de Talento:** Encuentra co-founders, mentores, colaboradores y profesionales que compartan tu visión
 - **💡 Showcase de Innovación:** Descubre y comparte proyectos innovadores nacidos en la "Terreta"
-- **📅 Centro de Eventos:** Mantente actualizado con los eventos tech y startup más relevantes de Valencia
+- **📅 Centro de Quedadas:** Mantente actualizado con las quedadas y eventos tech y startup más relevantes de Valencia
 - **🚀 Motor de Crecimiento:** Accede a recursos, herramientas y oportunidades de colaboración
 - **🌐 Comunidad Activa:** Participa en debates, comparte ideas y forma parte de una red que crece día a día
 

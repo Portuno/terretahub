@@ -20,7 +20,7 @@ const CHAT_API = '/api/chat/gemini';
 const QUICK_QUESTIONS = [
   '¿Qué es Terreta Hub?',
   '¿Qué proyectos hay?',
-  '¿Qué eventos hay?',
+  '¿Qué quedadas hay?',
   '¿Cómo puedo participar?',
 ];
 
@@ -124,7 +124,7 @@ export const HomeChatbot: React.FC<HomeChatbotProps> = ({ user, onBack }) => {
                 Estás en el asistente de Terreta Hub
               </p>
               <p className="text-terreta-dark/80 font-sans text-sm mb-6">
-                Pregunta lo que quieras sobre la plataforma, los proyectos, eventos o la comunidad. Estamos en fase early; el asistente sigue aprendiendo.
+                Pregunta lo que quieras sobre la plataforma, los proyectos, quedadas o la comunidad. Estamos en fase early; el asistente sigue aprendiendo.
               </p>
               {MASCOT_IMAGE && (
                 <div className="flex justify-center mb-6">

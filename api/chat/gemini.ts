@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { getSystemPrompt } from '../../lib/chatPrompt.js';
+import { getFallasSystemPrompt } from '../../lib/fallasChatPrompt.js';
 
 type ChatMessage = { role: 'user' | 'model'; text: string };
 
@@ -122,7 +123,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { messages } = req.body as { messages?: ChatMessage[] };
+  const { messages, context } = req.body as { messages?: ChatMessage[]; context?: string };
   if (!Array.isArray(messages) || messages.length === 0) {
     res.status(400).json({ error: 'messages array required' });
     return;
@@ -140,7 +141,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  const systemPrompt = getSystemPrompt(liveContext);
+  const systemPrompt = context === 'fallas'
+    ? getFallasSystemPrompt(liveContext)
+    : getSystemPrompt(liveContext);
 
   const contents = messages
     .filter((m) => m.role && m.text)

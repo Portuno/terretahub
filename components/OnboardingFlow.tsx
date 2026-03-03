@@ -739,15 +739,15 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ user, onComplete
             <div className="w-full h-full flex flex-col">
               <div className="text-center mb-4 md:mb-4">
                 <h3 className="font-serif text-2xl md:text-3xl text-[rgb(var(--text-main))] mb-2 md:mb-2">
-                  Eventos
+                  Quedadas
                 </h3>
                 <p className="text-sm md:text-base text-[rgb(var(--text-secondary))] font-sans leading-relaxed max-w-2xl mx-auto px-2">
-                  Participa en eventos, workshops y encuentros de la comunidad. 
+                  Participa en quedadas, workshops y encuentros de la comunidad. 
                   Conecta con otros miembros, aprende y crece junto a nosotros.
                 </p>
               </div>
               
-              {/* Grid de imágenes de eventos */}
+              {/* Grid de imágenes de quedadas */}
               <div className="grid grid-cols-2 gap-3 md:gap-4 max-w-4xl mx-auto flex-1 w-full">
                 <div className="backdrop-blur-sm bg-white/50 rounded-lg overflow-hidden border border-white/40 shadow-md flex flex-col">
                   <div className="relative h-32 md:h-36 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden flex-shrink-0">
@@ -762,7 +762,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ user, onComplete
                   </div>
                   <div className="p-3 md:p-4 flex-1 flex flex-col">
                     <h4 className="font-serif text-base md:text-xl text-[rgb(var(--text-main))] mb-1 font-bold line-clamp-2 leading-tight">
-                      Eventos de la Comunidad
+                      Quedadas de la Comunidad
                     </h4>
                     <p className="text-xs md:text-sm text-[rgb(var(--text-secondary))] leading-tight">
                       Workshops y encuentros

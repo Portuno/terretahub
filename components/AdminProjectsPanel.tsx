@@ -149,7 +149,7 @@ export const AdminProjectsPanel: React.FC<AdminProjectsPanelProps> = ({ user }) 
     await updateProjectStatus(projectId, 'draft');
   };
 
-  const loadEvents = async () => {
+const loadEvents = async () => {
     try {
       setLoading(true);
       
@@ -232,7 +232,7 @@ export const AdminProjectsPanel: React.FC<AdminProjectsPanelProps> = ({ user }) 
   };
 
   const handleApproveEvent = async (eventId: string) => {
-    if (!confirm('¿Aprobar este evento? Se publicará en la sección de eventos.')) {
+    if (!confirm('¿Aprobar este evento? Se publicará en la sección de quedadas.')) {
       return;
     }
 
@@ -269,7 +269,7 @@ export const AdminProjectsPanel: React.FC<AdminProjectsPanelProps> = ({ user }) 
       
       // Mostrar mensaje de éxito
       if (newStatus === 'published') {
-        alert('Evento aprobado exitosamente. Ahora está visible en la sección de eventos.');
+        alert('Evento aprobado exitosamente. Ahora está visible en la sección de quedadas.');
       } else {
         alert('Evento rechazado. Se mantiene como borrador.');
       }
@@ -315,7 +315,7 @@ export const AdminProjectsPanel: React.FC<AdminProjectsPanelProps> = ({ user }) 
           </div>
           <div className="flex-1">
             <h2 className="font-serif text-3xl text-terreta-dark">Panel de Administración</h2>
-            <p className="text-sm text-terreta-dark/60">Gestiona proyectos y eventos pendientes de revisión</p>
+            <p className="text-sm text-terreta-dark/60">Gestiona proyectos y quedadas pendientes de revisión</p>
           </div>
         </div>
 
@@ -357,7 +357,7 @@ export const AdminProjectsPanel: React.FC<AdminProjectsPanelProps> = ({ user }) 
           >
             <div className="flex items-center gap-2">
               <CalendarDays size={18} />
-              <span>Eventos</span>
+              <span>Quedadas</span>
               {events.length > 0 && (
                 <span className="px-2 py-0.5 bg-terreta-accent text-white text-xs rounded-full">
                   {events.length}
@@ -622,8 +622,8 @@ export const AdminProjectsPanel: React.FC<AdminProjectsPanelProps> = ({ user }) 
               <div className="w-20 h-20 bg-terreta-bg rounded-full flex items-center justify-center mb-6">
                 <Check className="text-terreta-accent" size={40} />
               </div>
-              <h3 className="font-serif text-2xl text-terreta-dark mb-2">No hay eventos pendientes</h3>
-              <p className="max-w-md text-terreta-dark/60">Todos los eventos han sido revisados.</p>
+              <h3 className="font-serif text-2xl text-terreta-dark mb-2">No hay quedadas pendientes</h3>
+              <p className="max-w-md text-terreta-dark/60">Todas las quedadas han sido revisadas.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
