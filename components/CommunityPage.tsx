@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, ArrowUpDown, ArrowUp, ArrowDown, UserPlus } from 'lucide-react';
+import { Search, ArrowUpDown, ArrowUp, ArrowDown, UserPlus, Users, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { executeQueryWithRetry } from '../lib/supabaseHelpers';
 import { AuthUser, UserProfile } from '../types';
@@ -191,7 +191,7 @@ export const CommunityPage: React.FC<CommunityPageProps> = ({ user, onOpenAuth }
   const [searchQuery, setSearchQuery] = useState('');
   const [communityUsers, setCommunityUsers] = useState<UserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
-  const [sortType, setSortType] = useState<SortType>('registration');
+  const [sortType, setSortType] = useState<SortType>('views');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [isInviteOpen, setIsInviteOpen] = useState(false);
 
@@ -266,6 +266,62 @@ export const CommunityPage: React.FC<CommunityPageProps> = ({ user, onOpenAuth }
   const handleViewProfile = (handle: string) => {
     navigateToProfile(handle);
   };
+
+  if (!user) {
+    return (
+      <div className="w-full py-2">
+        <div className="w-full animate-fade-in">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 className="font-serif text-2xl text-terreta-dark">Comunidad</h2>
+              <p className="text-sm text-terreta-secondary">Descubre talento y comparte tu link de invitación.</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+            <div className="relative mb-6">
+              <div className="flex items-center justify-center w-20 h-20 rounded-full bg-terreta-accent/10 border border-terreta-accent/20">
+                <Users className="text-terreta-accent" size={36} />
+              </div>
+              <div className="absolute -bottom-1 -right-1 flex items-center justify-center w-7 h-7 rounded-full bg-terreta-dark border-2 border-terreta-bg">
+                <Lock className="text-terreta-bg" size={12} />
+              </div>
+            </div>
+
+            <h3 className="font-serif text-2xl text-terreta-dark mb-3">
+              Únete para ver a los miembros
+            </h3>
+            <p className="text-terreta-secondary text-sm max-w-sm mb-8 leading-relaxed">
+              El directorio de la comunidad es exclusivo para miembros registrados. Crea tu cuenta gratis y descubre el talento que hay en Terreta Hub.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => onOpenAuth()}
+                className="px-6 py-3 rounded-full bg-terreta-accent text-white text-sm font-bold hover:bg-opacity-90 transition-colors shadow-md"
+                aria-label="Crear cuenta para ver miembros"
+              >
+                Crear cuenta gratis
+              </button>
+              <button
+                type="button"
+                onClick={() => onOpenAuth()}
+                className="px-6 py-3 rounded-full bg-terreta-card text-terreta-dark text-sm font-bold border border-terreta-border hover:border-terreta-accent transition-colors"
+                aria-label="Iniciar sesión para ver miembros"
+              >
+                Ya tengo cuenta
+              </button>
+            </div>
+
+            <p className="mt-8 text-xs text-terreta-secondary/60">
+              Más de 50 miembros ya forman parte de la comunidad
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full py-2">
