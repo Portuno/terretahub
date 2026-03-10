@@ -1,17 +1,30 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { MessageCircle, X } from 'lucide-react';
+import { DocsChatbot } from './biblioteca/DocsChatbot';
 
 export const Documentation: React.FC = () => {
   const navigate = useNavigate();
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const handleOpenChat = useCallback(() => {
+    setIsChatOpen(true);
+  }, []);
+
+  const handleCloseChat = useCallback(() => {
+    setIsChatOpen(false);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-terreta-bg py-8 px-4 md:px-8">
+    <div className="min-h-screen bg-terreta-bg py-8 px-4 md:px-8 relative">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <button
+            type="button"
             onClick={() => navigate('/')}
             className="text-terreta-accent hover:text-terreta-dark transition-colors mb-4 text-sm font-semibold"
+            aria-label="Volver al inicio"
           >
             ← Volver
           </button>
@@ -189,6 +202,42 @@ export const Documentation: React.FC = () => {
 
         </div>
       </div>
+
+      {/* Floating chat button */}
+      {!isChatOpen && (
+        <button
+          type="button"
+          onClick={handleOpenChat}
+          className="fixed bottom-6 right-6 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-terreta-accent text-white shadow-lg hover:bg-terreta-accent/90 focus:outline-none focus:ring-2 focus:ring-terreta-accent focus:ring-offset-2"
+          aria-label="Abrir asistente de documentación"
+        >
+          <MessageCircle size={24} aria-hidden />
+        </button>
+      )}
+
+      {/* Chat drawer */}
+      {isChatOpen && (
+        <div
+          className="fixed inset-0 z-30 flex flex-col bg-terreta-bg border-l border-terreta-border shadow-xl md:inset-y-0 md:left-auto md:right-0 md:w-[420px] md:max-w-[95vw]"
+          role="dialog"
+          aria-label="Asistente de documentación"
+        >
+          <div className="flex flex-shrink-0 items-center justify-between border-b border-terreta-border bg-terreta-card/90 px-4 py-3">
+            <span className="text-sm font-semibold text-terreta-dark">Asistente de documentación</span>
+            <button
+              type="button"
+              onClick={handleCloseChat}
+              className="p-2 rounded-full text-terreta-dark hover:bg-terreta-bg focus:outline-none focus:ring-2 focus:ring-terreta-accent"
+              aria-label="Cerrar asistente"
+            >
+              <X size={20} aria-hidden />
+            </button>
+          </div>
+          <div className="flex-1 min-h-0 flex flex-col p-3">
+            <DocsChatbot />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

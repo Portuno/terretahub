@@ -10,6 +10,7 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { getSystemPrompt } from '../lib/chatPrompt.js';
 import { getFallasSystemPrompt } from '../lib/fallasChatPrompt.js';
+import { getDocsSystemPrompt } from '../lib/docsChatPrompt.js';
 
 dotenv.config({ path: '.env.local' });
 dotenv.config({ path: '.env' });
@@ -191,9 +192,12 @@ const server = http.createServer(async (req, res) => {
   // En la terminal verás si el contexto tiene datos (proyectos/eventos) o está vacío
   console.log('[dev chat-api] liveContext length:', liveContext.length, liveContext ? '(con datos)' : '(vacío)');
 
-  const systemPrompt = context === 'fallas'
-    ? getFallasSystemPrompt(liveContext)
-    : getSystemPrompt(liveContext);
+  const systemPrompt =
+    context === 'fallas'
+      ? getFallasSystemPrompt(liveContext)
+      : context === 'docs'
+        ? getDocsSystemPrompt()
+        : getSystemPrompt(liveContext);
 
   const contents = messages
     .filter((m) => m.role && m.text)

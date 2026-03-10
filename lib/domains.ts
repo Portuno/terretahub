@@ -25,5 +25,11 @@ export const DOMAINS: DomainDefinition[] = [
     description: 'Guía completa de Fallas 2026 en Valencia: calendario, barrios y consejos prácticos.',
     routePath: '/fallas2026',
   },
+  {
+    id: 'biblioteca',
+    name: 'Biblioteca',
+    description: 'Documentación, asistentes y La Torre del Semás: contenido nativo para la plataforma.',
+    routePath: '/biblioteca',
+  },
 ];
 

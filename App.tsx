@@ -38,6 +38,12 @@ import { DominioPage } from './components/DominioPage';
 import { FrameHackPage } from './components/FrameHackPage';
 import { QRPage } from './components/QRPage';
 import { FallasGuideLayout } from './components/fallas2026/FallasGuideLayout';
+import { BibliotecaLayout } from './components/biblioteca/BibliotecaLayout';
+import { BibliotecaHubPage } from './components/biblioteca/BibliotecaHubPage';
+import { TorreLayout } from './components/biblioteca/TorreLayout';
+import { TorreQueEsPage } from './components/biblioteca/TorreQueEsPage';
+import { TorreCreadorPage } from './components/biblioteca/TorreCreadorPage';
+import { TorreSeoPageView } from './components/biblioteca/TorreSeoPageView';
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -511,6 +517,16 @@ const AppContent: React.FC = () => {
           path="/fallas2026/*" 
           element={<FallasGuideLayout />} 
         />
+
+        <Route path="/biblioteca" element={<BibliotecaLayout />}>
+          <Route index element={<BibliotecaHubPage />} />
+          <Route path="torre-del-semas" element={<TorreLayout />}>
+            <Route index element={<TorreQueEsPage />} />
+            <Route path="que-es" element={<TorreQueEsPage />} />
+            <Route path="creador" element={<TorreCreadorPage />} />
+            <Route path="p/:slug" element={<TorreSeoPageView />} />
+          </Route>
+        </Route>
 
         <Route 
           path="/p/:extension" 

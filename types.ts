@@ -6,7 +6,7 @@ export interface Pillar {
   icon?: React.ReactNode;
 }
 
-export type DomainId = 'propiedades' | 'framehack' | 'qr';
+export type DomainId = 'propiedades' | 'framehack' | 'qr' | 'fallas2026' | 'biblioteca';
 
 export interface DomainDefinition {
   id: DomainId;

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { getSystemPrompt } from '../../lib/chatPrompt.js';
 import { getFallasSystemPrompt } from '../../lib/fallasChatPrompt.js';
+import { getDocsSystemPrompt } from '../../lib/docsChatPrompt.js';
 
 type ChatMessage = { role: 'user' | 'model'; text: string };
 
@@ -141,9 +142,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  const systemPrompt = context === 'fallas'
-    ? getFallasSystemPrompt(liveContext)
-    : getSystemPrompt(liveContext);
+  const systemPrompt =
+    context === 'fallas'
+      ? getFallasSystemPrompt(liveContext)
+      : context === 'docs'
+        ? getDocsSystemPrompt()
+        : getSystemPrompt(liveContext);
 
   const contents = messages
     .filter((m) => m.role && m.text)

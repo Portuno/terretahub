@@ -48,6 +48,10 @@ export default async function handler(
       { loc: '/politica-de-privacidad', priority: '0.3', changefreq: 'monthly' },
       { loc: '/docs', priority: '0.5', changefreq: 'monthly' },
       { loc: '/StartUpWeekend', priority: '0.8', changefreq: 'weekly' },
+      { loc: '/biblioteca', priority: '0.6', changefreq: 'weekly' },
+      { loc: '/biblioteca/torre-del-semas', priority: '0.5', changefreq: 'weekly' },
+      { loc: '/biblioteca/torre-del-semas/que-es', priority: '0.5', changefreq: 'monthly' },
+      { loc: '/biblioteca/torre-del-semas/creador', priority: '0.4', changefreq: 'weekly' },
     ];
 
     // Cargar blogs publicados
@@ -80,6 +84,14 @@ export default async function handler(
       .select('id, updated_at')
       .order('updated_at', { ascending: false })
       .limit(500);
+
+    // Cargar páginas SEO de La Torre del Semás (solo publicadas)
+    const { data: torrePages } = await supabase
+      .from('torre_seo_pages')
+      .select('slug, updated_at')
+      .eq('status', 'published')
+      .order('updated_at', { ascending: false })
+      .limit(1000);
 
     // Generar XML
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -156,6 +168,21 @@ export default async function handler(
     <priority>0.6</priority>
   </url>
 `;
+      });
+    }
+
+    // Añadir páginas de La Torre del Semás
+    if (torrePages) {
+      torrePages.forEach((page: { slug: string; updated_at: string }) => {
+        if (page.slug) {
+          xml += `  <url>
+    <loc>${baseUrl}/biblioteca/torre-del-semas/p/${encodeURIComponent(page.slug)}</loc>
+    <lastmod>${formatDate(page.updated_at)}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+`;
+        }
       });
     }
 
