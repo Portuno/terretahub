@@ -27,6 +27,8 @@ import { Documentation } from './components/Documentation';
 import { AgoraPostPage } from './components/AgoraPostPage';
 import { BlogsPage } from './components/BlogsPage';
 import { BlogPostPage } from './components/BlogPostPage';
+import { ManualHome } from './components/manual/ManualHome';
+import { ManualArticle } from './components/manual/ManualArticle';
 import { isAdmin } from './lib/userRoles';
 import { fetchAvatarAndElement } from './lib/avatarApi';
 import { ThemeProvider } from './context/ThemeContext';
@@ -502,6 +504,8 @@ const AppContent: React.FC = () => {
           <Route path="eventos" element={<EventsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="blogs" element={<BlogsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="qr" element={<QRPage user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="manual" element={<ManualHome />} />
+          <Route path="manual/:category/:article" element={<ManualArticle />} />
           <Route path="perfil" element={
             user ? <ProfileEditor user={user} /> : <Navigate to="/" replace />
           } />

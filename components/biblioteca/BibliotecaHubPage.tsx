@@ -1,8 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, TowerControl } from 'lucide-react';
+import { BookOpen, FileText, TowerControl } from 'lucide-react';
 
 const LIBRARIES = [
+  {
+    id: 'manual',
+    name: 'Manual',
+    description: 'Wiki practica para aprender y ejecutar guias en formato Markdown.',
+    path: '/manual',
+    icon: <FileText size={24} className="text-terreta-accent" aria-hidden />,
+  },
   {
     id: 'docs',
     name: 'Docs',

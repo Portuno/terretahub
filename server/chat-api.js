@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getSystemPrompt } from '../lib/chatPrompt.js';
 import { getFallasSystemPrompt } from '../lib/fallasChatPrompt.js';
 import { getDocsSystemPrompt } from '../lib/docsChatPrompt.js';
+import { getManualSystemPrompt } from '../lib/manualChatPrompt.js';
 
 dotenv.config({ path: '.env.local' });
 dotenv.config({ path: '.env' });
@@ -197,7 +198,9 @@ const server = http.createServer(async (req, res) => {
       ? getFallasSystemPrompt(liveContext)
       : context === 'docs'
         ? getDocsSystemPrompt()
-        : getSystemPrompt(liveContext);
+        : context === 'manual'
+          ? getManualSystemPrompt()
+          : getSystemPrompt(liveContext);
 
   const contents = messages
     .filter((m) => m.role && m.text)

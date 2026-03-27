@@ -1,0 +1,118 @@
+{
+  "document": {
+    "id": "terretahub-docs-v1-robot",
+    "version": "1.1.0",
+    "updated_at": "2026-03-10",
+    "language": "es",
+    "scope": "Terreta Hub codebase grounded map"
+  },
+  "project_facts": {
+    "name": "Terreta Hub",
+    "frontend": {
+      "framework": "React 19",
+      "bundler": "Vite 6",
+      "router": "react-router-dom 6",
+      "styling": "TailwindCSS 3"
+    },
+    "backend_pattern": "Vercel serverless functions + Supabase",
+    "primary_runtime_files": [
+      "App.tsx",
+      "api/chat/gemini.ts",
+      "api/sitemap.ts",
+      "api/elevenlabs/transcribe.ts",
+      "lib/supabase.ts"
+    ],
+    "main_domains": [
+      "Agora",
+      "Proyectos",
+      "Eventos",
+      "Blogs",
+      "Comunidad",
+      "Biblioteca/Torre del Semas",
+      "Fallas2026",
+      "Propiedades",
+      "QR"
+    ]
+  },
+  "docs_catalog": [
+    { "id": "01_Robot", "path": "Docs v1/01_Robot.json", "type": "json", "priority": 1 },
+    { "id": "02_Plan_Master", "path": "Docs v1/02_Plan_Master.md", "type": "markdown", "priority": 2 },
+    { "id": "03_Historia_Clinica", "path": "Docs v1/03_Historia_Clinica.md", "type": "markdown", "priority": 3 },
+    { "id": "04_Stack_Tecnico", "path": "Docs v1/04_Stack_Tecnico.md", "type": "markdown", "priority": 4 },
+    { "id": "05_BBDD_Auth", "path": "Docs v1/05_BBDD_Auth.md", "type": "markdown", "priority": 5 },
+    { "id": "06_Engine_Prompting", "path": "Docs v1/06_Engine_Prompting.md", "type": "markdown", "priority": 6 },
+    { "id": "07_Workflow", "path": "Docs v1/07_Workflow.md", "type": "markdown", "priority": 7 },
+    { "id": "08_Visualizacion", "path": "Docs v1/08_Visualizacion.md", "type": "markdown", "priority": 8 },
+    { "id": "09_HITL_Human_In_The_Loop", "path": "Docs v1/09_HITL_Human_In_The_Loop.md", "type": "markdown", "priority": 9 },
+    { "id": "10_Conexiones_API", "path": "Docs v1/10_Conexiones_API.md", "type": "markdown", "priority": 10 },
+    { "id": "11_Seguridad_Compliance", "path": "Docs v1/11_Seguridad_Compliance.md", "type": "markdown", "priority": 11 }
+  ],
+  "robots_txt": {
+    "intent": "Maximize discovery of public content, block private/internal surfaces",
+    "recommended_template": [
+      "User-agent: *",
+      "Allow: /",
+      "Disallow: /admin/",
+      "Disallow: /api/private/",
+      "Disallow: /auth/callback/",
+      "Disallow: /perfil",
+      "Sitemap: https://terretahub.com/api/sitemap",
+      "Host: terretahub.com"
+    ],
+    "notes": [
+      "Sitemap is generated dynamically from Supabase content in api/sitemap.ts",
+      "Public pages include proyectos, blogs, eventos, perfiles publicos y Torre SEO pages"
+    ]
+  },
+  "ai_native_contract": {
+    "retrieval_order": [
+      "01_Robot.json",
+      "04_Stack_Tecnico.md",
+      "05_BBDD_Auth.md",
+      "06_Engine_Prompting.md",
+      "10_Conexiones_API.md",
+      "11_Seguridad_Compliance.md"
+    ],
+    "response_rules": [
+      "Do not infer database schema not present in docs/code evidence",
+      "When uncertain, answer with explicit uncertainty and next verification step",
+      "Prefer relative internal routes in markdown links"
+    ],
+    "chatbot_contexts": [
+      "default: community assistant with live Supabase context",
+      "docs: documentation assistant using docs prompt",
+      "fallas: vertical assistant for Fallas guide"
+    ]
+  },
+  "improvements_for_ai_consumption": [
+    {
+      "id": "AI-001",
+      "title": "Publish llms.txt and llms-full.txt",
+      "impact": "Higher precision for external AI crawlers",
+      "priority": "high"
+    },
+    {
+      "id": "AI-002",
+      "title": "Expose machine-readable docs index endpoint",
+      "impact": "Stable discovery contract for internal/external agents",
+      "priority": "high"
+    },
+    {
+      "id": "AI-003",
+      "title": "Add per-doc source_of_truth metadata",
+      "impact": "Better grounding and anti-hallucination enforcement",
+      "priority": "medium"
+    },
+    {
+      "id": "AI-004",
+      "title": "Add doc freshness checks in CI",
+      "impact": "Prevent stale guidance for agents",
+      "priority": "medium"
+    }
+  ],
+  "governance": {
+    "owner_roles": ["product", "tech", "security"],
+    "review_frequency": "monthly",
+    "approval_model": "HITL mandatory for high-impact changes"
+  }
+}
