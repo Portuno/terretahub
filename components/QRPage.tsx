@@ -105,9 +105,6 @@ const QRPreview: React.FC<{ value: string; title?: string }> = ({ value, title }
   const [copied, setCopied] = useState(false);
   const fileBaseName = title ? title.replace(/\s+/g, '-').toLowerCase() : 'qr-code';
   const PNG_QR_SIZE = 512;
-  const PNG_LABEL_HEIGHT = 96;
-  const PNG_CANVAS_WIDTH = PNG_QR_SIZE;
-  const PNG_CANVAS_HEIGHT = PNG_QR_SIZE + PNG_LABEL_HEIGHT;
 
   const handleCopy = async () => {
     if (!value) {
@@ -151,7 +148,7 @@ const QRPreview: React.FC<{ value: string; title?: string }> = ({ value, title }
     URL.revokeObjectURL(url);
   };
 
-  const generatePngDataUrlWithWatermark = (svgString: string): Promise<string | null> => {
+  const generatePngDataUrl = (svgString: string): Promise<string | null> => {
     return new Promise((resolve) => {
       const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(svgBlob);
@@ -159,8 +156,8 @@ const QRPreview: React.FC<{ value: string; title?: string }> = ({ value, title }
 
       image.onload = () => {
         const canvas = document.createElement('canvas');
-        canvas.width = PNG_CANVAS_WIDTH;
-        canvas.height = PNG_CANVAS_HEIGHT;
+        canvas.width = PNG_QR_SIZE;
+        canvas.height = PNG_QR_SIZE;
         const context = canvas.getContext('2d');
 
         if (!context) {
@@ -172,14 +169,6 @@ const QRPreview: React.FC<{ value: string; title?: string }> = ({ value, title }
         context.fillStyle = '#ffffff';
         context.fillRect(0, 0, canvas.width, canvas.height);
         context.drawImage(image, 0, 0, PNG_QR_SIZE, PNG_QR_SIZE);
-
-        const watermarkText = 'Terreta Hub';
-        context.fillStyle = '#A65D46';
-        context.font = 'bold 24px system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
-        context.textAlign = 'right';
-        const padding = 24;
-        const textY = PNG_QR_SIZE + PNG_LABEL_HEIGHT / 2 + 8;
-        context.fillText(watermarkText, canvas.width - padding, textY);
 
         URL.revokeObjectURL(url);
         const dataUrl = canvas.toDataURL('image/png');
@@ -200,7 +189,7 @@ const QRPreview: React.FC<{ value: string; title?: string }> = ({ value, title }
     if (!svgString) {
       return;
     }
-    const dataUrl = await generatePngDataUrlWithWatermark(svgString);
+    const dataUrl = await generatePngDataUrl(svgString);
     if (!dataUrl) {
       return;
     }
@@ -271,12 +260,6 @@ const QRPreview: React.FC<{ value: string; title?: string }> = ({ value, title }
         >
           <QRCode value={value} size={192} level="Q" />
         </div>
-      </div>
-
-      <div className="flex w-full justify-end">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-terreta-dark/60">
-          Terreta Hub
-        </span>
       </div>
 
       <div className="rounded-xl bg-terreta-bg px-3 py-2 text-xs text-terreta-dark/70 break-all">
@@ -566,15 +549,14 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
   }, [formState.selectedEventId, events]);
 
   const currentFormTargetUrl = useMemo(() => {
-    if (!user) {
-      return '';
-    }
-
     if (formState.type === 'external') {
       return normalizeUrl(formState.externalUrl);
     }
 
     if (formState.type === 'internal') {
+      if (!user) {
+        return '';
+      }
       return getInternalUrl(user, formState.internalCategory, {
         project: selectedProject,
         event: selectedEvent,
@@ -604,6 +586,9 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
   };
 
   const handleTypeChange = (type: QRFormType) => {
+    if (!user && type !== 'external') {
+      return;
+    }
     if (type === formState.type) {
       return;
     }
@@ -612,6 +597,15 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
       type,
     }));
   };
+
+  useEffect(() => {
+    if (!user && formState.type !== 'external') {
+      setFormState((prev) => ({
+        ...prev,
+        type: 'external',
+      }));
+    }
+  }, [user, formState.type]);
 
   const handleFilterChange = (value: 'all' | QRCodeType) => {
     setFilterType(value);
@@ -671,10 +665,6 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (event) => {
     event.preventDefault();
-    if (!user) {
-      onOpenAuth();
-      return;
-    }
     if (!formState.title.trim()) {
       window.alert('El título es obligatorio.');
       return;
@@ -683,6 +673,11 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
     const targetUrl = currentFormTargetUrl;
     if (!targetUrl) {
       window.alert('Debes definir un destino válido para el QR.');
+      return;
+    }
+
+    if (!user) {
+      window.alert('QR generado sin cuenta. Puedes descargarlo, pero no se guardará en tu biblioteca.');
       return;
     }
 
@@ -762,32 +757,6 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
     }
   };
 
-  if (!user) {
-    return (
-      <section className="flex h-full flex-col items-center justify-center py-8">
-        <div className="max-w-md rounded-2xl border border-terreta-border bg-terreta-card/80 px-6 py-8 text-center shadow-md">
-          <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-terreta-accent/10 text-terreta-accent">
-            <QrCode size={24} />
-          </div>
-          <h1 className="mb-2 font-serif text-2xl font-semibold text-terreta-dark">
-            Crea tus códigos QR
-          </h1>
-          <p className="mb-4 text-sm text-terreta-dark/70">
-            Inicia sesión para crear, guardar y gestionar tus códigos QR para enlaces, proyectos,
-            quedadas y PDFs dentro de Terreta Hub.
-          </p>
-          <button
-            type="button"
-            onClick={() => onOpenAuth()}
-            className="inline-flex items-center justify-center rounded-full bg-terreta-accent px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:opacity-90"
-          >
-            Iniciar sesión
-          </button>
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section className="flex flex-col gap-6 py-4">
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -796,9 +765,9 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
             Creador de códigos QR
           </h1>
           <p className="mt-1 text-sm md:text-base text-terreta-dark/70">
-            Genera códigos QR persistentes para compartir enlaces externos y recursos de Terreta
-            (perfil, proyectos, quedadas). Todos tus QR se guardan para que puedas usarlos en
-            cartelería, redes o material físico.
+            Genera códigos QR para compartir enlaces externos. Si inicias sesión también podrás
+            crear QR internos y guardar tu biblioteca para reutilizarlos en cartelería, redes o
+            material físico.
           </p>
         </div>
       </header>
@@ -814,7 +783,9 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
                 Nuevo QR
               </p>
               <p className="text-sm text-terreta-dark/70">
-                Define el tipo de destino y los detalles básicos del QR.
+                {user
+                  ? 'Define el tipo de destino y los detalles básicos del QR.'
+                  : 'Como invitado puedes generar y descargar QR de enlaces externos (sin guardarlos).'}
               </p>
             </div>
             <div className="inline-flex items-center gap-1 rounded-full border border-terreta-border bg-terreta-bg p-1">
@@ -835,14 +806,15 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
                 type="button"
                 onClick={() => handleTypeChange('internal')}
                 aria-pressed={formState.type === 'internal'}
+                disabled={!user}
                 className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                   formState.type === 'internal'
                     ? 'bg-terreta-accent text-white'
                     : 'text-terreta-dark/70 hover:bg-terreta-card'
-                }`}
+                } ${!user ? 'cursor-not-allowed opacity-40 hover:bg-transparent' : ''}`}
               >
                 <QrCode size={14} />
-                <span>Enlace Terreta</span>
+                <span>Enlace interno</span>
               </button>
             </div>
           </div>
@@ -857,7 +829,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
                 value={formState.title}
                 onChange={(event) => handleFieldChange('title', event.target.value)}
                 className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm text-terreta-dark outline-none transition-colors focus:border-terreta-accent focus:ring-1 focus:ring-terreta-accent"
-                placeholder="Ej: QR para mi perfil público"
+                placeholder="Ej: QR para mi menú"
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -869,7 +841,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
                 value={formState.description}
                 onChange={(event) => handleFieldChange('description', event.target.value)}
                 className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm text-terreta-dark outline-none transition-colors focus:border-terreta-accent focus:ring-1 focus:ring-terreta-accent"
-                placeholder="Nota interna para recordar dónde lo usarás"
+                placeholder="Nota opcional para identificar este QR"
               />
             </div>
           </div>
@@ -894,7 +866,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
             </div>
           ) : null}
 
-          {formState.type === 'internal' ? (
+          {user && formState.type === 'internal' ? (
             <div className="flex flex-col gap-3 rounded-xl bg-terreta-bg/60 p-3 md:p-4">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -1078,17 +1050,27 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
               ) : (
                 <>
                   <QrCode className="mr-2" size={16} />
-                  Crear QR
+                  {user ? 'Crear y guardar QR' : 'Generar QR (sin guardar)'}
                 </>
               )}
             </button>
+            {!user ? (
+              <button
+                type="button"
+                onClick={() => onOpenAuth()}
+                className="inline-flex items-center justify-center rounded-full border border-terreta-border bg-terreta-bg px-4 py-2.5 text-sm font-semibold text-terreta-dark transition-colors hover:bg-terreta-sidebar"
+              >
+                Iniciar sesión para guardar
+              </button>
+            ) : null}
           </div>
         </form>
 
         <QRPreview value={previewValue} title={previewTitle} />
       </div>
 
-      <section className="mt-2 flex flex-col gap-3 rounded-2xl border border-terreta-border bg-terreta-card/60 p-4 md:p-6">
+      {user ? (
+        <section className="mt-2 flex flex-col gap-3 rounded-2xl border border-terreta-border bg-terreta-card/60 p-4 md:p-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-terreta-accent">
@@ -1247,7 +1229,8 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
             })}
           </div>
         )}
-      </section>
+        </section>
+      ) : null}
     </section>
   );
 };
