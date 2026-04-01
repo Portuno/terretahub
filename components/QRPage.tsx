@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import QRCode from 'react-qr-code';
 import { supabase } from '../lib/supabase';
 import type { AuthUser, QRCodeRecord, QRCodeType, QRInternalLinkType, Project, Event } from '../types';
-import { Link as LinkIcon, QrCode, Copy, Check, Trash2, ExternalLink, Loader2 } from 'lucide-react';
+import { Link as LinkIcon, QrCode, Copy, Check, Trash2, Loader2, FileText } from 'lucide-react';
 
 interface QRPageProps {
   user: AuthUser | null;
@@ -61,6 +61,9 @@ const normalizeUrl = (value: string): string => {
 const getQRCodeTypeFromForm = (formType: QRFormType): QRCodeType => {
   if (formType === 'internal') {
     return 'internal_link';
+  }
+  if (formType === 'pdf') {
+    return 'pdf';
   }
   return 'external_link';
 };
@@ -267,10 +270,6 @@ const QRPreview: React.FC<{ value: string; title?: string }> = ({ value, title }
       </div>
     </div>
   );
-};
-
-const DownloadIcon: React.FC = () => {
-  return <ExternalLink size={14} />;
 };
 
 export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
@@ -596,6 +595,10 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
       ...prev,
       type,
     }));
+    if (type !== 'pdf') {
+      setPdfUploadProgress('idle');
+      setPdfTargetUrl('');
+    }
   };
 
   useEffect(() => {
@@ -604,6 +607,8 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
         ...prev,
         type: 'external',
       }));
+      setPdfUploadProgress('idle');
+      setPdfTargetUrl('');
     }
   }, [user, formState.type]);
 
@@ -765,9 +770,9 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
             Creador de códigos QR
           </h1>
           <p className="mt-1 text-sm md:text-base text-terreta-dark/70">
-            Genera códigos QR para compartir enlaces externos. Si inicias sesión también podrás
-            crear QR internos y guardar tu biblioteca para reutilizarlos en cartelería, redes o
-            material físico.
+            Genera códigos QR para sitios web y documentos. Si inicias sesión podrás crear QR de
+            enlace externo, enlace interno y PDFs, además de guardarlos en tu biblioteca para
+            reutilizarlos en cartelería, redes o material físico.
           </p>
         </div>
       </header>
@@ -784,7 +789,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
               </p>
               <p className="text-sm text-terreta-dark/70">
                 {user
-                  ? 'Define el tipo de destino y los detalles básicos del QR.'
+                  ? 'Elige si el QR apunta a un sitio web (externo/interno) o a un documento PDF.'
                   : 'Como invitado puedes generar y descargar QR de enlaces externos (sin guardarlos).'}
               </p>
             </div>
@@ -815,6 +820,20 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
               >
                 <QrCode size={14} />
                 <span>Enlace interno</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTypeChange('pdf')}
+                aria-pressed={formState.type === 'pdf'}
+                disabled={!user}
+                className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  formState.type === 'pdf'
+                    ? 'bg-terreta-accent text-white'
+                    : 'text-terreta-dark/70 hover:bg-terreta-card'
+                } ${!user ? 'cursor-not-allowed opacity-40 hover:bg-transparent' : ''}`}
+              >
+                <FileText size={14} />
+                <span>PDF</span>
               </button>
             </div>
           </div>
@@ -1004,7 +1023,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
             </div>
           ) : null}
 
-          {formState.type === 'pdf' ? (
+          {user && formState.type === 'pdf' ? (
             <div className="flex flex-col gap-2 rounded-xl bg-terreta-bg/60 p-3 md:p-4">
               <label className="text-xs font-semibold uppercase tracking-wide text-terreta-dark">
                 Archivo PDF *
