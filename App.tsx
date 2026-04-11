@@ -35,7 +35,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { OnboardingFlow } from './components/OnboardingFlow';
 import { PropertiesPage } from './components/PropertiesPage';
 import { PublicProperty } from './components/PublicProperty';
-import { StartUpWeekendPage } from './components/StartUpWeekendPage';
+import { UnFindePage } from './components/UnFindePage';
 import { DominioPage } from './components/DominioPage';
 import { FrameHackPage } from './components/FrameHackPage';
 import { QRPage } from './components/QRPage';
@@ -557,8 +557,12 @@ const AppContent: React.FC = () => {
           element={<Documentation />} 
         />
         <Route 
+          path="/unfinde" 
+          element={<UnFindePage />} 
+        />
+        <Route 
           path="/StartUpWeekend" 
-          element={<StartUpWeekendPage />} 
+          element={<Navigate to="/unfinde" replace />} 
         />
         <Route 
           path="/agora/post/:id" 

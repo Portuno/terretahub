@@ -35,10 +35,10 @@ export const Footer: React.FC = () => {
           </Link>
           <span className="text-terreta-border/50">|</span>
           <Link 
-            to="/StartUpWeekend" 
+            to="/unfinde" 
             className="hover:text-terreta-accent transition-colors text-terreta-dark/70 hover:text-terreta-accent"
           >
-            StartUp Weekend Valencia
+            Un Finde en la Terreta
           </Link>
         </div>
         <div className="text-xs md:text-sm text-terreta-dark/60">
