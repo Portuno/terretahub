@@ -22,6 +22,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
   
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isGruposModalOpen, setIsGruposModalOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const updateIsMobile = (event: MediaQueryListEvent | MediaQueryList) => {
+      setIsMobile(event.matches);
+    };
+
+    updateIsMobile(mediaQuery);
+    const listener = (event: MediaQueryListEvent) => updateIsMobile(event);
+    mediaQuery.addEventListener('change', listener);
+
+    return () => {
+      mediaQuery.removeEventListener('change', listener);
+    };
+  }, []);
 
   // Actualizar usuario cuando cambia el prop o cuando se actualiza el perfil
   useEffect(() => {
@@ -80,6 +99,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
       case '/proyectos': return 'Proyectos Destacados';
       case '/dominio': return 'Dominios';
       case '/framehack': return 'FrameHack';
+      case '/chatbot': return 'Explorar la Comunidad';
+      case '/terreta': return 'Finde en la Terreta';
       case '/recursos': return "L'Almoina";
       case '/eventos': return 'Próximas Quedadas';
       case '/blogs': return 'Blogs';
@@ -92,6 +113,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
   };
 
   const title = getPageTitle();
+  const shouldHideTopNavbar = isMobile;
 
   return (
   <div className="flex h-screen overflow-hidden bg-terreta-bg transition-colors duration-500">
@@ -109,7 +131,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
       <main className="flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300">
         
         {/* Top Navbar - Only show if not on Landing Page (index) */}
-        {location.pathname !== '/' && (
+        {location.pathname !== '/' && !shouldHideTopNavbar && (
           <header className="bg-terreta-nav border-b border-terreta-border h-14 md:h-16 px-4 md:px-8 flex items-center justify-between sticky top-0 z-10 transition-colors duration-500">
               <h2 className="font-sans text-lg md:text-2xl text-terreta-dark truncate">
                   {title}
@@ -138,6 +160,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
                   </div>
               </div>
           </header>
+        )}
+
+        {isMobile && (
+          <button
+            type="button"
+            onClick={currentUser ? () => navigate('/perfil') : () => onOpenAuth()}
+            className="fixed right-4 top-4 z-30 inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-terreta-border bg-terreta-sidebar text-terreta-dark shadow-lg transition-colors hover:bg-terreta-border/50"
+            aria-label={currentUser ? 'Abrir perfil de usuario' : 'Abrir inicio de sesión'}
+          >
+            {currentUser ? (
+              <img
+                src={currentUser.avatar}
+                alt="Avatar del usuario"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <User size={20} />
+            )}
+          </button>
         )}
 
         {/* Content Area */}

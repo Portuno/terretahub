@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, MessageSquareText, MessageCircle, Shield, Menu, X, FileText, ChevronDown, ChevronUp, User, UsersRound } from 'lucide-react';
+import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, MessageSquareText, MessageCircle, Shield, X, FileText, ChevronDown, ChevronUp, User, UsersRound } from 'lucide-react';
 import { AuthUser } from '../types';
 import { isAdmin } from '../lib/userRoles';
 import { useTheme, THEMES } from '../context/ThemeContext';
@@ -63,15 +63,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="md:hidden fixed top-4 left-4 z-50 bg-terreta-sidebar p-3 rounded-lg shadow-lg border border-terreta-border"
-        aria-label="Toggle menu"
-      >
-        {isMobileMenuOpen ? <X size={24} className="text-terreta-dark" /> : <Menu size={24} className="text-terreta-dark" />}
-      </button>
-
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div 

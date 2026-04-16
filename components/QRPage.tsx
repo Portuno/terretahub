@@ -117,7 +117,8 @@ const QRPreview: React.FC<{
   canSaveToProfile: boolean;
   isSavingToProfile: boolean;
   onSaveToProfile: () => void;
-}> = ({ value, title, canSaveToProfile, isSavingToProfile, onSaveToProfile }) => {
+  isMobile: boolean;
+}> = ({ value, title, canSaveToProfile, isSavingToProfile, onSaveToProfile, isMobile }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [copied, setCopied] = useState(false);
   const [isSaveMenuOpen, setIsSaveMenuOpen] = useState(false);
@@ -263,38 +264,54 @@ const QRPreview: React.FC<{
               Guardar
             </button>
             {isSaveMenuOpen ? (
-              <div className="absolute right-0 z-10 mt-2 w-56 rounded-xl border border-terreta-border bg-terreta-card p-2 shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleDownloadPdf();
-                    setIsSaveMenuOpen(false);
-                  }}
-                  className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-terreta-dark transition-colors hover:bg-terreta-bg"
+              <div>
+                {isMobile ? (
+                  <button
+                    type="button"
+                    aria-label="Cerrar opciones de guardado"
+                    onClick={() => setIsSaveMenuOpen(false)}
+                    className="fixed inset-0 z-10 bg-terreta-dark/20 backdrop-blur-[2px]"
+                  />
+                ) : null}
+                <div
+                  className={
+                    isMobile
+                      ? 'fixed inset-x-4 bottom-4 z-20 rounded-2xl border border-terreta-border bg-terreta-card p-3 shadow-xl'
+                      : 'absolute right-0 z-10 mt-2 w-56 rounded-xl border border-terreta-border bg-terreta-card p-2 shadow-lg'
+                  }
                 >
-                  Guardar como PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleDownloadSvg();
-                    setIsSaveMenuOpen(false);
-                  }}
-                  className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-terreta-dark transition-colors hover:bg-terreta-bg"
-                >
-                  Guardar como SVG
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSaveToProfile();
-                    setIsSaveMenuOpen(false);
-                  }}
-                  disabled={!canSaveToProfile || isSavingToProfile}
-                  className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-terreta-dark transition-colors hover:bg-terreta-bg disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isSavingToProfile ? 'Guardando...' : 'En mi perfil de la Terreta'}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleDownloadPdf();
+                      setIsSaveMenuOpen(false);
+                    }}
+                    className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-terreta-dark transition-colors hover:bg-terreta-bg"
+                  >
+                    Guardar como PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleDownloadSvg();
+                      setIsSaveMenuOpen(false);
+                    }}
+                    className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-terreta-dark transition-colors hover:bg-terreta-bg"
+                  >
+                    Guardar como SVG
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSaveToProfile();
+                      setIsSaveMenuOpen(false);
+                    }}
+                    disabled={!canSaveToProfile || isSavingToProfile}
+                    className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-terreta-dark transition-colors hover:bg-terreta-bg disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isSavingToProfile ? 'Guardando...' : 'En mi perfil de la Terreta'}
+                  </button>
+                </div>
               </div>
             ) : null}
           </div>
@@ -332,6 +349,25 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
   const [pdfUploadProgress, setPdfUploadProgress] = useState<'idle' | 'uploading' | 'uploaded' | 'error'>('idle');
   const [pdfTargetUrl, setPdfTargetUrl] = useState<string>('');
   const [generatedQRPayload, setGeneratedQRPayload] = useState<GeneratedQRPayload | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const handleMediaChange = (event: MediaQueryListEvent | MediaQueryList) => {
+      setIsMobile(event.matches);
+    };
+
+    handleMediaChange(mediaQuery);
+    const listener = (event: MediaQueryListEvent) => handleMediaChange(event);
+    mediaQuery.addEventListener('change', listener);
+
+    return () => {
+      mediaQuery.removeEventListener('change', listener);
+    };
+  }, []);
 
   const handlePdfChange: React.ChangeEventHandler<HTMLInputElement> = async (event) => {
     const file = event.target.files?.[0];
@@ -832,7 +868,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
 
   return (
     <section className="flex flex-col gap-6 py-4">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.6fr)]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.6fr)]">
         <form
           onSubmit={handleGenerateQr}
           className="flex flex-col gap-4 rounded-2xl border border-terreta-border bg-terreta-card/70 p-4 md:p-5"
@@ -1105,11 +1141,11 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
             </div>
           ) : null}
 
-          <div className="mt-2 flex items-center justify-end gap-2">
+          <div className="mt-2 flex flex-col-reverse items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
             <button
               type="submit"
               disabled={pdfUploadProgress === 'uploading'}
-              className="inline-flex items-center justify-center rounded-full bg-terreta-accent px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex w-full items-center justify-center rounded-full bg-terreta-accent px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {pdfUploadProgress === 'uploading' ? (
                 <>
@@ -1127,7 +1163,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
               <button
                 type="button"
                 onClick={() => onOpenAuth()}
-                className="inline-flex items-center justify-center rounded-full border border-terreta-border bg-terreta-bg px-4 py-2.5 text-sm font-semibold text-terreta-dark transition-colors hover:bg-terreta-sidebar"
+                className="inline-flex w-full items-center justify-center rounded-full border border-terreta-border bg-terreta-bg px-4 py-2.5 text-sm font-semibold text-terreta-dark transition-colors hover:bg-terreta-sidebar sm:w-auto"
               >
                 Iniciar sesión para guardar
               </button>
@@ -1141,6 +1177,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
           canSaveToProfile={!!generatedQRPayload}
           isSavingToProfile={isSavingToProfile}
           onSaveToProfile={handleSaveToProfile}
+          isMobile={isMobile}
         />
       </div>
 

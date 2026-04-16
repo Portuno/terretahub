@@ -4,14 +4,15 @@ import { Calendar, MapPin, ChevronDown, ChevronUp, X, Film, Radio, Sparkles, Pac
 import { supabase } from '../lib/supabase';
 import { useDynamicMetaTags } from '../hooks/useDynamicMetaTags';
 import { Toast } from './Toast';
+import { useTheme, type Theme } from '../context/ThemeContext';
 
 const EVENT_NAME = 'Un Finde en la Terreta';
-const EVENT_CLAIM_ES = '54 horas de inmersión total para hackear el futuro de Valencia';
-const EVENT_CLAIM_EN = '54 hours of total immersion to hack the future of Valencia';
+const EVENT_CLAIM_ES = 'Cada persona cuenta su Terreta';
+const EVENT_CLAIM_EN = 'Every person tells their Terreta';
 const EVENT_DATE = '2026-07-03';
 const EVENT_DATE_END = '2026-07-05';
-const EVENT_VENUE_ES = 'Universidad de Valencia (UV) & La Marina, Valencia';
-const EVENT_VENUE_EN = 'University of Valencia (UV) & La Marina, Valencia';
+const EVENT_VENUE_ES = 'La Terreta';
+const EVENT_VENUE_EN = 'La Terreta';
 
 export type Lang = 'es' | 'en';
 
@@ -31,19 +32,66 @@ const getInitialLang = (): Lang => {
 
 const translations = {
   es: {
-    nav: { concept: 'Concepto', tracks: 'Tracks', agenda: 'Agenda', logistics: 'Logística', sponsorship: 'Patrocinio' },
+    nav: { concept: 'Festival', tracks: 'La experiencia', agenda: 'Edición Cine', logistics: 'Participar', sponsorship: 'Patrocinar' },
     header: { back: '← Volver' },
     hero: {
       badge: 'Terreta Hub presenta',
       claim: EVENT_CLAIM_ES,
-      subtext: 'El motor de ejecución táctica de Terreta Hub. No reflexión, sino el "Hacer": preparación del terreno donde el talento local se hibrida con redes internacionales para convertir ideas volátiles en proyectos activos.',
+      subtext: 'cine, streaming y experimentos interactivos',
       attend: 'Quiero participar',
       sponsor: 'Quiero ser sponsor',
+      collaborate: 'Quiero colaborar',
+      duration: '3 días',
       speaker: 'Speaker / Mentor / Jurado',
+    },
+    participate: {
+      title: 'Participar',
+      subtitle: 'Elegí tu rol y anotate en minutos.',
+      cards: {
+        attendee: {
+          title: 'Participante',
+          desc: 'Vení a producir: cortos, streaming y experimentos.',
+          cta: 'Quiero participar',
+        },
+        sponsor: {
+          title: 'Sponsor',
+          desc: 'Impulsá el festival y conectá con talento audiovisual.',
+          cta: 'Quiero ser sponsor',
+        },
+        collaborator: {
+          title: 'Colaborador/a',
+          desc: 'Sumá equipo: producción, difusión, voluntariado o soporte.',
+          cta: 'Quiero colaborar',
+        },
+      },
+    },
+    themes: {
+      title: 'Temas',
+      subtitle: 'Cambiá el elemento para ajustar la estética.',
+      tierra: {
+        label: 'Tierra',
+        desc: 'Raíz y territorio: foco comunitario y narrativa con raíces.',
+        points: ['Frame Hack aplicado a decisiones humanas', 'Cine que muestra comunidad en acción'],
+      },
+      fuego: {
+        label: 'Fuego',
+        desc: 'Energía y acción: producción rápida y hackeo del frame.',
+        points: ['Sprints intensos y montaje ágil', 'Momentos que escalan en minutos'],
+      },
+      aire: {
+        label: 'Aire',
+        desc: 'Conexión y redes: entrevistas, collabs y circulación de ideas.',
+        points: ['Streaming con interacción y feedback', 'Colaboración entre equipos y canales'],
+      },
+      agua: {
+        label: 'Agua',
+        desc: 'Fluidez y experimentación: streaming y prototipos en vivo.',
+        points: ['Making of continuo (en directo)', 'Videojuegos y experiencias interactivas'],
+      },
     },
     concept: {
       title: '¿Qué es Un Finde en la Terreta?',
-      desc: 'Durante 54 horas, este Ideathon actúa como catalizador para la transformación consciente y coherente de Valencia. Siguiendo el marco conceptual del "Cuaderno Rojo", el proyecto se estructura bajo la lógica memética de "Parar - Curar - Gear": un proceso de tres pasos para recuperar la soberanía individual y creativa a través de la tecnología.',
+      desc: 'Durante el finde, este Ideathon actúa como catalizador para la transformación consciente y coherente de Valencia. Siguiendo el marco conceptual del "Cuaderno Rojo", el proyecto se estructura bajo la lógica memética de "Parar - Curar - Gear": un proceso de tres pasos para recuperar la soberanía individual y creativa a través de la tecnología.',
       framehack: 'Frame Hack + Seis Sombreros',
       framehackDesc: 'El núcleo metodológico utiliza el "Frame Hack" (hackear el marco) integrado con la técnica de los "Seis Sombreros para Pensar" (De Bono) para optimizar la toma de decisiones y la producción en cada equipo.',
       parar: 'Parar',
@@ -54,15 +102,16 @@ const translations = {
       gearDesc: 'Activar el engranaje. Convertir ficción en realidad tangible.',
     },
     tracks: {
-      title: 'Tracks de Contenido',
-      cine: 'Cine',
-      cineDesc: 'Festival "El Loco Lunes". Producción audiovisual que desafía los marcos establecidos.',
-      streaming: 'Streaming',
-      streamingDesc: '72 horas de transmisión en vivo (Making Off) documentando la "IA en la Terreta".',
+      title: 'Edición Festival de Cine',
+      cine: 'Cortometrajes',
+      cineDesc: 'Piezas creadas antes/durante/después: retrocausalidad y Frame Hack en acción.',
+      streaming: 'Streaming & Making Of',
+      streamingDesc: 'Cobertura en vivo: backstage, entrevistas y montaje en tiempo real.',
       experiencias: 'Experiencias',
       experienciasDesc: 'Gestión de un "Calendario de Recuerdos" y mapeo de hitos emocionales.',
-      productos: 'Productos',
-      productosDesc: 'Generación de activos digitales y físicos, transformando la ficción en realidad.',
+      productos: 'Videojuegos y Experimentos',
+      productosDesc: 'Prototipos interactivos y experiencias en vivo que expanden el frame.',
+      reminder: 'Cada equipo cuenta su Terreta.',
     },
     roles: {
       title: '¿Quién participa?',
@@ -78,21 +127,21 @@ const translations = {
       juradoDesc: 'Evaluación basada en datos y gestión de suministros (HITL).',
     },
     agenda: {
-      title: 'Agenda',
-      dayFri: 'Viernes 3',
-      daySat: 'Sábado 4',
-      daySun: 'Domingo 5',
-      descFri: 'Apertura, networking, pitches de ideas, formación de equipos y primeras sesiones de Frame Hack.',
-      descSat: 'Trabajo intensivo en equipos, mentoring vertical, producción de contenido y making off en streaming.',
-      descSun: 'Últimos sprints, presentaciones ante jurado, premios y cierre con streaming final.',
-      timeFri: '18:00 – 00:00',
-      timeSat: '09:00 – 00:00',
-      timeSun: '09:00 – 21:00',
+      title: 'La experiencia',
+      dayFri: 'Viernes',
+      daySat: 'Sábado',
+      daySun: 'Domingo',
+      descFri: 'Catch-up, know-use y preproducción: sincronizamos equipos y elegimos la línea temporal.',
+      descSat: 'Visualizaciones: feria de proyección ininterrumpida (cortos, streaming y experiencias interactivas).',
+      descSun: 'Entrega de premios: cierre, validación y reconocimiento a la excelencia técnica audiovisual.',
+      timeFri: '18:00',
+      timeSat: '09:00',
+      timeSun: '09:00',
     },
     logistics: {
       title: 'Logística e Información Práctica',
       venues: 'Sedes',
-      venuesValue: 'Universidad de Valencia (UV) y La Marina. Áreas para Programar, Grabar, Comer/Socializar y Pitchear.',
+      venuesValue: 'La Terreta. Áreas para Programar, Grabar, Comer/Socializar y Pitchear.',
       catering: 'Catering permanente',
       cateringValue: 'Agua, Café, Té y Mate disponibles 24h. Servicios programados de Desayuno, Almuerzo, Merienda y Cena.',
       bring: 'Qué llevar',
@@ -108,27 +157,28 @@ const translations = {
     countdown: { title: 'Cuenta atrás', days: 'Días', hours: 'Horas', min: 'Min', seg: 'Seg' },
     sponsor: {
       title: 'Patrocinio',
-      intro: 'Visibilidad de marca, acceso al talento y al ecosistema creativo-tecnológico de Valencia. Presencia en 72h de streaming, comunicaciones y entradas incluidas.',
+      intro: 'Visibilidad de marca y acceso al talento audiovisual de Valencia durante el festival.',
       cta: 'Quiero ser sponsor',
-      benefitsBronze: ['Logo en web y streaming', 'Mención en redes', '2 entradas'],
-      benefitsSilver: ['Todo Bronze', 'Logo en merchandising', '4 entradas', 'Stand en La Marina'],
-      benefitsGold: ['Todo Silver', 'Logo principal', '8 entradas', 'Speaker slot', 'Co-branding en contenido'],
+      benefitsBronze: ['Logo en web y streaming', 'Mención en redes'],
+      benefitsSilver: ['Logo en merchandising', 'Stand en La Marina'],
+      benefitsGold: ['Logo principal', 'Co-branding en contenido'],
     },
     faq: [
-      { q: '¿Necesito tener una idea propia?', a: 'No. Puedes traer una idea, unirte a un equipo existente o aportar tu talento (tech, diseño, negocio, audiovisual) a un proyecto.' },
-      { q: '¿Puedo ir solo/a?', a: 'Sí. La mayoría de participantes llegan solos y forman equipos el viernes por la noche durante los pitches.' },
-      { q: '¿Es solo para perfiles técnicos?', a: 'No. Buscamos equipos diversos: negocio, diseño, marketing, cine, IA y tech. Lo importante es las ganas de construir y hackear narrativas.' },
-      { q: '¿Qué diferencia hay con un hackathon normal?', a: 'Usamos la metodología Frame Hack + Seis Sombreros de De Bono para ir más allá del código: hackeamos narrativas, producimos contenido audiovisual y generamos activos reales durante las 54 horas.' },
-      { q: '¿Se puede participar en remoto?', a: 'El evento es presencial, pero el making off se transmite en vivo durante 72 horas. Participantes remotos pueden seguir el streaming y contribuir de forma asíncrona.' },
+      { q: '¿Necesito saber de cine?', a: 'No. Podés venir con equipo, ideas o habilidades. Lo importante es construir y producir contenido audiovisual.' },
+      { q: '¿Se puede ir solo/a?', a: 'Sí. El viernes se arman equipos con los pitches y el know-use.' },
+      { q: '¿Qué se hace cada día?', a: 'Viernes: preproducción y Frame Hack. Sábado: visualizaciones. Domingo: premios y cierre.' },
+      { q: '¿Cómo participo como sponsor o colaborador/a?', a: 'Elegí tu rol y completá el formulario. Te contactamos para coordinar.' },
     ],
-    toast: { error: 'Error al enviar. Intenta de nuevo.', attendeeOk: '¡Registro recibido! Te contactaremos pronto.', sponsorOk: '¡Solicitud recibida! Te contactaremos para concretar.', speakerOk: '¡Aplicación recibida! Revisaremos y te responderemos.' },
-    meta: { title: 'Un Finde en la Terreta | 54h de Inmersión Total | Terreta Hub', description: '54 horas de inmersión total para hackear el futuro de Valencia. 3, 4 y 5 de Julio 2026. Ideathon, Frame Hack, Cine, Streaming y más.' },
+    toast: { error: 'Error al enviar. Intenta de nuevo.', attendeeOk: '¡Registro recibido! Te contactaremos pronto.', sponsorOk: '¡Solicitud recibida! Te contactaremos para concretar.', collaboratorOk: '¡Solicitud recibida! Te contactaremos para coordinar.', speakerOk: '¡Aplicación recibida! Revisaremos y te responderemos.' },
+    meta: { title: 'Un Finde en la Terreta | Festival Audiovisual | Terreta Hub', description: 'Cada persona cuenta su Terreta. A través del cine, el streaming y experimentos interactivos. 3, 4 y 5 de Julio 2026.' },
     footer: { privacy: 'Política de Privacidad', terms: 'Términos y Condiciones', by: 'Plataforma creada por', accept: 'Al enviar cualquiera de los formularios aceptas nuestra' },
+    faqTitle: 'FAQ',
     modal: {
       close: 'Cerrar',
       attendee: 'Quiero participar',
       sponsor: 'Quiero ser sponsor',
       speaker: 'Speaker, Mentor o Jurado',
+      collaborator: 'Quiero colaborar',
       submitError: 'No pudimos enviar. Intenta de nuevo.',
       name: 'Nombre',
       email: 'Email',
@@ -148,6 +198,15 @@ const translations = {
       budget: 'Presupuesto aproximado',
       message: 'Mensaje (opcional)',
       submitSponsor: 'Enviar solicitud de patrocinio',
+      collaboratorArea: 'Área de colaboración',
+      submitCollaborator: 'Enviar solicitud de colaboración',
+      collabTypes: {
+        audiovisual: 'Audiovisual',
+        production: 'Producción',
+        communication: 'Comunicación',
+        volunteering: 'Voluntariado',
+        other: 'Otro',
+      },
       speakerRole: 'Rol al que aspiras *',
       mentor: 'Mentor/a',
       judge: 'Jurado',
@@ -161,24 +220,71 @@ const translations = {
       trackExperiencias: 'Experiencias',
       trackProductos: 'Productos',
       trackAll: 'Cualquiera / Todos',
-      placeholders: { name: 'Tu nombre', email: 'tu@email.com', company: 'Nombre de la empresa', contact: 'Nombre y apellidos', companyEmail: 'contacto@empresa.com', fullName: 'Nombre completo', bio: 'Quién eres y qué haces', experience: 'Startups, cine, IA, sector...', links: 'https://...', message: 'Interés, preguntas...' },
-      budgetOptions: { bronze: 'Bronze (500€)', silver: 'Silver (1.200€)', gold: 'Gold (2.500€)', custom: 'Otro / Concertar llamada' },
+      placeholders: { name: 'Tu nombre', email: 'tu@email.com', company: 'Nombre de la empresa', contact: 'Nombre y apellidos', companyEmail: 'contacto@empresa.com', fullName: 'Nombre completo', bio: 'Quién eres y qué haces', experience: 'Startups, cine, IA, sector...', links: 'https://...', message: 'Interés, preguntas...', collabArea: 'Audiovisual, producción, comunicación...', collabMessage: 'Cuéntanos cómo querés colaborar...' },
+      budgetOptions: { bronze: 'Opción 1', silver: 'Opción 2', gold: 'Opción 3', custom: 'Otro / Concertar llamada' },
     },
   },
   en: {
-    nav: { concept: 'Concept', tracks: 'Tracks', agenda: 'Agenda', logistics: 'Logistics', sponsorship: 'Sponsorship' },
+    nav: { concept: 'Festival', tracks: 'The experience', agenda: 'Film Edition', logistics: 'Participate', sponsorship: 'Sponsor' },
     header: { back: '← Back' },
     hero: {
       badge: 'Terreta Hub presents',
       claim: EVENT_CLAIM_EN,
-      subtext: 'The tactical execution engine of Terreta Hub. Not reflection, but "Doing": ground preparation where local talent hybridizes with international networks to turn volatile ideas into active projects.',
+      subtext: 'film, streaming and interactive experiments',
       attend: 'I want to participate',
       sponsor: 'I want to be a sponsor',
+      collaborate: 'I want to collaborate',
+      duration: '3 days',
       speaker: 'Speaker / Mentor / Jury',
+    },
+    participate: {
+      title: 'Participate',
+      subtitle: 'Choose your role and sign up in minutes.',
+      cards: {
+        attendee: {
+          title: 'Participant',
+          desc: 'Come to produce: shorts, streaming and interactive experiments.',
+          cta: 'I want to participate',
+        },
+        sponsor: {
+          title: 'Sponsor',
+          desc: 'Boost the festival and connect with audiovisual talent.',
+          cta: 'I want to be a sponsor',
+        },
+        collaborator: {
+          title: 'Collaborator',
+          desc: 'Join the team: production, communication, volunteering or support.',
+          cta: 'I want to collaborate',
+        },
+      },
+    },
+    themes: {
+      title: 'Themes',
+      subtitle: 'Switch an element to change the aesthetic.',
+      tierra: {
+        label: 'Earth',
+        desc: 'Roots and territory: community-first narrative and human decisions.',
+        points: ['Frame Hack for human choices', 'Community stories in action'],
+      },
+      fuego: {
+        label: 'Fire',
+        desc: 'Energy and action: fast production and frame hacking.',
+        points: ['Intense sprints and agile editing', 'Moments that scale in minutes'],
+      },
+      aire: {
+        label: 'Air',
+        desc: 'Connection and networks: interviews, collabs and idea circulation.',
+        points: ['Streaming with interaction and feedback', 'Collaboration across teams and channels'],
+      },
+      agua: {
+        label: 'Water',
+        desc: 'Fluency and experimentation: streaming and live prototypes.',
+        points: ['Continuous making-of (live)', 'Video games and interactive experiences'],
+      },
     },
     concept: {
       title: 'What is Un Finde en la Terreta?',
-      desc: 'During 54 hours, this Ideathon acts as a catalyst for the conscious and coherent transformation of Valencia. Following the "Red Notebook" conceptual framework, the project is structured under the memetic logic of "Stop - Heal - Gear": a three-step process to recover individual and creative sovereignty through technology.',
+      desc: 'During the weekend, this Ideathon acts as a catalyst for the conscious and coherent transformation of Valencia. Following the "Red Notebook" conceptual framework, the project is structured under the memetic logic of "Stop - Heal - Gear": a three-step process to recover individual and creative sovereignty through technology.',
       framehack: 'Frame Hack + Six Hats',
       framehackDesc: 'The methodological core uses the "Frame Hack" (hacking the frame) integrated with De Bono\'s "Six Thinking Hats" technique to optimize decision-making and production in each team.',
       parar: 'Stop',
@@ -189,15 +295,16 @@ const translations = {
       gearDesc: 'Activate the engine. Turn fiction into tangible reality.',
     },
     tracks: {
-      title: 'Content Tracks',
-      cine: 'Cinema',
-      cineDesc: '"El Loco Lunes" Festival. Audiovisual production that challenges established frameworks.',
-      streaming: 'Streaming',
-      streamingDesc: '72 hours of live broadcasting (Making Of) documenting "AI in La Terreta".',
+      title: 'Film Festival Edition',
+      cine: 'Short Films',
+      cineDesc: 'Pieces created before/during/after: retrocausality and Frame Hack in action.',
+      streaming: 'Streaming & Making Of',
+      streamingDesc: 'Live coverage: backstage, interviews and real-time editing.',
       experiencias: 'Experiences',
       experienciasDesc: 'Managing a "Memory Calendar" and mapping emotional milestones.',
-      productos: 'Products',
-      productosDesc: 'Generation of digital and physical assets, turning fiction into reality.',
+      productos: 'Video Games & Experiments',
+      productosDesc: 'Interactive prototypes and live experiences that expand the frame.',
+      reminder: 'Every team tells their Terreta.',
     },
     roles: {
       title: 'Who participates?',
@@ -213,21 +320,21 @@ const translations = {
       juradoDesc: 'Data-driven evaluation and supply management (HITL).',
     },
     agenda: {
-      title: 'Agenda',
-      dayFri: 'Friday 3rd',
-      daySat: 'Saturday 4th',
-      daySun: 'Sunday 5th',
-      descFri: 'Opening, networking, idea pitches, team formation and first Frame Hack sessions.',
-      descSat: 'Intensive team work, vertical mentoring, content production and live streaming making-of.',
-      descSun: 'Final sprints, jury presentations, awards and closing with final stream.',
-      timeFri: '18:00 – 00:00',
-      timeSat: '09:00 – 00:00',
-      timeSun: '09:00 – 21:00',
+      title: 'The experience',
+      dayFri: 'Friday',
+      daySat: 'Saturday',
+      daySun: 'Sunday',
+      descFri: 'Catch-up, know-use and preproduction: we sync teams and pick the timeline permutation.',
+      descSat: 'Visualizations: continuous projection hall (shorts, streaming and interactive experiences).',
+      descSun: 'Awards day: wrap-up, validation and recognition for audiovisual technical excellence.',
+      timeFri: '18:00',
+      timeSat: '09:00',
+      timeSun: '09:00',
     },
     logistics: {
       title: 'Logistics & Practical Info',
       venues: 'Venues',
-      venuesValue: 'University of Valencia (UV) and La Marina. Areas for Coding, Recording, Eating/Socializing and Pitching.',
+      venuesValue: 'La Terreta. Areas for Coding, Recording, Eating/Socializing and Pitching.',
       catering: 'Permanent catering',
       cateringValue: 'Water, Coffee, Tea and Mate available 24h. Scheduled Breakfast, Lunch, Snack and Dinner services.',
       bring: 'What to bring',
@@ -243,27 +350,28 @@ const translations = {
     countdown: { title: 'Countdown', days: 'Days', hours: 'Hours', min: 'Min', seg: 'Sec' },
     sponsor: {
       title: 'Sponsorship',
-      intro: 'Brand visibility, access to talent and Valencia\'s creative-tech ecosystem. Presence across 72h of streaming, communications and included tickets.',
+      intro: 'Brand visibility and access to Valencia audiovisual talent during the festival.',
       cta: 'I want to be a sponsor',
-      benefitsBronze: ['Logo on web & streaming', 'Social media mention', '2 tickets'],
-      benefitsSilver: ['All Bronze', 'Logo on merchandising', '4 tickets', 'Stand at La Marina'],
-      benefitsGold: ['All Silver', 'Main logo', '8 tickets', 'Speaker slot', 'Co-branding on content'],
+      benefitsBronze: ['Logo on web & streaming', 'Social media mention'],
+      benefitsSilver: ['Logo on merchandising', 'Stand at La Marina'],
+      benefitsGold: ['Main logo', 'Co-branding on content'],
     },
     faq: [
-      { q: 'Do I need to have my own idea?', a: 'No. You can bring an idea, join an existing team, or contribute your skills (tech, design, business, audiovisual) to a project.' },
-      { q: 'Can I come alone?', a: 'Yes. Most participants arrive alone and form teams on Friday night during pitches.' },
-      { q: 'Is it only for technical profiles?', a: 'No. We seek diverse teams: business, design, marketing, cinema, AI and tech. What matters is the drive to build and hack narratives.' },
-      { q: 'What makes this different from a regular hackathon?', a: 'We use the Frame Hack + De Bono\'s Six Thinking Hats methodology to go beyond code: we hack narratives, produce audiovisual content and generate real assets during the 54 hours.' },
-      { q: 'Can I participate remotely?', a: 'The event is in-person, but the making-of is broadcast live for 72 hours. Remote participants can follow the stream and contribute asynchronously.' },
+      { q: 'Do I need to know film?', a: 'No. You can come with a team, ideas or skills. The goal is to build and produce audiovisual content.' },
+      { q: 'Can I come alone?', a: 'Yes. On Friday we form teams through pitches and know-use sessions.' },
+      { q: 'What happens each day?', a: 'Friday: preproduction + Frame Hack. Saturday: visualizations. Sunday: awards and wrap-up.' },
+      { q: 'How do I join as sponsor or collaborator?', a: 'Pick your role and complete the form. We will contact you to coordinate.' },
     ],
-    toast: { error: 'Error sending. Please try again.', attendeeOk: 'Registration received! We\'ll be in touch soon.', sponsorOk: 'Request received! We\'ll contact you to follow up.', speakerOk: 'Application received! We\'ll review and get back to you.' },
-    meta: { title: 'Un Finde en la Terreta | 54h Total Immersion | Terreta Hub', description: '54 hours of total immersion to hack the future of Valencia. July 3-5, 2026. Ideathon, Frame Hack, Cinema, Streaming and more.' },
+    toast: { error: 'Error sending. Please try again.', attendeeOk: 'Registration received! We\'ll be in touch soon.', sponsorOk: 'Request received! We\'ll contact you to follow up.', collaboratorOk: 'Request received! We\'ll contact you to coordinate.', speakerOk: 'Application received! We\'ll review and get back to you.' },
+    meta: { title: 'Un Finde en la Terreta | Audiovisual Festival | Terreta Hub', description: 'Every person tells their Terreta. Through film, streaming and interactive experiments. July 3-5, 2026.' },
     footer: { privacy: 'Privacy Policy', terms: 'Terms and Conditions', by: 'Platform created by', accept: 'By submitting any form you accept our' },
+    faqTitle: 'FAQ',
     modal: {
       close: 'Close',
       attendee: 'I want to participate',
       sponsor: 'I want to be a sponsor',
       speaker: 'Speaker, Mentor or Jury',
+      collaborator: 'I want to collaborate',
       submitError: 'We couldn\'t send. Please try again.',
       name: 'Name',
       email: 'Email',
@@ -283,6 +391,15 @@ const translations = {
       budget: 'Approximate budget',
       message: 'Message (optional)',
       submitSponsor: 'Submit sponsorship request',
+      collaboratorArea: 'Collaboration area',
+      submitCollaborator: 'Submit collaboration request',
+      collabTypes: {
+        audiovisual: 'Audiovisual',
+        production: 'Production',
+        communication: 'Communication',
+        volunteering: 'Volunteering',
+        other: 'Other',
+      },
       speakerRole: 'Role you\'re applying for *',
       mentor: 'Mentor',
       judge: 'Jury',
@@ -296,8 +413,8 @@ const translations = {
       trackExperiencias: 'Experiences',
       trackProductos: 'Products',
       trackAll: 'Any / All',
-      placeholders: { name: 'Your name', email: 'you@email.com', company: 'Company name', contact: 'Full name', companyEmail: 'contact@company.com', fullName: 'Full name', bio: 'Who you are and what you do', experience: 'Startups, cinema, AI, sector...', links: 'https://...', message: 'Interest, questions...' },
-      budgetOptions: { bronze: 'Bronze (500€)', silver: 'Silver (1,200€)', gold: 'Gold (2,500€)', custom: 'Other / Schedule a call' },
+      placeholders: { name: 'Your name', email: 'you@email.com', company: 'Company name', contact: 'Full name', companyEmail: 'contact@company.com', fullName: 'Full name', bio: 'Who you are and what you do', experience: 'Startups, cinema, AI, sector...', links: 'https://...', message: 'Interest, questions...', collabArea: 'Audiovisual, production, communication...', collabMessage: 'Tell us how you want to collaborate...' },
+      budgetOptions: { bronze: 'Option 1', silver: 'Option 2', gold: 'Option 3', custom: 'Other / Schedule a call' },
     },
   },
 } as const;
@@ -387,7 +504,7 @@ const FaqSection: React.FC<{ items: Array<{ q: string; a: string }> }> = ({ item
   );
 };
 
-type RegistrationModalType = 'attendee' | 'sponsor' | 'speaker';
+type RegistrationModalType = 'attendee' | 'sponsor' | 'speaker' | 'collaborator';
 
 interface RegistrationModalProps {
   isOpen: boolean;
@@ -396,6 +513,7 @@ interface RegistrationModalProps {
   onAttendeeSubmit: (e: React.FormEvent) => Promise<void>;
   onSponsorSubmit: (e: React.FormEvent) => Promise<void>;
   onSpeakerSubmit: (e: React.FormEvent) => Promise<void>;
+  onCollaboratorSubmit: (e: React.FormEvent) => Promise<void>;
   t: T['modal'];
 }
 
@@ -408,6 +526,7 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
   onAttendeeSubmit,
   onSponsorSubmit,
   onSpeakerSubmit,
+  onCollaboratorSubmit,
   t,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -433,6 +552,7 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
     attendee: t.attendee,
     sponsor: t.sponsor,
     speaker: t.speaker,
+    collaborator: t.collaborator,
   };
 
   return (
@@ -518,21 +638,47 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
                 <input id="modal_sponsor_email" name="sponsor_email" type="email" required className={INPUT_CLASS} placeholder={t.placeholders.companyEmail} />
               </div>
               <div>
-                <label htmlFor="modal_sponsor_budget" className="block text-sm font-medium text-terreta-dark mb-1">{t.budget}</label>
-                <select id="modal_sponsor_budget" name="sponsor_budget" className={INPUT_CLASS}>
-                  <option value="">{t.select}</option>
-                  <option value="bronze">{t.budgetOptions.bronze}</option>
-                  <option value="silver">{t.budgetOptions.silver}</option>
-                  <option value="gold">{t.budgetOptions.gold}</option>
-                  <option value="custom">{t.budgetOptions.custom}</option>
-                </select>
-              </div>
-              <div>
                 <label htmlFor="modal_sponsor_message" className="block text-sm font-medium text-terreta-dark mb-1">{t.message}</label>
                 <textarea id="modal_sponsor_message" name="sponsor_message" rows={3} className={INPUT_CLASS + ' resize-y'} placeholder={t.placeholders.message} />
               </div>
               <button type="submit" disabled={isSubmitting} className="w-full px-6 py-3 bg-terreta-accent text-white font-bold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60">
                 {isSubmitting ? t.sending : t.submitSponsor}
+              </button>
+            </form>
+          )}
+          {type === 'collaborator' && (
+            <form onSubmit={(e) => handleSubmit(e, onCollaboratorSubmit)} className="space-y-4">
+              <div>
+                <label htmlFor="modal_collab_name" className="block text-sm font-medium text-terreta-dark mb-1">{t.name} *</label>
+                <input id="modal_collab_name" name="collab_name" type="text" required className={INPUT_CLASS} placeholder={t.placeholders.name} />
+              </div>
+              <div>
+                <label htmlFor="modal_collab_email" className="block text-sm font-medium text-terreta-dark mb-1">{t.email} *</label>
+                <input id="modal_collab_email" name="collab_email" type="email" required className={INPUT_CLASS} placeholder={t.placeholders.email} />
+              </div>
+              <div>
+                <label htmlFor="modal_collab_area" className="block text-sm font-medium text-terreta-dark mb-1">{t.collaboratorArea}</label>
+                <select id="modal_collab_area" name="collab_area" className={INPUT_CLASS} defaultValue="">
+                  <option value="">{t.select}</option>
+                  <option value="audiovisual">{t.collabTypes.audiovisual}</option>
+                  <option value="production">{t.collabTypes.production}</option>
+                  <option value="communication">{t.collabTypes.communication}</option>
+                  <option value="volunteering">{t.collabTypes.volunteering}</option>
+                  <option value="other">{t.collabTypes.other}</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="modal_collab_message" className="block text-sm font-medium text-terreta-dark mb-1">{t.message}</label>
+                <textarea
+                  id="modal_collab_message"
+                  name="collab_message"
+                  rows={3}
+                  className={INPUT_CLASS + ' resize-y'}
+                  placeholder={t.placeholders.collabMessage}
+                />
+              </div>
+              <button type="submit" disabled={isSubmitting} className="w-full px-6 py-3 bg-terreta-accent text-white font-bold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-60">
+                {isSubmitting ? t.sending : t.submitCollaborator}
               </button>
             </form>
           )}
@@ -602,6 +748,7 @@ export const UnFindePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [lang, setLang] = useState<Lang>(getInitialLang);
+  const { theme: activeTheme, setTheme } = useTheme();
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
   const t = translations[lang];
@@ -676,12 +823,11 @@ export const UnFindePage: React.FC = () => {
     const company = (form.querySelector('[name="sponsor_company"]') as HTMLInputElement)?.value?.trim();
     const contactName = (form.querySelector('[name="sponsor_contact"]') as HTMLInputElement)?.value?.trim();
     const email = (form.querySelector('[name="sponsor_email"]') as HTMLInputElement)?.value?.trim();
-    const budget = (form.querySelector('[name="sponsor_budget"]') as HTMLSelectElement)?.value ?? '';
     const message = (form.querySelector('[name="sponsor_message"]') as HTMLTextAreaElement)?.value?.trim() ?? '';
     if (!company || !contactName || !email) return;
     const { error } = await supabase.from('startup_weekend_registrations').insert({
       type: 'sponsor',
-      payload: { company, contactName, email, budget, message },
+      payload: { company, contactName, email, message },
       source: 'unfinde_terreta',
     });
     if (error) {
@@ -715,6 +861,31 @@ export const UnFindePage: React.FC = () => {
     showToastMsg(t.toast.speakerOk);
   };
 
+  const handleCollaboratorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.currentTarget as HTMLFormElement;
+    const name = (form.querySelector('[name="collab_name"]') as HTMLInputElement)?.value?.trim();
+    const email = (form.querySelector('[name="collab_email"]') as HTMLInputElement)?.value?.trim();
+    const area = (form.querySelector('[name="collab_area"]') as HTMLSelectElement)?.value ?? '';
+    const message = (form.querySelector('[name="collab_message"]') as HTMLTextAreaElement)?.value?.trim() ?? '';
+
+    if (!name || !email || !area) return;
+
+    const { error } = await supabase.from('startup_weekend_registrations').insert({
+      type: 'collaborator',
+      payload: { name, email, area, message },
+      source: 'unfinde_terreta',
+    });
+
+    if (error) {
+      showToastMsg(t.toast.error);
+      throw new Error('Submit failed');
+    }
+
+    form.reset();
+    showToastMsg(t.toast.collaboratorOk);
+  };
+
   const [registrationModalType, setRegistrationModalType] = useState<RegistrationModalType | null>(null);
 
   return (
@@ -730,10 +901,10 @@ export const UnFindePage: React.FC = () => {
           </Link>
           <nav className="hidden md:flex items-center gap-4 lg:gap-6" aria-label="Secciones del evento">
             {[
-              { id: 'concepto', label: t.nav.concept },
-              { id: 'tracks', label: t.nav.tracks },
-              { id: 'agenda', label: t.nav.agenda },
-              { id: 'logistica', label: t.nav.logistics },
+              { id: 'festival', label: t.nav.concept },
+              { id: 'experience', label: t.nav.tracks },
+              { id: 'cine-edition', label: t.nav.agenda },
+              { id: 'participate', label: t.nav.logistics },
               { id: 'sponsor', label: t.nav.sponsorship },
             ].map(({ id, label }) => (
               <button
@@ -783,9 +954,9 @@ export const UnFindePage: React.FC = () => {
         </div>
       </header>
 
-      <main>
+      <main className="pb-24 md:pb-0">
         {/* Hero */}
-        <section className="max-w-5xl mx-auto px-4 md:px-8 py-14 md:py-20 text-center">
+        <section id="festival" className="max-w-5xl mx-auto px-4 md:px-8 py-12 md:py-16 text-center">
           <p className="text-sm uppercase tracking-widest text-terreta-accent font-semibold mb-3">
             {t.hero.badge}
           </p>
@@ -795,25 +966,22 @@ export const UnFindePage: React.FC = () => {
           <p className="text-xl md:text-2xl text-terreta-accent font-semibold mb-3">
             {t.hero.claim}
           </p>
-          <p className="text-terreta-dark/75 mb-8 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-terreta-dark/75 mb-6 max-w-2xl mx-auto leading-relaxed text-sm md:text-base">
             {t.hero.subtext}
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-terreta-dark/80 text-sm mb-10">
-            <span className="inline-flex items-center gap-1.5">
-              <Calendar size={18} aria-hidden /> {formatEventDateRange(EVENT_DATE, EVENT_DATE_END, lang)}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <MapPin size={18} aria-hidden /> {eventPlace}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Clock size={18} aria-hidden /> 54h
-            </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8 max-w-xl mx-auto">
+            <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-terreta-border bg-terreta-card/50">
+              <Calendar size={18} aria-hidden /> <span className="font-semibold text-terreta-dark/80">{formatEventDateRange(EVENT_DATE, EVENT_DATE_END, lang)}</span>
+            </div>
+            <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-terreta-border bg-terreta-card/50">
+              <MapPin size={18} aria-hidden /> <span className="font-semibold text-terreta-dark/80 text-sm text-center break-words leading-tight">{eventPlace}</span>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-3 justify-center">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-xl mx-auto">
             <button
               type="button"
               onClick={() => setRegistrationModalType('attendee')}
-              className="px-7 py-3.5 bg-terreta-accent text-white font-bold rounded-lg hover:opacity-90 transition-opacity shadow-lg"
+              className="w-full px-7 py-3.5 bg-terreta-accent text-white font-bold rounded-lg hover:opacity-90 transition-opacity shadow-sm"
               tabIndex={0}
               aria-label={t.hero.attend}
             >
@@ -822,7 +990,7 @@ export const UnFindePage: React.FC = () => {
             <button
               type="button"
               onClick={() => setRegistrationModalType('sponsor')}
-              className="px-7 py-3.5 border-2 border-terreta-accent text-terreta-accent font-bold rounded-lg hover:bg-terreta-accent/10 transition-colors"
+              className="w-full px-7 py-3.5 border border-terreta-accent/60 text-terreta-accent font-bold rounded-lg hover:bg-terreta-accent/10 transition-colors"
               tabIndex={0}
               aria-label={t.hero.sponsor}
             >
@@ -830,18 +998,138 @@ export const UnFindePage: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => setRegistrationModalType('speaker')}
-              className="px-7 py-3.5 border-2 border-terreta-dark/30 text-terreta-dark font-bold rounded-lg hover:bg-terreta-dark/5 transition-colors"
+              onClick={() => setRegistrationModalType('collaborator')}
+              className="w-full px-7 py-3.5 border border-terreta-border/70 text-terreta-dark font-bold rounded-lg hover:bg-terreta-border/20 transition-colors"
               tabIndex={0}
-              aria-label={t.hero.speaker}
+              aria-label={t.hero.collaborate}
             >
-              {t.hero.speaker}
+              {t.hero.collaborate}
             </button>
           </div>
         </section>
 
+        {/* Temas (Tierra/Fuego/Aire/Agua) */}
+        <section id="themes" className="border-t border-terreta-border bg-terreta-card/30 scroll-mt-24">
+          <div className="max-w-5xl mx-auto px-4 md:px-8 py-10 md:py-14">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h2 className="font-serif text-2xl md:text-3xl font-bold">{t.themes.title}</h2>
+                <p className="text-terreta-dark/75 text-sm md:text-base mt-1">{t.themes.subtitle}</p>
+              </div>
+            </div>
+
+            <div role="tablist" aria-label="Themes" className="flex gap-2 overflow-x-auto pb-2">
+              {(['tierra', 'fuego', 'aire', 'agua'] as Theme[]).map((key) => {
+                const isActive = activeTheme === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setTheme(key)}
+                    className={[
+                      'shrink-0 px-4 py-2 rounded-full border text-sm transition-colors',
+                      isActive ? 'bg-terreta-accent text-white border-terreta-accent' : 'bg-terreta-bg/50 border-terreta-border/80 text-terreta-dark/80 hover:border-terreta-accent/60',
+                    ].join(' ')}
+                    tabIndex={0}
+                    aria-label={t.themes[key].label}
+                  >
+                    {t.themes[key].label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 p-5 rounded-xl border border-terreta-border bg-terreta-bg">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-block w-3 h-3 rounded-full bg-terreta-accent" aria-hidden />
+                <h3 className="font-serif text-xl font-bold">{t.themes[activeTheme].label}</h3>
+              </div>
+              <p className="text-sm text-terreta-dark/80 leading-relaxed">{t.themes[activeTheme].desc}</p>
+              <ul className="mt-3 space-y-1 text-sm text-terreta-dark/80">
+                {t.themes[activeTheme].points.map((p) => (
+                  <li key={p} className="flex items-start gap-2">
+                    <span className="text-terreta-accent mt-0.5" aria-hidden>
+                      •
+                    </span>
+                    <span>{p}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* Participar */}
+        <section id="participate" className="border-t border-terreta-border scroll-mt-24">
+          <div className="max-w-5xl mx-auto px-4 md:px-8 py-10 md:py-14">
+            <h2 className="font-serif text-2xl md:text-3xl font-bold mb-2">{t.participate.title}</h2>
+            <p className="text-terreta-dark/75 mb-6 max-w-2xl text-sm md:text-base">{t.participate.subtitle}</p>
+
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="p-5 rounded-xl border border-terreta-border bg-terreta-bg">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-terreta-accent/10 text-terreta-accent">
+                    <Users size={20} />
+                  </div>
+                  <h3 className="font-serif text-lg font-bold">{t.participate.cards.attendee.title}</h3>
+                </div>
+                <p className="text-sm text-terreta-dark/80 leading-relaxed mb-5">{t.participate.cards.attendee.desc}</p>
+                <button
+                  type="button"
+                  onClick={() => setRegistrationModalType('attendee')}
+                  className="w-full px-6 py-3 bg-terreta-accent text-white font-bold rounded-lg hover:opacity-90 transition-opacity"
+                  tabIndex={0}
+                  aria-label={t.participate.cards.attendee.cta}
+                >
+                  {t.participate.cards.attendee.cta}
+                </button>
+              </div>
+
+              <div className="p-5 rounded-xl border border-terreta-border bg-terreta-bg">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-terreta-accent/10 text-terreta-accent">
+                    <Package size={20} />
+                  </div>
+                  <h3 className="font-serif text-lg font-bold">{t.participate.cards.sponsor.title}</h3>
+                </div>
+                <p className="text-sm text-terreta-dark/80 leading-relaxed mb-5">{t.participate.cards.sponsor.desc}</p>
+                <button
+                  type="button"
+                  onClick={() => setRegistrationModalType('sponsor')}
+                  className="w-full px-6 py-3 border border-terreta-accent/60 text-terreta-accent font-bold rounded-lg hover:bg-terreta-accent/10 transition-colors"
+                  tabIndex={0}
+                  aria-label={t.participate.cards.sponsor.cta}
+                >
+                  {t.participate.cards.sponsor.cta}
+                </button>
+              </div>
+
+              <div className="p-5 rounded-xl border border-terreta-border bg-terreta-bg">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-terreta-accent/10 text-terreta-accent">
+                    <Mic size={20} />
+                  </div>
+                  <h3 className="font-serif text-lg font-bold">{t.participate.cards.collaborator.title}</h3>
+                </div>
+                <p className="text-sm text-terreta-dark/80 leading-relaxed mb-5">{t.participate.cards.collaborator.desc}</p>
+                <button
+                  type="button"
+                  onClick={() => setRegistrationModalType('collaborator')}
+                  className="w-full px-6 py-3 border border-terreta-border/70 text-terreta-dark font-bold rounded-lg hover:bg-terreta-border/20 transition-colors"
+                  tabIndex={0}
+                  aria-label={t.participate.cards.collaborator.cta}
+                >
+                  {t.participate.cards.collaborator.cta}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Concepto - Parar, Curar, Gear */}
-        <section id="concepto" className="border-t border-terreta-border bg-terreta-card/30 scroll-mt-24">
+        <section id="concepto" className="hidden border-t border-terreta-border bg-terreta-card/30 scroll-mt-24">
           <div className="max-w-5xl mx-auto px-4 md:px-8 py-14">
             <h2 className="font-serif text-2xl md:text-3xl font-bold mb-4">{t.concept.title}</h2>
             <p className="text-terreta-dark/80 leading-relaxed mb-6 max-w-3xl">
@@ -860,20 +1148,22 @@ export const UnFindePage: React.FC = () => {
         </section>
 
         {/* Tracks de Contenido */}
-        <section id="tracks" className="border-t border-terreta-border scroll-mt-24">
+        <section id="cine-edition" className="border-t border-terreta-border scroll-mt-24">
           <div className="max-w-5xl mx-auto px-4 md:px-8 py-14">
             <h2 className="font-serif text-2xl md:text-3xl font-bold mb-6">{t.tracks.title}</h2>
-            <div className="grid sm:grid-cols-2 gap-4">
+            <p className="text-terreta-dark/75 mb-6 max-w-2xl text-sm md:text-base mx-auto">
+              {t.tracks.reminder}
+            </p>
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
               <TrackCard icon={<Film size={22} />} title={t.tracks.cine} desc={t.tracks.cineDesc} />
               <TrackCard icon={<Radio size={22} />} title={t.tracks.streaming} desc={t.tracks.streamingDesc} />
-              <TrackCard icon={<Sparkles size={22} />} title={t.tracks.experiencias} desc={t.tracks.experienciasDesc} />
               <TrackCard icon={<Package size={22} />} title={t.tracks.productos} desc={t.tracks.productosDesc} />
             </div>
           </div>
         </section>
 
         {/* Roles */}
-        <section id="roles" className="border-t border-terreta-border bg-terreta-card/30 scroll-mt-24">
+        <section id="roles" className="hidden border-t border-terreta-border bg-terreta-card/30 scroll-mt-24">
           <div className="max-w-5xl mx-auto px-4 md:px-8 py-14">
             <h2 className="font-serif text-2xl md:text-3xl font-bold mb-6">{t.roles.title}</h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -894,29 +1184,34 @@ export const UnFindePage: React.FC = () => {
         </section>
 
         {/* Agenda */}
-        <section id="agenda" className="border-t border-terreta-border scroll-mt-24">
+        <section id="experience" className="border-t border-terreta-border scroll-mt-24">
           <div className="max-w-5xl mx-auto px-4 md:px-8 py-14">
             <h2 className="font-serif text-2xl md:text-3xl font-bold mb-6">{t.agenda.title}</h2>
-            <ul className="space-y-4">
+            <div className="grid md:grid-cols-3 gap-4">
               {[
-                { day: t.agenda.dayFri, time: t.agenda.timeFri, desc: t.agenda.descFri },
-                { day: t.agenda.daySat, time: t.agenda.timeSat, desc: t.agenda.descSat },
-                { day: t.agenda.daySun, time: t.agenda.timeSun, desc: t.agenda.descSun },
-              ].map((item, i) => (
-                <li key={i} className="flex gap-4 p-5 rounded-xl border border-terreta-border bg-terreta-card/50">
-                  <div className="flex-shrink-0 min-w-[100px]">
-                    <span className="font-bold text-terreta-accent text-lg">{item.day}</span>
-                    <p className="text-sm text-terreta-dark/60 mt-0.5">{item.time}</p>
+                { icon: <Film size={20} />, day: t.agenda.dayFri, time: t.agenda.timeFri, desc: t.agenda.descFri },
+                { icon: <Radio size={20} />, day: t.agenda.daySat, time: t.agenda.timeSat, desc: t.agenda.descSat },
+                { icon: <Sparkles size={20} />, day: t.agenda.daySun, time: t.agenda.timeSun, desc: t.agenda.descSun },
+              ].map(({ icon, day, time, desc }) => (
+                <div key={day} className="p-5 rounded-xl border border-terreta-border bg-terreta-bg">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-terreta-accent/10 text-terreta-accent">
+                      {icon}
+                    </div>
+                    <div>
+                      <div className="font-bold text-terreta-accent">{day}</div>
+                      <div className="text-sm text-terreta-dark/70">{time}</div>
+                    </div>
                   </div>
-                  <p className="text-terreta-dark/80 leading-relaxed">{item.desc}</p>
-                </li>
+                  <p className="text-sm text-terreta-dark/80 leading-relaxed">{desc}</p>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         </section>
 
         {/* Logística */}
-        <section id="logistica" className="border-t border-terreta-border bg-terreta-card/30 scroll-mt-24">
+        <section id="logistica" className="hidden border-t border-terreta-border bg-terreta-card/30 scroll-mt-24">
           <div className="max-w-5xl mx-auto px-4 md:px-8 py-14">
             <h2 className="font-serif text-2xl md:text-3xl font-bold mb-6">{t.logistics.title}</h2>
             <div className="grid sm:grid-cols-2 gap-4">
@@ -946,7 +1241,7 @@ export const UnFindePage: React.FC = () => {
         </section>
 
         {/* Countdown */}
-        <section id="countdown" className="border-t border-terreta-border">
+        <section id="countdown" className="hidden border-t border-terreta-border">
           <div className="max-w-5xl mx-auto px-4 md:px-8 py-14 text-center">
             <h2 className="font-serif text-2xl md:text-3xl font-bold mb-6">{t.countdown.title}</h2>
             <Countdown eventDate={EVENT_DATE} labels={t.countdown} />
@@ -957,30 +1252,31 @@ export const UnFindePage: React.FC = () => {
         <section id="sponsor" className="border-t border-terreta-border bg-terreta-card/30 scroll-mt-24">
           <div className="max-w-5xl mx-auto px-4 md:px-8 py-14">
             <h2 className="font-serif text-2xl md:text-3xl font-bold mb-2">{t.sponsor.title}</h2>
-            <p className="text-terreta-dark/80 mb-8 max-w-2xl">
+            <p className="text-terreta-dark/80 mb-6 max-w-2xl text-sm md:text-base">
               {t.sponsor.intro}
             </p>
-            <div className="grid md:grid-cols-3 gap-4 mb-8">
-              {[
-                { name: 'Bronze', price: '500', benefits: t.sponsor.benefitsBronze },
-                { name: 'Silver', price: '1.200', benefits: t.sponsor.benefitsSilver },
-                { name: 'Gold', price: '2.500', benefits: t.sponsor.benefitsGold },
-              ].map((pkg) => (
-                <div key={pkg.name} className="p-5 rounded-xl border border-terreta-border bg-terreta-bg hover:border-terreta-accent/40 transition-colors">
-                  <h3 className="font-serif text-lg font-bold text-terreta-accent mb-2">{pkg.name}</h3>
-                  <p className="text-2xl font-bold text-terreta-dark mb-4">{pkg.price}€</p>
-                  <ul className="text-sm text-terreta-dark/80 space-y-1.5">
-                    {pkg.benefits.map((b, i) => (
-                      <li key={i} className="flex items-start gap-1.5"><span className="text-terreta-accent mt-0.5">•</span> {b}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+            <div className="p-5 rounded-xl border border-terreta-border bg-terreta-bg mb-8">
+              <ul className="text-sm text-terreta-dark/80 space-y-1.5">
+                {Array.from(
+                  new Set([
+                    ...t.sponsor.benefitsBronze,
+                    ...t.sponsor.benefitsSilver,
+                    ...t.sponsor.benefitsGold,
+                  ]),
+                ).map((b) => (
+                  <li key={b} className="flex items-start gap-1.5">
+                    <span className="text-terreta-accent mt-0.5" aria-hidden>
+                      •
+                    </span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
             <button
               type="button"
               onClick={() => setRegistrationModalType('sponsor')}
-              className="px-7 py-3.5 bg-terreta-accent text-white font-bold rounded-lg hover:opacity-90 transition-opacity"
+              className="w-full sm:w-auto px-7 py-3.5 bg-terreta-accent text-white font-bold rounded-lg hover:opacity-90 transition-opacity"
               tabIndex={0}
               aria-label={t.sponsor.cta}
             >
@@ -992,7 +1288,7 @@ export const UnFindePage: React.FC = () => {
         {/* FAQ */}
         <section id="faq" className="border-t border-terreta-border scroll-mt-24">
           <div className="max-w-5xl mx-auto px-4 md:px-8 py-14">
-            <h2 className="font-serif text-2xl md:text-3xl font-bold mb-6">FAQ</h2>
+            <h2 className="font-serif text-2xl md:text-3xl font-bold mb-6">{t.faqTitle}</h2>
             <FaqSection items={[...t.faq]} />
           </div>
         </section>
@@ -1026,6 +1322,7 @@ export const UnFindePage: React.FC = () => {
         onAttendeeSubmit={handleAttendeeSubmit}
         onSponsorSubmit={handleSponsorSubmit}
         onSpeakerSubmit={handleSpeakerSubmit}
+        onCollaboratorSubmit={handleCollaboratorSubmit}
         t={t.modal}
       />
 

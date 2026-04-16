@@ -39,6 +39,7 @@ import { UnFindePage } from './components/UnFindePage';
 import { DominioPage } from './components/DominioPage';
 import { FrameHackPage } from './components/FrameHackPage';
 import { QRPage } from './components/QRPage';
+import { ChatbotPage } from './components/ChatbotPage';
 import { FallasGuideLayout } from './components/fallas2026/FallasGuideLayout';
 import { BibliotecaLayout } from './components/biblioteca/BibliotecaLayout';
 import { BibliotecaHubPage } from './components/biblioteca/BibliotecaHubPage';
@@ -500,6 +501,8 @@ const AppContent: React.FC = () => {
           <Route path="propiedades" element={<PropertiesPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="dominio" element={<DominioPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="framehack" element={<FrameHackPage user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="chatbot" element={<ChatbotPage />} />
+          <Route path="terreta" element={<Navigate to="/unfinde" replace />} />
           <Route path="recursos" element={<ResourceCollabPanel user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="eventos" element={<EventsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="blogs" element={<BlogsPage user={user} onOpenAuth={handleOpenAuth} />} />
