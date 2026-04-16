@@ -3,6 +3,7 @@ import QRCode from 'react-qr-code';
 import { supabase } from '../lib/supabase';
 import type { AuthUser, QRCodeRecord, QRCodeType, QRInternalLinkType, Project, Event } from '../types';
 import { Link as LinkIcon, QrCode, Copy, Check, Trash2, Loader2, FileText } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 
 interface QRPageProps {
   user: AuthUser | null;
@@ -21,6 +22,16 @@ interface QRFormState {
   internalCategory: InternalCategory;
   selectedProjectId: string;
   selectedEventId: string;
+}
+
+interface GeneratedQRPayload {
+  title: string;
+  description: string;
+  targetUrl: string;
+  type: QRCodeType;
+  internalType: QRInternalLinkType | null;
+  internalRef: string | null;
+  filePath: string | null;
 }
 
 const createInitialFormState = (): QRFormState => ({
@@ -52,10 +63,7 @@ const normalizeUrl = (value: string): string => {
   if (!trimmed) {
     return '';
   }
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    return trimmed;
-  }
-  return `https://${trimmed}`;
+  return trimmed;
 };
 
 const getQRCodeTypeFromForm = (formType: QRFormType): QRCodeType => {
@@ -103,9 +111,16 @@ const getInternalUrl = (user: AuthUser, category: InternalCategory, options: { p
   return '';
 };
 
-const QRPreview: React.FC<{ value: string; title?: string }> = ({ value, title }) => {
+const QRPreview: React.FC<{
+  value: string;
+  title?: string;
+  canSaveToProfile: boolean;
+  isSavingToProfile: boolean;
+  onSaveToProfile: () => void;
+}> = ({ value, title, canSaveToProfile, isSavingToProfile, onSaveToProfile }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isSaveMenuOpen, setIsSaveMenuOpen] = useState(false);
   const fileBaseName = title ? title.replace(/\s+/g, '-').toLowerCase() : 'qr-code';
   const PNG_QR_SIZE = 512;
 
@@ -187,7 +202,7 @@ const QRPreview: React.FC<{ value: string; title?: string }> = ({ value, title }
     });
   };
 
-  const handleDownloadPng = async () => {
+  const handleDownloadPdf = async () => {
     const svgString = getSvgString();
     if (!svgString) {
       return;
@@ -196,12 +211,13 @@ const QRPreview: React.FC<{ value: string; title?: string }> = ({ value, title }
     if (!dataUrl) {
       return;
     }
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = `${fileBaseName}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: [PNG_QR_SIZE, PNG_QR_SIZE],
+    });
+    pdf.addImage(dataUrl, 'PNG', 0, 0, PNG_QR_SIZE, PNG_QR_SIZE);
+    pdf.save(`${fileBaseName}.pdf`);
   };
 
   if (!value) {
@@ -217,7 +233,7 @@ const QRPreview: React.FC<{ value: string; title?: string }> = ({ value, title }
 
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-terreta-border bg-terreta-card/60 p-4 md:p-6 h-full">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-col text-left">
           <p className="text-xs font-semibold uppercase tracking-wide text-terreta-accent">
             Previsualización
@@ -237,21 +253,50 @@ const QRPreview: React.FC<{ value: string; title?: string }> = ({ value, title }
             {copied ? <Check size={14} /> : <Copy size={14} />}
             <span>{copied ? 'Copiado' : 'Copiar URL'}</span>
           </button>
-          <div className="inline-flex items-center gap-1 rounded-full bg-terreta-accent px-1 py-1 text-xs font-semibold text-white">
+          <div className="relative">
             <button
               type="button"
-              onClick={handleDownloadSvg}
-              className="rounded-full px-2 py-0.5 hover:bg-terreta-dark/20 transition-colors"
+              onClick={() => setIsSaveMenuOpen((prev) => !prev)}
+              disabled={!value}
+              className="inline-flex items-center rounded-full bg-terreta-accent px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-terreta-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              SVG
+              Guardar
             </button>
-            <button
-              type="button"
-              onClick={handleDownloadPng}
-              className="rounded-full px-2 py-0.5 hover:bg-terreta-dark/20 transition-colors"
-            >
-              PNG
-            </button>
+            {isSaveMenuOpen ? (
+              <div className="absolute right-0 z-10 mt-2 w-56 rounded-xl border border-terreta-border bg-terreta-card p-2 shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleDownloadPdf();
+                    setIsSaveMenuOpen(false);
+                  }}
+                  className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-terreta-dark transition-colors hover:bg-terreta-bg"
+                >
+                  Guardar como PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleDownloadSvg();
+                    setIsSaveMenuOpen(false);
+                  }}
+                  className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-terreta-dark transition-colors hover:bg-terreta-bg"
+                >
+                  Guardar como SVG
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSaveToProfile();
+                    setIsSaveMenuOpen(false);
+                  }}
+                  disabled={!canSaveToProfile || isSavingToProfile}
+                  className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-terreta-dark transition-colors hover:bg-terreta-bg disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isSavingToProfile ? 'Guardando...' : 'En mi perfil de la Terreta'}
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -274,7 +319,7 @@ const QRPreview: React.FC<{ value: string; title?: string }> = ({ value, title }
 
 export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
   const [formState, setFormState] = useState<QRFormState>(createInitialFormState);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingToProfile, setIsSavingToProfile] = useState(false);
   const [qrCodes, setQrCodes] = useState<QRCodeRecord[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(false);
   const [selectedQrId, setSelectedQrId] = useState<string | null>(null);
@@ -286,6 +331,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [pdfUploadProgress, setPdfUploadProgress] = useState<'idle' | 'uploading' | 'uploaded' | 'error'>('idle');
   const [pdfTargetUrl, setPdfTargetUrl] = useState<string>('');
+  const [generatedQRPayload, setGeneratedQRPayload] = useState<GeneratedQRPayload | null>(null);
 
   const handlePdfChange: React.ChangeEventHandler<HTMLInputElement> = async (event) => {
     const file = event.target.files?.[0];
@@ -574,8 +620,8 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
     [qrCodes, selectedQrId]
   );
 
-  const previewValue = currentFormTargetUrl || selectedQr?.targetUrl || '';
-  const previewTitle = formState.title || selectedQr?.title || '';
+  const previewValue = selectedQr?.targetUrl || generatedQRPayload?.targetUrl || '';
+  const previewTitle = selectedQr?.title || generatedQRPayload?.title || '';
 
   const handleFieldChange = <K extends keyof QRFormState>(field: K, value: QRFormState[K]) => {
     setFormState((prev) => ({
@@ -668,7 +714,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
     }
   };
 
-  const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (event) => {
+  const handleGenerateQr: React.FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
     if (!formState.title.trim()) {
       window.alert('El título es obligatorio.');
@@ -681,11 +727,6 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
       return;
     }
 
-    if (!user) {
-      window.alert('QR generado sin cuenta. Puedes descargarlo, pero no se guardará en tu biblioteca.');
-      return;
-    }
-
     const qrType = getQRCodeTypeFromForm(formState.type);
     const internalType =
       formState.type === 'internal' ? getInternalTypeFromCategory(formState.internalCategory) : null;
@@ -693,29 +734,59 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
     let filePath: string | null = null;
 
     if (formState.type === 'internal') {
+      if (!user) {
+        window.alert('Necesitas iniciar sesión para generar un enlace interno.');
+        return;
+      }
       if (formState.internalCategory === 'project' && selectedProject) {
         internalRef = selectedProject.id;
       }
       if (formState.internalCategory === 'event' && selectedEvent) {
         internalRef = selectedEvent.id;
       }
-      if (formState.internalCategory === 'profile' || formState.internalCategory === 'link_bio') {
+      if (formState.internalCategory === 'profile') {
         internalRef = user.username;
       }
     }
 
-    setIsSubmitting(true);
+    if (formState.type === 'pdf') {
+      filePath = pdfTargetUrl || null;
+    }
+
+    setGeneratedQRPayload({
+      title: formState.title.trim(),
+      description: formState.description.trim(),
+      targetUrl,
+      type: qrType,
+      internalType,
+      internalRef,
+      filePath,
+    });
+    setSelectedQrId(null);
+  };
+
+  const handleSaveToProfile = async () => {
+    if (!generatedQRPayload) {
+      window.alert('Primero genera un QR.');
+      return;
+    }
+    if (!user) {
+      onOpenAuth();
+      return;
+    }
+
+    setIsSavingToProfile(true);
 
     try {
       const payload = {
         user_id: user.id,
-        type: qrType,
-        title: formState.title.trim(),
-        description: formState.description.trim() || null,
-        target_url: targetUrl,
-        internal_type: internalType,
-        internal_ref: internalRef,
-        file_path: filePath,
+        type: generatedQRPayload.type,
+        title: generatedQRPayload.title,
+        description: generatedQRPayload.description || null,
+        target_url: generatedQRPayload.targetUrl,
+        internal_type: generatedQRPayload.internalType,
+        internal_ref: generatedQRPayload.internalRef,
+        file_path: generatedQRPayload.filePath,
         is_active: true,
       };
 
@@ -750,37 +821,21 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
 
       setQrCodes((prev) => [newRecord, ...prev]);
       setSelectedQrId(newRecord.id);
-      setFormState((prev) => ({
-        ...createInitialFormState(),
-        type: prev.type,
-      }));
+      window.alert('QR guardado en tu perfil de la Terreta.');
     } catch (error) {
       console.error('[QRPage] Exception creating QR code:', error);
-      window.alert('Error inesperado al crear el QR.');
+      window.alert('Error inesperado al guardar el QR.');
     } finally {
-      setIsSubmitting(false);
+      setIsSavingToProfile(false);
     }
   };
 
   return (
     <section className="flex flex-col gap-6 py-4">
-      <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="max-w-2xl">
-          <h1 className="font-serif text-2xl md:text-3xl font-semibold text-terreta-dark">
-            Creador de códigos QR
-          </h1>
-          <p className="mt-1 text-sm md:text-base text-terreta-dark/70">
-            Genera códigos QR para sitios web y documentos. Si inicias sesión podrás crear QR de
-            enlace externo, enlace interno y PDFs, además de guardarlos en tu biblioteca para
-            reutilizarlos en cartelería, redes o material físico.
-          </p>
-        </div>
-      </header>
-
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.6fr)]">
         <form
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-4 rounded-2xl border border-terreta-border bg-terreta-card/70 p-4 md:p-6"
+          onSubmit={handleGenerateQr}
+          className="flex flex-col gap-4 rounded-2xl border border-terreta-border bg-terreta-card/70 p-4 md:p-5"
         >
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
@@ -793,7 +848,7 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
                   : 'Como invitado puedes generar y descargar QR de enlaces externos (sin guardarlos).'}
               </p>
             </div>
-            <div className="inline-flex items-center gap-1 rounded-full border border-terreta-border bg-terreta-bg p-1">
+            <div className="inline-flex flex-wrap items-center gap-1 rounded-full border border-terreta-border bg-terreta-bg p-1">
               <button
                 type="button"
                 onClick={() => handleTypeChange('external')}
@@ -877,11 +932,6 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
                 className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm text-terreta-dark outline-none transition-colors focus:border-terreta-accent focus:ring-1 focus:ring-terreta-accent"
                 placeholder="https://tusitio.com/landing"
               />
-              <p className="text-xs text-terreta-dark/60">
-                Asegúrate de que la URL incluya <span className="font-semibold">http://</span> o{' '}
-                <span className="font-semibold">https://</span>. Si no, la completaremos con
-                https:// automáticamente.
-              </p>
             </div>
           ) : null}
 
@@ -1058,18 +1108,18 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
           <div className="mt-2 flex items-center justify-end gap-2">
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={pdfUploadProgress === 'uploading'}
               className="inline-flex items-center justify-center rounded-full bg-terreta-accent px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? (
+              {pdfUploadProgress === 'uploading' ? (
                 <>
                   <Loader2 className="mr-2 animate-spin" size={16} />
-                  Creando QR...
+                  Subiendo PDF...
                 </>
               ) : (
                 <>
                   <QrCode className="mr-2" size={16} />
-                  {user ? 'Crear y guardar QR' : 'Generar QR (sin guardar)'}
+                  Generar QR
                 </>
               )}
             </button>
@@ -1085,7 +1135,13 @@ export const QRPage: React.FC<QRPageProps> = ({ user, onOpenAuth }) => {
           </div>
         </form>
 
-        <QRPreview value={previewValue} title={previewTitle} />
+        <QRPreview
+          value={previewValue}
+          title={previewTitle}
+          canSaveToProfile={!!generatedQRPayload}
+          isSavingToProfile={isSavingToProfile}
+          onSaveToProfile={handleSaveToProfile}
+        />
       </div>
 
       {user ? (
