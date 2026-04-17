@@ -7,7 +7,7 @@ import { executeQueryWithRetry } from '../lib/supabaseHelpers';
 import { useDynamicMetaTags } from '../hooks/useDynamicMetaTags';
 import { Navbar } from './Navbar';
 import { fetchUserTotesSummary } from '../lib/totes';
-import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 // Helper para formatear timestamps
 const formatTimestamp = (dateString: string): string => {
@@ -440,6 +440,20 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
         totesBalance={totesBalance}
         onOpenAuth={onOpenAuth}
         onLogout={handleLogout}
+        centerContent={
+          <div className="inline-flex max-w-full items-center gap-1 truncate">
+            <button
+              type="button"
+              onClick={() => navigate('/agora')}
+              className="truncate text-terreta-accent transition-colors hover:text-terreta-dark"
+              aria-label="Volver al Ágora"
+            >
+              Ágora
+            </button>
+            <ChevronRight size={13} className="text-terreta-secondary/60" />
+            <span className="truncate text-terreta-dark/80">Post de {post.author.handle}</span>
+          </div>
+        }
       />
 
       <div
@@ -447,22 +461,6 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
           isPageVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
         }`}
       >
-        <div className="mb-4 rounded-xl border border-terreta-border/60 bg-white/80 px-4 py-2 text-xs font-semibold text-terreta-secondary shadow-sm">
-          <div className="flex flex-wrap items-center gap-1">
-            <button
-              type="button"
-              onClick={() => navigate('/agora')}
-              className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-terreta-accent transition-colors hover:bg-terreta-bg"
-              aria-label="Volver al Ágora"
-            >
-              <ArrowLeft size={14} />
-              Ágora
-            </button>
-            <ChevronRight size={14} className="text-terreta-secondary/60" />
-            <span className="text-terreta-dark/80">Post de {post.author.handle}</span>
-          </div>
-        </div>
-
         <AgoraPostComponent
           post={post}
           currentUser={user}

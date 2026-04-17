@@ -10,6 +10,7 @@ interface NavbarProps {
   onOpenAuth: (referrerUsername?: string) => void;
   onLogout: () => void;
   rightSlot?: React.ReactNode;
+  centerContent?: React.ReactNode;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -18,7 +19,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   totesBalance,
   onOpenAuth,
   onLogout,
-  rightSlot
+  rightSlot,
+  centerContent
 }) => {
   const navigate = useNavigate();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -70,10 +72,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
         </Link>
 
-        <div className="hidden flex-1 justify-center md:flex">
-          <span className="rounded-full border border-terreta-border bg-terreta-card/70 px-4 py-1 text-xs font-bold uppercase tracking-[0.2em] text-terreta-dark/80">
-            ✦ {sectionLabel}
-          </span>
+        <div className="mx-2 flex min-w-0 flex-1 justify-center">
+          {centerContent ? (
+            <div className="w-full max-w-[460px] truncate text-center text-xs font-semibold text-terreta-dark/75 md:text-sm">
+              {centerContent}
+            </div>
+          ) : (
+            <span className="hidden rounded-full border border-terreta-border bg-terreta-card/70 px-4 py-1 text-xs font-bold uppercase tracking-[0.2em] text-terreta-dark/80 md:inline-flex">
+              ✦ {sectionLabel}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
