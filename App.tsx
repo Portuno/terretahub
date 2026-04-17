@@ -495,6 +495,7 @@ const AppContent: React.FC = () => {
       <Routes>
         <Route path="/" element={<Dashboard user={user} onOpenAuth={handleOpenAuth} onLogout={handleLogout} />}>
           <Route index element={<LandingPage />} />
+          <Route path="explorar" element={<LandingPage />} />
           <Route path="agora" element={<AgoraFeed user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="comunidad" element={<CommunityHubPage />} />
           <Route path="miembros" element={<CommunityPage user={user} onOpenAuth={handleOpenAuth} />} />

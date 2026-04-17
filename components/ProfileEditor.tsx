@@ -296,23 +296,13 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
         const backupDate = new Date(backup.timestamp);
         const hoursSinceBackup = (Date.now() - backupDate.getTime()) / (1000 * 60 * 60);
         
-        // Si el backup es reciente (menos de 24 horas), preguntar al usuario
+        // Si el backup es reciente (menos de 24 horas), restaurar sin bloquear la carga.
+        // En mobile los dialogs síncronos (confirm/alert) pueden congelar o romper el flujo.
         if (hoursSinceBackup < 24) {
-          const restore = confirm(
-            `Se encontró un backup de tus cambios del ${backupDate.toLocaleString()}.\n\n` +
-            '¿Deseas restaurarlo? (Si no, se cargará desde el servidor)'
-          );
-          
-          if (restore) {
-            console.log('[ProfileEditor] Restoring from backup');
-            setProfile(backup.profile);
-            profileSnapshotRef.current = JSON.stringify(backup.profile);
-            setHasUnsavedChanges(true);
-            // No eliminar el backup todavía, por si acaso
-          } else {
-            // Eliminar backup si el usuario no quiere restaurarlo
-            localStorage.removeItem(backupKey);
-          }
+          console.log('[ProfileEditor] Restoring recent backup automatically');
+          setProfile(backup.profile);
+          profileSnapshotRef.current = JSON.stringify(backup.profile);
+          setHasUnsavedChanges(true);
         } else {
           // Eliminar backups antiguos
           localStorage.removeItem(backupKey);
@@ -336,7 +326,6 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
           console.error('[ProfileEditor] This suggests a network or Supabase connection issue');
           if (isMounted) {
             setLoading(false);
-            alert('La consulta está tardando demasiado. Por favor, recarga la página.');
           }
         }
       }, 15000);
@@ -386,7 +375,6 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
             console.error('[ProfileEditor] Error al cargar perfil:', error);
             if (isMounted) {
               setLoading(false);
-              alert('Error al cargar el perfil: ' + (error.message || 'Error desconocido'));
             }
             return;
           }

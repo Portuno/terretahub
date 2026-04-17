@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, User, AlertTriangle, Image as ImageIcon, Video, Link as LinkIcon, X, BarChart3, Mic, Square } from 'lucide-react';
+import { Send, User, AlertTriangle, Image as ImageIcon, Video, Link as LinkIcon, X, BarChart3, Mic, Square, MessageSquareText, FolderKanban, BookOpen, CalendarDays, TrendingUp } from 'lucide-react';
 import { AgoraPost as AgoraPostComponent } from './AgoraPost';
 import { AgoraCardResourceRequest } from './AgoraCardResourceRequest';
 import { AgoraCardProfileCreated } from './AgoraCardProfileCreated';
@@ -66,6 +66,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
   const [tagInput, setTagInput] = useState('');
   const [showPollCreator, setShowPollCreator] = useState(false);
   const [pollData, setPollData] = useState<{ question: string; options: string[]; expiresAt?: string | null } | null>(null);
+  const [isComposerExpanded, setIsComposerExpanded] = useState(false);
   
   // Anti-Paste & Formatting State
   const [pasteCount, setPasteCount] = useState(0);
@@ -1341,12 +1342,47 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     }
   };
 
+  const desktopSections = [
+    { label: 'Ágora', href: '/agora', icon: <MessageSquareText size={16} /> },
+    { label: 'Proyectos', href: '/proyectos', icon: <FolderKanban size={16} /> },
+    { label: 'Manual', href: '/manual', icon: <BookOpen size={16} /> },
+    { label: 'Eventos', href: '/eventos', icon: <CalendarDays size={16} /> }
+  ];
+
+  const topTags = availableTags.slice(0, 5);
+  const isPublishDisabled = (() => {
+    const hasContent = !!newPostContent.trim() || selectedFiles.length > 0 || !!linkUrl.trim();
+    const hasValidPoll = pollData && pollData.question.trim() && pollData.options.filter(o => o.trim()).length >= 2;
+    return (!hasContent && !hasValidPoll) || isUploading || isTranscribing || isRecording;
+  })();
+
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 animate-fade-in">
+    <div className="mx-auto w-full max-w-[1500px] py-6 md:py-8 animate-fade-in">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[240px_minmax(0,1fr)_280px]">
+        <aside className="hidden xl:block">
+          <div className="sticky top-24 rounded-2xl border border-terreta-border bg-terreta-card/80 p-4 shadow-sm">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-terreta-dark/60">Navegación</p>
+            <div className="space-y-2">
+              {desktopSections.map((section) => (
+                <a
+                  key={section.href}
+                  href={section.href}
+                  className="flex items-center gap-2 rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-terreta-dark/75 transition-colors hover:border-terreta-accent/30 hover:bg-terreta-bg"
+                  aria-label={`Abrir ${section.label}`}
+                >
+                  <span className="text-terreta-accent">{section.icon}</span>
+                  <span>{section.label}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+        <section className="min-w-0">
       
       {/* Create Post Section */}
-      <div className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-6 mb-8 relative overflow-hidden">
+      <div className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-6 mb-8 relative overflow-hidden border border-terreta-border/70">
         
         {/* Anti-Paste Warning Overlay */}
         {showPasteWarning && (
@@ -1358,11 +1394,21 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
 
         <div className="flex gap-4">
            <div className="w-12 h-12 rounded-full bg-terreta-sidebar flex-shrink-0 flex items-center justify-center overflow-hidden border border-terreta-border">
-             {user ? <img src={user.avatar} className="w-full h-full object-cover"/> : <User className="text-terreta-secondary" />}
+             {user ? <img src={user.avatar} alt={`Avatar de ${user.name}`} className="w-full h-full object-cover"/> : <User className="text-terreta-secondary" />}
            </div>
            
            <div className="flex-1">
              {user ? (
+               !isComposerExpanded ? (
+                <button
+                  type="button"
+                  onClick={() => setIsComposerExpanded(true)}
+                  className="w-full rounded-xl border border-terreta-border bg-terreta-bg/70 px-4 py-3 text-left text-sm text-terreta-dark/70 transition-colors hover:bg-terreta-bg"
+                  aria-label="Expandir editor para publicar"
+                >
+                  ¿Qué hay de nuevo en la Terreta, {user.name}?
+                </button>
+               ) : (
                <form onSubmit={handleCreatePost}>
                  <div className="relative border-b border-terreta-border mb-2">
                     <div className="relative">
@@ -1645,13 +1691,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                     </div>
                     <button 
                       type="submit" 
-                      disabled={
-                        (() => {
-                          const hasContent = !!newPostContent.trim() || selectedFiles.length > 0 || !!linkUrl.trim();
-                          const hasValidPoll = pollData && pollData.question.trim() && pollData.options.filter(o => o.trim()).length >= 2;
-                          return (!hasContent && !hasValidPoll) || isUploading || isTranscribing || isRecording;
-                        })()
-                      }
+                      disabled={isPublishDisabled}
                       className="bg-terreta-dark text-terreta-bg px-6 py-2 rounded-full font-bold text-sm hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {isUploading ? (
@@ -1666,8 +1706,17 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                         </>
                       )}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsComposerExpanded(false)}
+                      className="ml-2 rounded-full border border-terreta-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-terreta-dark/70 transition-colors hover:bg-terreta-bg"
+                      aria-label="Cerrar editor de publicación"
+                    >
+                      Cerrar
+                    </button>
                  </div>
                </form>
+               )
              ) : (
                <div 
                   onClick={onOpenAuth} 
@@ -1798,6 +1847,40 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         </>
       )}
 
+        </section>
+
+        <aside className="hidden xl:block">
+          <div className="sticky top-24 space-y-4">
+            <div className="rounded-2xl border border-terreta-border bg-terreta-card/80 p-4 shadow-sm">
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-terreta-dark/60">Tendencias en la Terreta</p>
+              {topTags.length === 0 ? (
+                <p className="text-sm text-terreta-secondary">Publica algo para activar tendencias.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {topTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-terreta-accent/30 bg-terreta-accent/10 px-3 py-1 text-xs font-semibold text-terreta-accent"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-terreta-border bg-terreta-card/80 p-4 shadow-sm">
+              <div className="mb-2 flex items-center gap-2">
+                <TrendingUp size={14} className="text-terreta-accent" />
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-terreta-dark/60">Ranking de Totes</p>
+              </div>
+              <p className="text-sm text-terreta-secondary">
+                Completa acciones en Perfil, Manual y Ágora para subir tu saldo y desbloquear nuevas capas de participación.
+              </p>
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 };

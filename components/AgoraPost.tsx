@@ -18,6 +18,7 @@ interface AgoraPostProps {
   onDelete?: (postId: string) => void;
   onOpenAuth: (referrerUsername?: string) => void;
   autoOpenComments?: boolean;
+  detailMode?: boolean;
 }
 
 // Componente separado para comentarios (permite usar hooks)
@@ -102,7 +103,15 @@ const AgoraCommentItem: React.FC<{
   );
 };
 
-export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply, onDelete, onOpenAuth, autoOpenComments = false }) => {
+export const AgoraPost: React.FC<AgoraPostProps> = ({
+  post,
+  currentUser,
+  onReply,
+  onDelete,
+  onOpenAuth,
+  autoOpenComments = false,
+  detailMode = false
+}) => {
   const [isCommentsOpen, setIsCommentsOpen] = useState(autoOpenComments);
   const [replyText, setReplyText] = useState('');
   const [pasteCount, setPasteCount] = useState(0);
@@ -177,6 +186,18 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
   };
 
   const handlePostClick = () => {
+    if (detailMode) {
+      return;
+    }
+    const documentWithTransition = document as Document & {
+      startViewTransition?: (updateCallback: () => void) => void;
+    };
+    if (documentWithTransition.startViewTransition) {
+      documentWithTransition.startViewTransition(() => {
+        navigate(`/agora/post/${post.id}`);
+      });
+      return;
+    }
     navigate(`/agora/post/${post.id}`);
   };
 
@@ -209,7 +230,11 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
   return (
     <>
       <div 
-        className="bg-terreta-card border border-terreta-border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow mb-4 cursor-pointer"
+        className={`border border-terreta-border p-6 shadow-sm transition-all mb-4 ${
+          detailMode
+            ? 'rounded-2xl bg-white cursor-default'
+            : 'rounded-xl bg-terreta-card hover:shadow-md cursor-pointer'
+        }`}
         onClick={handlePostClick}
       >
       
@@ -225,7 +250,7 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
           <div>
             <div className="flex items-baseline gap-2">
               <h3 
-                className="font-bold text-terreta-dark hover:underline cursor-pointer"
+                className={`text-terreta-dark ${detailMode ? 'font-serif text-3xl leading-tight' : 'font-bold hover:underline'} cursor-pointer`}
                 onClick={handleProfileClick}
               >
                 {post.author.name}
@@ -239,7 +264,7 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
               <span className="text-xs text-terreta-secondary font-sans">{post.timestamp}</span>
             </div>
             <p 
-                className="text-xs text-terreta-accent font-bold uppercase tracking-wide cursor-pointer hover:text-terreta-accent/80"
+                className={`cursor-pointer font-bold uppercase tracking-wide ${detailMode ? 'text-[11px] text-terreta-secondary/90' : 'text-xs text-terreta-accent hover:text-terreta-accent/80'}`}
                 onClick={handleProfileClick}
             >
               {post.author.handle}
@@ -283,7 +308,7 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
       <div className="mb-5 pl-[60px] space-y-4">
         {post.content && (
           <div>
-            <p className="text-terreta-dark text-base leading-relaxed whitespace-pre-line font-sans">
+            <p className={`text-terreta-dark text-base leading-relaxed whitespace-pre-line ${detailMode ? 'font-serif text-[1.1rem] leading-8' : 'font-sans'}`}>
               {displayContent}
             </p>
             {needsTruncation && (
@@ -493,7 +518,11 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
             href={post.linkUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="block p-4 bg-terreta-bg/50 border border-terreta-border rounded-lg hover:bg-terreta-bg transition-colors group"
+            className={`block border border-terreta-border transition-colors group ${
+              detailMode
+                ? 'rounded-2xl bg-[#f8f6f1] p-5 hover:bg-[#f3efe5]'
+                : 'rounded-lg bg-terreta-bg/50 p-4 hover:bg-terreta-bg'
+            }`}
             tabIndex={0}
             aria-label={`Enlace externo: ${post.linkUrl}`}
           >
@@ -515,7 +544,7 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-6 pl-[60px] border-t border-terreta-border pt-3">
+      <div className={`pl-[60px] border-t border-terreta-border pt-3 ${detailMode ? 'grid grid-cols-3 items-center gap-2' : 'flex items-center gap-6'}`}>
         {/* Like/Dislike */}
         <div className="flex items-center gap-2">
           <button
@@ -534,7 +563,7 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
             }`}
             disabled={postLikes.isLiking}
           >
-            <ThumbsUp size={16} className={postLikes.likeType === 'like' ? 'fill-current' : ''} />
+            <ThumbsUp size={16} className={`${postLikes.likeType === 'like' ? 'fill-current' : ''} transition-transform active:scale-110`} />
             <span>{postLikes.likesCount}</span>
           </button>
           <button
@@ -571,7 +600,7 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
 
         <button 
           onClick={handleShareClick}
-          className="flex items-center gap-2 text-sm font-medium text-terreta-secondary hover:text-terreta-accent transition-colors ml-auto"
+          className={`flex items-center gap-2 text-sm font-medium text-terreta-secondary hover:text-terreta-accent transition-colors ${detailMode ? 'justify-self-end' : 'ml-auto'}`}
         >
           <Share2 size={18} />
         </button>
@@ -579,21 +608,27 @@ export const AgoraPost: React.FC<AgoraPostProps> = ({ post, currentUser, onReply
 
       {/* Comments Section */}
       {isCommentsOpen && (
-        <div className="mt-4 pl-[60px] animate-fade-in space-y-4">
+        <div className={`mt-4 pl-[60px] animate-fade-in space-y-4 ${detailMode ? 'pb-24 md:pb-0' : ''}`}>
           
           {/* List of Comments */}
-          {post.comments.map(comment => (
-            <AgoraCommentItem
-              key={comment.id}
-              comment={comment}
-              currentUser={currentUser}
-              onOpenAuth={onOpenAuth}
-              navigateToProfile={navigateToProfile}
-            />
-          ))}
+          <div className={`${detailMode ? 'space-y-3 border-l border-terreta-border/70 pl-4' : 'space-y-3'}`}>
+            {post.comments.map(comment => (
+              <AgoraCommentItem
+                key={comment.id}
+                comment={comment}
+                currentUser={currentUser}
+                onOpenAuth={onOpenAuth}
+                navigateToProfile={navigateToProfile}
+              />
+            ))}
+          </div>
 
           {/* Reply Input */}
-          <form onSubmit={handleSubmitReply} className="flex gap-2 items-center mt-2 relative" onClick={(e) => e.stopPropagation()}>
+          <form
+            onSubmit={handleSubmitReply}
+            className={`flex gap-2 items-center mt-2 relative ${detailMode ? 'md:static fixed bottom-0 left-0 right-0 z-20 border-t border-terreta-border bg-white/95 px-4 py-3 shadow-[0_-4px_18px_rgba(15,23,42,0.08)] backdrop-blur-md md:border-0 md:bg-transparent md:p-0 md:shadow-none' : ''}`}
+            onClick={(e) => e.stopPropagation()}
+          >
              {currentUser ? (
                 <>
                   <img src={currentUser.avatar} className="w-8 h-8 rounded-full" alt="me" />

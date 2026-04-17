@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { useLocation, Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
-import { User } from 'lucide-react';
 import { FeedbackModal } from './FeedbackModal';
 import { GruposComingModal } from './GruposComingModal';
 import { Notifications } from './Notifications';
 import { Footer } from './Footer';
 import { supabase } from '../lib/supabase';
 import { AuthUser } from '../types';
+import { Navbar } from './Navbar';
+import { fetchUserTotesSummary } from '../lib/totes';
 
 interface DashboardProps {
   user: AuthUser | null;
@@ -16,31 +17,26 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout }) => {
-  const navigate = useNavigate();
   const location = useLocation();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(user);
   
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isGruposModalOpen, setIsGruposModalOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [totesBalance, setTotesBalance] = useState(0);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (!currentUser) {
+      setTotesBalance(0);
       return;
     }
-    const mediaQuery = window.matchMedia('(max-width: 768px)');
-    const updateIsMobile = (event: MediaQueryListEvent | MediaQueryList) => {
-      setIsMobile(event.matches);
+
+    const loadBalance = async () => {
+      const summary = await fetchUserTotesSummary(currentUser.id);
+      setTotesBalance(summary.balance);
     };
 
-    updateIsMobile(mediaQuery);
-    const listener = (event: MediaQueryListEvent) => updateIsMobile(event);
-    mediaQuery.addEventListener('change', listener);
-
-    return () => {
-      mediaQuery.removeEventListener('change', listener);
-    };
-  }, []);
+    loadBalance();
+  }, [currentUser]);
 
   // Actualizar usuario cuando cambia el prop o cuando se actualiza el perfil
   useEffect(() => {
@@ -113,7 +109,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
   };
 
   const title = getPageTitle();
-  const shouldHideTopNavbar = isMobile;
 
   return (
   <div className="flex h-screen overflow-hidden bg-terreta-bg transition-colors duration-500">
@@ -129,57 +124,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300">
-        
-        {/* Top Navbar - Only show if not on Landing Page (index) */}
-        {location.pathname !== '/' && !shouldHideTopNavbar && (
-          <header className="bg-terreta-nav border-b border-terreta-border h-14 md:h-16 px-4 md:px-8 flex items-center justify-between sticky top-0 z-10 transition-colors duration-500">
-              <h2 className="font-sans text-lg md:text-2xl text-terreta-dark truncate">
-                  {title}
-              </h2>
-
-              {/* Right Actions */}
-              <div className="flex items-center gap-3 md:gap-6 ml-auto">
-                  <div className="flex flex-col items-end mr-2 hidden sm:flex">
-                      <span className="text-xs font-bold text-terreta-dark/40 uppercase tracking-wide">
-                        {currentUser ? `Hola, ${currentUser.name}` : 'Hola, Turista'}
-                      </span>
-                      <span className="text-sm font-bold text-terreta-accent uppercase tracking-wider">
-                        {currentUser ? 'MIEMBRO' : 'EXPLORADOR'}
-                      </span>
-                  </div>
-                  
-                  {currentUser ? (
-                    <Notifications userId={currentUser.id} />
-                  ) : null}
-
-                  <div 
-                    onClick={currentUser ? () => navigate('/perfil') : onOpenAuth}
-                    className="w-10 h-10 rounded-full bg-terreta-sidebar flex items-center justify-center text-terreta-dark hover:bg-terreta-border/50 transition-colors cursor-pointer border border-terreta-border overflow-hidden"
-                  >
-                      {currentUser ? <img src={currentUser.avatar} alt="Avatar" className="w-full h-full object-cover" /> : <User size={20} />}
-                  </div>
-              </div>
-          </header>
-        )}
-
-        {isMobile && location.pathname !== '/' && (
-          <button
-            type="button"
-            onClick={currentUser ? () => navigate('/perfil') : () => onOpenAuth()}
-            className="fixed right-4 top-4 z-30 inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-terreta-border bg-terreta-sidebar text-terreta-dark shadow-lg transition-colors hover:bg-terreta-border/50"
-            aria-label={currentUser ? 'Abrir perfil de usuario' : 'Abrir inicio de sesión'}
-          >
-            {currentUser ? (
-              <img
-                src={currentUser.avatar}
-                alt="Avatar del usuario"
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <User size={20} />
-            )}
-          </button>
-        )}
+        {location.pathname !== '/' ? (
+          <Navbar
+            user={currentUser}
+            title={title}
+            totesBalance={totesBalance}
+            onOpenAuth={onOpenAuth}
+            onLogout={onLogout}
+            rightSlot={currentUser ? <Notifications userId={currentUser.id} /> : null}
+          />
+        ) : null}
 
         {/* Content Area */}
         <div className={`flex-1 overflow-y-auto ${location.pathname !== '/' ? 'px-4 md:px-8 pb-4' : ''}`}>

@@ -5,6 +5,9 @@ import { AgoraPost, AuthUser } from '../types';
 import { supabase } from '../lib/supabase';
 import { executeQueryWithRetry } from '../lib/supabaseHelpers';
 import { useDynamicMetaTags } from '../hooks/useDynamicMetaTags';
+import { Navbar } from './Navbar';
+import { fetchUserTotesSummary } from '../lib/totes';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
 
 // Helper para formatear timestamps
 const formatTimestamp = (dateString: string): string => {
@@ -31,6 +34,8 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
   const [postCreatedAt, setPostCreatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [totesBalance, setTotesBalance] = useState(0);
+  const [isPageVisible, setIsPageVisible] = useState(false);
 
   // Meta tags dinámicos y structured data para SEO
   // IMPORTANTE: este hook debe llamarse siempre, antes de cualquier return condicional
@@ -105,6 +110,23 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
         }
       : undefined,
   });
+
+  useEffect(() => {
+    const rafId = requestAnimationFrame(() => setIsPageVisible(true));
+    return () => cancelAnimationFrame(rafId);
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setTotesBalance(0);
+      return;
+    }
+    const loadTotesBalance = async () => {
+      const summary = await fetchUserTotesSummary(user.id);
+      setTotesBalance(summary.balance);
+    };
+    loadTotesBalance();
+  }, [user]);
 
   useEffect(() => {
     if (!id) {
@@ -300,8 +322,33 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
         return;
       }
 
-      // Recargar el post para mostrar el nuevo comentario
-      window.location.reload();
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('name, username, avatar')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const createdAt = newComment.created_at || new Date().toISOString();
+      const appendedComment = {
+        id: newComment.id,
+        author: {
+          name: profileData?.name || user.name,
+          handle: `@${profileData?.username || user.username}`,
+          avatar: profileData?.avatar || user.avatar
+        },
+        content: newComment.content,
+        timestamp: formatTimestamp(createdAt)
+      };
+
+      setPost((previousPost) => {
+        if (!previousPost) {
+          return previousPost;
+        }
+        return {
+          ...previousPost,
+          comments: [...previousPost.comments, appendedComment]
+        };
+      });
     } catch (err) {
       console.error('Error al crear comentario:', err);
       alert('Error al comentar. Intenta nuevamente.');
@@ -334,12 +381,26 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
     }
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/explorar');
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-terreta-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-terreta-accent mx-auto mb-4"></div>
-          <p className="text-terreta-dark">Cargando post...</p>
+      <div className="min-h-screen bg-[#edf4f8]">
+        <Navbar
+          user={user}
+          title="Ágora"
+          totesBalance={totesBalance}
+          onOpenAuth={onOpenAuth}
+          onLogout={handleLogout}
+        />
+        <div className="flex items-center justify-center px-4 py-16">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-terreta-accent mx-auto mb-4"></div>
+            <p className="text-terreta-dark">Cargando post...</p>
+          </div>
         </div>
       </div>
     );
@@ -347,31 +408,61 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
 
   if (error || !post) {
     return (
-      <div className="min-h-screen bg-terreta-bg flex items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <h1 className="font-serif text-2xl font-bold text-terreta-dark mb-2">Post no encontrado</h1>
-          <p className="text-terreta-secondary mb-4">{error || 'El post que buscas no existe o fue eliminado.'}</p>
-          <button
-            onClick={() => navigate('/agora')}
-            className="bg-terreta-accent text-white px-6 py-2 rounded-full font-bold hover:opacity-90 transition-opacity"
-          >
-            Volver al Ágora
-          </button>
+      <div className="min-h-screen bg-[#edf4f8]">
+        <Navbar
+          user={user}
+          title="Ágora"
+          totesBalance={totesBalance}
+          onOpenAuth={onOpenAuth}
+          onLogout={handleLogout}
+        />
+        <div className="flex items-center justify-center px-4 py-16">
+          <div className="text-center max-w-md">
+            <h1 className="font-serif text-2xl font-bold text-terreta-dark mb-2">Post no encontrado</h1>
+            <p className="text-terreta-secondary mb-4">{error || 'El post que buscas no existe o fue eliminado.'}</p>
+            <button
+              onClick={() => navigate('/agora')}
+              className="bg-terreta-accent text-white px-6 py-2 rounded-full font-bold hover:opacity-90 transition-opacity"
+            >
+              Volver al Ágora
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-terreta-bg py-8 px-4">
-      <div className="max-w-3xl mx-auto">
-        <button
-          onClick={() => navigate('/agora')}
-          className="text-terreta-accent hover:text-terreta-dark transition-colors mb-6 text-sm font-semibold flex items-center gap-2"
-        >
-          ← Volver al Ágora
-        </button>
-        
+    <div className="min-h-screen bg-[#edf4f8]">
+      <Navbar
+        user={user}
+        title="Ágora"
+        totesBalance={totesBalance}
+        onOpenAuth={onOpenAuth}
+        onLogout={handleLogout}
+      />
+
+      <div
+        className={`mx-auto w-full max-w-4xl px-4 pb-28 pt-5 transition-all duration-300 ease-out md:pb-10 ${
+          isPageVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
+        }`}
+      >
+        <div className="mb-4 rounded-xl border border-terreta-border/60 bg-white/80 px-4 py-2 text-xs font-semibold text-terreta-secondary shadow-sm">
+          <div className="flex flex-wrap items-center gap-1">
+            <button
+              type="button"
+              onClick={() => navigate('/agora')}
+              className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-terreta-accent transition-colors hover:bg-terreta-bg"
+              aria-label="Volver al Ágora"
+            >
+              <ArrowLeft size={14} />
+              Ágora
+            </button>
+            <ChevronRight size={14} className="text-terreta-secondary/60" />
+            <span className="text-terreta-dark/80">Post de {post.author.handle}</span>
+          </div>
+        </div>
+
         <AgoraPostComponent
           post={post}
           currentUser={user}
@@ -379,6 +470,7 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
           onDelete={handleDeletePost}
           onOpenAuth={onOpenAuth}
           autoOpenComments={true}
+          detailMode={true}
         />
       </div>
     </div>
