@@ -12,6 +12,7 @@ import { AuthUser } from './types';
 import { supabase } from './lib/supabase';
 import { AgoraFeed } from './components/AgoraFeed';
 import { CommunityPage } from './components/CommunityPage';
+import { CommunityHubPage } from './components/CommunityHubPage';
 import { ProjectsPage } from './components/ProjectsPage';
 import { ResourceCollabPanel } from './components/ResourceCollabPanel';
 import { AdminProjectsPanel } from './components/AdminProjectsPanel';
@@ -495,7 +496,7 @@ const AppContent: React.FC = () => {
         <Route path="/" element={<Dashboard user={user} onOpenAuth={handleOpenAuth} onLogout={handleLogout} />}>
           <Route index element={<LandingPage />} />
           <Route path="agora" element={<AgoraFeed user={user} onOpenAuth={handleOpenAuth} />} />
-          <Route path="comunidad" element={<Navigate to="/miembros" replace />} />
+          <Route path="comunidad" element={<CommunityHubPage />} />
           <Route path="miembros" element={<CommunityPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="proyectos" element={<ProjectsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="propiedades" element={<PropertiesPage user={user} onOpenAuth={handleOpenAuth} />} />

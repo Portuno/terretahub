@@ -162,7 +162,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
           </header>
         )}
 
-        {isMobile && (
+        {isMobile && location.pathname !== '/' && (
           <button
             type="button"
             onClick={currentUser ? () => navigate('/perfil') : () => onOpenAuth()}
@@ -183,7 +183,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
 
         {/* Content Area */}
         <div className={`flex-1 overflow-y-auto ${location.pathname !== '/' ? 'px-4 md:px-8 pb-4' : ''}`}>
-          <Outlet context={{ user: currentUser ?? user }} />
+          <Outlet
+            context={{
+              user: currentUser ?? user,
+              onOpenAuth,
+              onOpenFeedback: () => setIsFeedbackOpen(true),
+              onOpenGruposModal: () => setIsGruposModalOpen(true)
+            }}
+          />
         </div>
 
         {/* Footer - Only show on home page */}
