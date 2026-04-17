@@ -124,19 +124,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300">
-        {location.pathname !== '/' ? (
-          <Navbar
-            user={currentUser}
-            title={title}
-            totesBalance={totesBalance}
-            onOpenAuth={onOpenAuth}
-            onLogout={onLogout}
-            rightSlot={currentUser ? <Notifications userId={currentUser.id} /> : null}
-          />
-        ) : null}
+        <Navbar
+          user={currentUser}
+          title={title}
+          totesBalance={totesBalance}
+          onOpenAuth={onOpenAuth}
+          onLogout={onLogout}
+          rightSlot={currentUser ? <Notifications userId={currentUser.id} /> : null}
+        />
 
         {/* Content Area */}
-        <div className={`flex-1 overflow-y-auto ${location.pathname !== '/' ? 'px-4 md:px-8 pb-4' : ''}`}>
+        <div className={`flex-1 overflow-y-auto px-4 pb-4 md:px-8`}>
           <Outlet
             context={{
               user: currentUser ?? user,

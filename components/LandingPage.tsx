@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { ChevronDown, Coins, Compass, Flame, MapPinned, MessageCircle, Sparkles, User, Users, Wrench } from 'lucide-react';
+import { ChevronDown, Compass, Flame, MapPinned, MessageCircle, Sparkles, Users, Wrench } from 'lucide-react';
 import { THEMES, Theme, useTheme } from '../context/ThemeContext';
 import { AuthUser } from '../types';
 import { SectionLearningModal } from './SectionLearningModal';
@@ -101,14 +101,6 @@ export const LandingPage: React.FC = () => {
 
     loadTotesData(user.id);
   }, [user]);
-
-  const handleGoToProfile = () => {
-    if (!user) {
-      onOpenAuth();
-      return;
-    }
-    navigate('/perfil');
-  };
 
   const handleExecuteAction = (topic: TotesTopicKey) => {
     if (topic === 'feedback') {
@@ -276,29 +268,6 @@ export const LandingPage: React.FC = () => {
             </>
           ) : null}
         </div>
-      </div>
-
-      <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
-        <div className="inline-flex items-center gap-2 rounded-full border border-terreta-border bg-terreta-card/90 px-3 py-2 text-terreta-accent shadow-sm">
-          <Coins size={16} />
-          <span className="text-base font-black leading-none">{totesBalance}</span>
-        </div>
-        <button
-          type="button"
-          onClick={handleGoToProfile}
-          className="inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-terreta-border bg-terreta-sidebar text-terreta-dark shadow-md transition-colors hover:bg-terreta-border/50"
-          aria-label={user ? 'Abrir perfil' : 'Iniciar sesión o registrarte'}
-        >
-          {user ? (
-            <img
-              src={user.avatar}
-              alt="Avatar del usuario"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <User size={20} />
-          )}
-        </button>
       </div>
 
       <section className="w-full max-w-md pt-14 md:max-w-xl">
