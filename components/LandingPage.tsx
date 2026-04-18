@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { ChevronDown, Compass, Flame, MapPinned, MessageCircle, Sparkles, Users, Wrench } from 'lucide-react';
+import { ChevronDown, Compass, Flame, MapPinned, MessageCircle, Sparkles, User, Users, Wrench } from 'lucide-react';
 import { THEMES, Theme, useTheme } from '../context/ThemeContext';
 import { AuthUser } from '../types';
 import { SectionLearningModal } from './SectionLearningModal';
