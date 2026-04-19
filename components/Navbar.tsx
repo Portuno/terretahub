@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Coins, LogIn, User, ChevronDown } from 'lucide-react';
 import { AuthUser } from '../types';
 
+const TERRIS_PANEL_ID = 'terris-hint-panel';
+const HOVER_LEAVE_MS = 220;
+
 interface NavbarProps {
   user: AuthUser | null;
   title: string;
@@ -24,7 +27,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const navigate = useNavigate();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isTerrisMenuOpen, setIsTerrisMenuOpen] = useState(false);
+  const [isTerrisHoverOpen, setIsTerrisHoverOpen] = useState(false);
+  const [isTerrisFocusInside, setIsTerrisFocusInside] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const terrisRef = useRef<HTMLDivElement>(null);
+  const terrisHoverLeaveTimerRef = useRef<number | null>(null);
 
   const sectionLabel = useMemo(() => {
     if (!title) {
@@ -33,16 +41,105 @@ export const Navbar: React.FC<NavbarProps> = ({
     return title;
   }, [title]);
 
+  const showTerrisPanel = isTerrisMenuOpen || isTerrisHoverOpen || isTerrisFocusInside;
+
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsProfileMenuOpen(false);
+    const clearTerrisHoverTimer = () => {
+      if (terrisHoverLeaveTimerRef.current !== null) {
+        window.clearTimeout(terrisHoverLeaveTimerRef.current);
+        terrisHoverLeaveTimerRef.current = null;
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    const handlePointerOutside = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node;
+      if (menuRef.current && !menuRef.current.contains(target)) {
+        setIsProfileMenuOpen(false);
+      }
+      if (terrisRef.current && !terrisRef.current.contains(target)) {
+        setIsTerrisMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+      if (!terrisRef.current?.contains(document.activeElement)) {
+        return;
+      }
+      setIsTerrisMenuOpen(false);
+      const active = document.activeElement;
+      if (active instanceof HTMLElement) {
+        active.blur();
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerOutside);
+    document.addEventListener('touchstart', handlePointerOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerOutside);
+      document.removeEventListener('touchstart', handlePointerOutside);
+      document.removeEventListener('keydown', handleEscape);
+      clearTerrisHoverTimer();
+    };
   }, []);
+
+  useEffect(() => {
+    const node = terrisRef.current;
+    if (!node) {
+      return;
+    }
+
+    const handleFocusOut = () => {
+      window.requestAnimationFrame(() => {
+        if (!node.contains(document.activeElement)) {
+          setIsTerrisFocusInside(false);
+        }
+      });
+    };
+
+    const handleFocusIn = () => {
+      setIsTerrisFocusInside(true);
+    };
+
+    node.addEventListener('focusin', handleFocusIn);
+    node.addEventListener('focusout', handleFocusOut);
+    return () => {
+      node.removeEventListener('focusin', handleFocusIn);
+      node.removeEventListener('focusout', handleFocusOut);
+    };
+  }, []);
+
+  const handleTerrisWrapperMouseEnter = () => {
+    if (terrisHoverLeaveTimerRef.current !== null) {
+      window.clearTimeout(terrisHoverLeaveTimerRef.current);
+      terrisHoverLeaveTimerRef.current = null;
+    }
+    setIsTerrisHoverOpen(true);
+  };
+
+  const handleTerrisWrapperMouseLeave = () => {
+    terrisHoverLeaveTimerRef.current = window.setTimeout(() => {
+      setIsTerrisHoverOpen(false);
+      terrisHoverLeaveTimerRef.current = null;
+    }, HOVER_LEAVE_MS);
+  };
+
+  const handleTerrisTriggerClick = () => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (window.matchMedia('(hover: none)').matches) {
+      setIsTerrisMenuOpen((prev) => !prev);
+    }
+  };
+
+  const handleTerrisNavigate = () => {
+    setIsTerrisMenuOpen(false);
+    setIsTerrisHoverOpen(false);
+  };
 
   const handleProfileAction = () => {
     setIsProfileMenuOpen(false);
@@ -86,9 +183,45 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         <div className="flex items-center gap-2 md:gap-3">
           {rightSlot}
-          <div className="inline-flex items-center gap-2 rounded-full border border-terreta-border bg-terreta-card/80 px-3 py-2 text-terreta-dark shadow-sm">
-            <Coins size={15} className="text-amber-500" />
-            <span className="text-sm font-black leading-none">{totesBalance}</span>
+          <div
+            ref={terrisRef}
+            className="relative"
+            onMouseEnter={handleTerrisWrapperMouseEnter}
+            onMouseLeave={handleTerrisWrapperMouseLeave}
+          >
+            <button
+              type="button"
+              id="terris-balance-trigger"
+              className="inline-flex items-center gap-2 rounded-full border border-terreta-border bg-terreta-card/80 px-3 py-2 text-terreta-dark shadow-sm transition-colors hover:border-terreta-accent/50"
+              aria-label="Saldo de Terris. Abre información sobre la moneda."
+              aria-expanded={showTerrisPanel}
+              aria-haspopup="true"
+              aria-controls={TERRIS_PANEL_ID}
+              onClick={handleTerrisTriggerClick}
+            >
+              <Coins size={15} className="shrink-0 text-terreta-accent" aria-hidden />
+              <span className="text-sm font-black leading-none">{totesBalance}</span>
+            </button>
+
+            {showTerrisPanel ? (
+              <div
+                id={TERRIS_PANEL_ID}
+                role="region"
+                aria-label="Información sobre los Terris"
+                className="absolute right-0 top-[calc(100%+6px)] z-40 w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-terreta-accent/45 bg-terreta-card p-3 text-left shadow-xl"
+              >
+                <p className="text-sm leading-snug text-terreta-dark">
+                  Los Terris son la moneda nativa y local de la Terreta. Para más información, haz clic.
+                </p>
+                <Link
+                  to="/terris"
+                  className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-terreta-accent/15 px-3 py-2 text-center text-sm font-semibold text-terreta-accent ring-1 ring-terreta-accent/35 transition-colors hover:bg-terreta-accent/25"
+                  onClick={handleTerrisNavigate}
+                >
+                  Ver qué son los Terris
+                </Link>
+              </div>
+            ) : null}
           </div>
 
           <div ref={menuRef} className="relative">

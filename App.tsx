@@ -41,6 +41,7 @@ import { DominioPage } from './components/DominioPage';
 import { FrameHackPage } from './components/FrameHackPage';
 import { QRPage } from './components/QRPage';
 import { ChatbotPage } from './components/ChatbotPage';
+import { TerrisPage } from './components/TerrisPage';
 import { FallasGuideLayout } from './components/fallas2026/FallasGuideLayout';
 import { BibliotecaLayout } from './components/biblioteca/BibliotecaLayout';
 import { BibliotecaHubPage } from './components/biblioteca/BibliotecaHubPage';
@@ -509,6 +510,7 @@ const AppContent: React.FC = () => {
           <Route path="eventos" element={<EventsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="blogs" element={<BlogsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="qr" element={<QRPage user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="terris" element={<TerrisPage />} />
           <Route path="manual" element={<ManualHome />} />
           <Route path="manual/:category/:article" element={<ManualArticle />} />
           <Route path="perfil" element={
