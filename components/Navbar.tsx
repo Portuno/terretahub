@@ -9,6 +9,7 @@ const HOVER_LEAVE_MS = 220;
 interface NavbarProps {
   user: AuthUser | null;
   title: string;
+  description?: string;
   totesBalance: number;
   onOpenAuth: (referrerUsername?: string) => void;
   onLogout: () => void;
@@ -19,6 +20,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   user,
   title,
+  description,
   totesBalance,
   onOpenAuth,
   onLogout,
@@ -158,16 +160,23 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 z-30 border-b border-gray-100 bg-terreta-nav/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center justify-between gap-3 px-4 md:px-6">
-        <Link
-          to="/explorar"
-          className="inline-flex min-w-0 items-center gap-3 rounded-full px-2 py-1 transition-colors hover:bg-terreta-bg/70"
-          aria-label="Ir a explorar en Terreta Hub"
-        >
-          <img src="/logo.png" alt="Faro de Terreta Hub" className="h-9 w-9 rounded-full object-cover" />
-          <span className="hidden font-serif text-xl font-semibold tracking-tight text-terreta-dark sm:inline">
-            Terreta Hub
-          </span>
-        </Link>
+        <div className="group relative flex min-w-0 items-center">
+          <Link
+            to="/explorar"
+            className="inline-flex min-w-0 items-center gap-3 rounded-full px-2 py-1 transition-colors hover:bg-terreta-bg/70"
+            aria-label={sectionLabel ? `Ir a la página ${sectionLabel}` : 'Ir a explorar en Terreta Hub'}
+          >
+            <img src="/logo.png" alt="Faro de Terreta Hub" className="h-9 w-9 rounded-full object-cover" />
+            <span className="max-w-[200px] truncate font-serif text-base font-semibold tracking-tight text-terreta-dark sm:text-lg">
+              {sectionLabel}
+            </span>
+          </Link>
+          {description ? (
+            <div className="pointer-events-none absolute left-2 top-[calc(100%+8px)] z-40 hidden w-[min(28rem,calc(100vw-2rem))] rounded-xl border border-terreta-border bg-terreta-card p-3 text-sm text-terreta-dark shadow-xl group-hover:block">
+              {description}
+            </div>
+          ) : null}
+        </div>
 
         <div className="mx-2 flex min-w-0 flex-1 justify-center">
           {centerContent ? (

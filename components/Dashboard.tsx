@@ -87,29 +87,48 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
     };
   }, [user, currentUser]);
 
-  const getPageTitle = () => {
+  const getPageMeta = () => {
     switch (location.pathname) {
-      case '/agora': return 'Ágora Comunitario';
-      case '/comunidad': return 'Miembros';
-      case '/miembros': return 'Miembros';
-      case '/proyectos': return 'Proyectos Destacados';
-      case '/dominio': return 'Dominios';
-      case '/framehack': return 'FrameHack';
-      case '/chatbot': return 'Explorar la Comunidad';
-      case '/terreta': return 'Finde en la Terreta';
-      case '/recursos': return "L'Almoina";
-      case '/eventos': return 'Próximas Quedadas';
-      case '/blogs': return 'Blogs';
-      case '/qr': return 'Creador de QR';
-      case '/terris': return 'Terris';
-      case '/perfil': return 'Editor de Perfil';
-      case '/admin': return 'Panel de Administración';
-      case '/': return ''; // Landing has its own hero
-      default: return 'Terreta Hub';
+      case '/':
+      case '/explorar':
+        return { title: '', description: '' };
+      case '/agora':
+        return { title: 'Ágora', description: 'Conversaciones y publicaciones de la comunidad.' };
+      case '/comunidad':
+      case '/miembros':
+        return { title: 'Miembros', description: 'Personas y perfiles activos del ecosistema Terreta Hub.' };
+      case '/proyectos':
+        return { title: 'Proyectos', description: 'Proyectos destacados e iniciativas en marcha.' };
+      case '/dominio':
+        return { title: 'Dominios', description: 'Espacios temáticos para colaborar y organizar ideas.' };
+      case '/mapa':
+        return { title: 'Mapa', description: 'Valencia en vivo: negocios, eventos y acontecimientos de la comunidad.' };
+      case '/framehack':
+        return { title: 'FrameHack', description: 'Herramientas y utilidades visuales para crear más rápido.' };
+      case '/chatbot':
+        return { title: 'Chatbot', description: 'Asistente para explorar recursos y resolver dudas.' };
+      case '/recursos':
+        return { title: "L'Almoina", description: 'Recursos y herramientas compartidas por la comunidad.' };
+      case '/eventos':
+        return { title: 'Quedadas', description: 'Próximos eventos, encuentros y actividades.' };
+      case '/blogs':
+        return { title: 'Blogs', description: 'Artículos, historias y novedades del ecosistema.' };
+      case '/qr':
+        return { title: 'Creador de QR', description: 'Genera códigos QR para compartir enlaces y recursos.' };
+      case '/terris':
+        return { title: 'Terris', description: 'Información sobre la moneda local de la Terreta.' };
+      case '/perfil':
+        return { title: 'Perfil', description: 'Gestiona tu información y configuración personal.' };
+      case '/admin':
+        return { title: 'Panel de Administración', description: 'Gestión interna de contenido y comunidad.' };
+      case '/admin/blogs':
+        return { title: 'Admin Blogs', description: 'Administración de publicaciones del blog.' };
+      default:
+        return { title: 'Terreta Hub', description: '' };
     }
   };
 
-  const title = getPageTitle();
+  const { title, description } = getPageMeta();
 
   return (
   <div className="flex h-screen overflow-hidden bg-terreta-bg transition-colors duration-500">
@@ -128,6 +147,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
         <Navbar
           user={currentUser}
           title={title}
+          description={description}
           totesBalance={totesBalance}
           onOpenAuth={onOpenAuth}
           onLogout={onLogout}

@@ -4,7 +4,7 @@ import { divIcon, LatLngLiteral } from 'leaflet';
 import { BriefcaseBusiness, CalendarClock, MapPin, Plus, StickyNote } from 'lucide-react';
 import { AuthUser } from '../types';
 import { supabase } from '../lib/supabase';
-import { EventTimeFilter, filterMapItems, getEventTimeBucket, getFutureEventsCount, MapItem, MapItemType } from '../lib/mapUtils';
+import { EventTimeFilter, filterMapItems, getEventTimeBucket, MapItem, MapItemType } from '../lib/mapUtils';
 
 interface MapaPageProps {
   user: AuthUser | null;
@@ -150,7 +150,6 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
   }, []);
 
   const visibleItems = useMemo(() => filterMapItems(items, activeTypes, eventFilter), [items, activeTypes, eventFilter]);
-  const futureEventsCount = useMemo(() => getFutureEventsCount(items), [items]);
 
   const handleToggleType = (type: MapItemType) => {
     setActiveTypes((currentTypes) => {
@@ -272,13 +271,6 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
 
   return (
     <section className="max-w-7xl mx-auto py-6 space-y-4">
-      <header className="flex flex-col gap-2">
-        <h1 className="font-sans text-3xl md:text-4xl text-terreta-dark font-bold">MAPA</h1>
-        <p className="text-terreta-dark/70">
-          Valencia en vivo: negocios, eventos y acontecimientos de la comunidad. Eventos futuros: {futureEventsCount}
-        </p>
-      </header>
-
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2 rounded-2xl border border-terreta-border overflow-hidden">
           <MapContainer center={valenciaCenter} zoom={13} className="h-[580px] w-full" scrollWheelZoom>
