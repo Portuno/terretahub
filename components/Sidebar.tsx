@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, MessageSquareText, MessageCircle, Shield, X, FileText, ChevronDown, ChevronUp, User, UsersRound } from 'lucide-react';
+import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, MessageSquareText, MessageCircle, Shield, X, FileText, ChevronDown, ChevronUp, User, UsersRound, Map } from 'lucide-react';
 import { AuthUser } from '../types';
 import { isAdmin } from '../lib/userRoles';
 import { useTheme, THEMES } from '../context/ThemeContext';
@@ -52,6 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'agora', path: '/agora', label: 'Ágora', icon: <MessageSquareText size={20} /> },
     { id: 'comunidad', path: '/miembros', label: 'Comunidad', icon: <Users size={20} /> },
     { id: 'dominio', path: '/dominio', label: 'Dominios', icon: <FolderKanban size={20} /> },
+    { id: 'mapa', path: '/mapa', label: 'MAPA', icon: <Map size={20} /> },
     { id: 'recursos', path: '/recursos', label: 'Recursos', icon: <BookOpen size={20} /> },
     { id: 'eventos', path: '/eventos', label: 'Quedadas', icon: <CalendarDays size={20} /> },
     { id: 'blogs', path: '/blogs', label: 'Blogs', icon: <FileText size={20} /> },

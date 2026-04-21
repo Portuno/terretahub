@@ -31,5 +31,11 @@ export const DOMAINS: DomainDefinition[] = [
     description: 'Documentación, asistentes y La Torre del Semás: contenido nativo para la plataforma.',
     routePath: '/biblioteca',
   },
+  {
+    id: 'mapa',
+    name: 'Mapa',
+    description: 'Mapa vivo de Valencia para negocios, eventos y acontecimientos de la comunidad.',
+    routePath: '/mapa',
+  },
 ];
 

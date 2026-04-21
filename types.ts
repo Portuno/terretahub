@@ -6,7 +6,7 @@ export interface Pillar {
   icon?: React.ReactNode;
 }
 
-export type DomainId = 'propiedades' | 'framehack' | 'qr' | 'fallas2026' | 'biblioteca';
+export type DomainId = 'propiedades' | 'framehack' | 'qr' | 'fallas2026' | 'biblioteca' | 'mapa';
 
 export interface DomainDefinition {
   id: DomainId;
@@ -274,6 +274,9 @@ export interface Event {
   description?: string;
   location?: string;
   locationUrl?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  mapIconType?: string | null;
   startDate: string;
   endDate: string;
   imageUrl?: string;

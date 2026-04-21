@@ -17,12 +17,15 @@
     "lucide-react": "^0.556.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
+    "react-leaflet": "^5.0.0",
     "react-markdown": "^9.0.1",
     "react-router-dom": "^6.22.0",
     "react-qr-code": "^2.0.15",
+    "leaflet": "^1.9.4",
     "jspdf": "^2.5.1"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^22.14.0",
     "dotenv": "^16.4.5",
     "@vitejs/plugin-react": "^5.0.0",
