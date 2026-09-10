@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Twitter, Facebook, Instagram, MessageCircle, Linkedin } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -22,6 +23,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   title,
   contentType
 }) => {
+  const dialogRef = useModalA11y(isOpen, onClose);
+
   if (!isOpen) return null;
 
   const siteUrl = window.location.origin;
@@ -106,19 +109,23 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
   return (
     <div 
+      ref={dialogRef}
       className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="share-modal-title"
     >
       <div 
         className="bg-terreta-card rounded-xl shadow-lg border border-terreta-border max-w-md w-full p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="font-serif text-xl font-bold text-terreta-dark">Compartir post</h2>
+          <h2 id="share-modal-title" className="font-serif text-xl font-bold text-terreta-dark">Compartir post</h2>
           <button
             onClick={onClose}
-            className="text-terreta-secondary hover:text-terreta-dark transition-colors"
             aria-label="Cerrar"
+            className="text-terreta-secondary hover:text-terreta-dark transition-colors"
           >
             <X size={24} />
           </button>

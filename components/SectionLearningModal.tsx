@@ -1,5 +1,6 @@
 import React from 'react';
 import { Sparkles, X } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 interface SectionLearningModalProps {
   isOpen: boolean;
@@ -16,12 +17,15 @@ export const SectionLearningModal: React.FC<SectionLearningModalProps> = ({
   onComplete,
   isSubmitting = false
 }) => {
+  const dialogRef = useModalA11y(isOpen, onClose);
+
   if (!isOpen) {
     return null;
   }
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-[80] flex items-center justify-center bg-terreta-dark/60 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"

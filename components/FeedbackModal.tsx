@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Send, MessageCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Toast } from './Toast';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose })
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const dialogRef = useModalA11y(isOpen, onClose);
   
   // Animation states
   const [shouldRender, setShouldRender] = useState(false);
@@ -113,6 +115,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose })
     <>
     {shouldRender ? (
     <div
+      ref={dialogRef}
       className={`fixed inset-0 z-[70] flex items-center justify-center p-4 transition-all duration-700 ease-out-expo ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       role="dialog"
       aria-modal="true"

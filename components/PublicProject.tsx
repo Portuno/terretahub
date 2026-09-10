@@ -16,6 +16,7 @@ import {
   persistProject,
   withdrawProjectFromReview
 } from '../lib/projectPersistence';
+import { isOwnContent } from '../lib/ownership';
 
 // Helper to convert YouTube/Vimeo URLs to embed format
 const getEmbedUrl = (url: string): string => {
@@ -172,7 +173,7 @@ export const PublicProject: React.FC<PublicProjectProps> = ({ user = null }) => 
         return;
       }
 
-      const isOwner = Boolean(user?.id && user.id === matchingProject.author_id);
+      const isOwner = isOwnContent(matchingProject.author_id, user?.id);
       if (matchingProject.status !== 'published' && !isOwner) {
         setError('pending');
         setLoading(false);
@@ -227,7 +228,7 @@ export const PublicProject: React.FC<PublicProjectProps> = ({ user = null }) => 
     }
   };
 
-  const isOwner = Boolean(user?.id && project && user.id === project.author_id);
+  const isOwner = isOwnContent(project?.author_id, user?.id);
 
   const handleOwnerSave = async (updated: Project) => {
     if (!user) return;

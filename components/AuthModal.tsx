@@ -3,6 +3,7 @@ import { X, User, Mail, Lock, ArrowRight, ArrowLeft, UserPlus } from 'lucide-rea
 import { AuthUser } from '../types';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onReferralConsumed
 }) => {
   const { theme } = useTheme();
+  const dialogRef = useModalA11y(isOpen, onClose);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -341,17 +343,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const accentColor = `rgb(var(--accent))`;
   
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 animate-fade-in" ref={dialogRef}>
       <div className="absolute inset-0 bg-[rgb(var(--text-main))]/60 backdrop-blur-sm" onClick={onClose}></div>
       
-      <div className="relative bg-[rgb(var(--card-bg))] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-scale-in border border-[rgb(var(--border-color))]">
-        <button onClick={onClose} className="absolute top-4 right-4 text-[rgb(var(--text-secondary))]/60 hover:text-[rgb(var(--text-main))] p-1 transition-colors">
+      <div
+        className="relative bg-[rgb(var(--card-bg))] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-scale-in border border-[rgb(var(--border-color))]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="auth-modal-title"
+      >
+        <button onClick={onClose} className="absolute top-4 right-4 text-[rgb(var(--text-secondary))]/60 hover:text-[rgb(var(--text-main))] p-1 transition-colors" aria-label="Cerrar inicio de sesión">
           <X size={20} />
         </button>
 
         <div className="p-8">
           <div className="text-center mb-6">
-            <h2 className="font-serif text-3xl text-[rgb(var(--text-main))] mb-2">
+            <h2 id="auth-modal-title" className="font-serif text-3xl text-[rgb(var(--text-main))] mb-2">
               {isForgotPassword ? 'Recuperar Contraseña' : isRegistering ? 'Únete a Terreta' : 'Bienvenido'}
             </h2>
             <p className="text-sm text-[rgb(var(--text-secondary))] font-sans">

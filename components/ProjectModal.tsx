@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Calendar, User, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import { ProjectWithAuthor } from './ProjectsGallery';
 import { generateSlug, normalizeUrl, renderMarkdown } from '../lib/utils';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 interface ProjectModalProps {
   project: ProjectWithAuthor | null;
@@ -67,6 +68,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
   const [shouldRender, setShouldRender] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const dialogRef = useModalA11y(isOpen, onClose);
 
   useEffect(() => {
     if (isOpen && project) {
@@ -87,20 +89,6 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
       return () => clearTimeout(timer);
     }
   }, [isOpen, project]);
-
-  // Cerrar con tecla Escape
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    
-    if (isOpen) {
-      window.addEventListener('keydown', handleEscape);
-      return () => window.removeEventListener('keydown', handleEscape);
-    }
-  }, [isOpen, onClose]);
 
   if (!shouldRender || !project) return null;
 
@@ -127,10 +115,14 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
 
   return (
     <div
+      ref={dialogRef}
       className={`fixed inset-0 z-[80] flex items-start justify-center p-4 overflow-y-auto transition-all duration-300 ease-in-out ${
         isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
       onClick={handleBackdropClick}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="project-modal-title"
     >
       {/* Backdrop */}
       <div
@@ -208,7 +200,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
             <div className="mb-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h1 className="font-serif text-3xl text-terreta-dark mb-2">{project.name}</h1>
+                  <h1 id="project-modal-title" className="font-serif text-3xl text-terreta-dark mb-2">{project.name}</h1>
                   {project.slogan && (
                     <p className="text-lg text-terreta-secondary italic mb-4">{project.slogan}</p>
                   )}

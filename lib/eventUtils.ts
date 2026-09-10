@@ -7,6 +7,19 @@ export const isEventEnded = (endDate: string | Date | null | undefined): boolean
   return !Number.isNaN(end.getTime()) && end.getTime() < Date.now();
 };
 
+export const canApplyToEvent = (input: {
+  endDate?: string | Date | null;
+  status?: string | null;
+}): { ok: boolean; reason: string | null } => {
+  if (input.status && input.status !== 'published') {
+    return { ok: false, reason: 'Este evento no está disponible para registro' };
+  }
+  if (isEventEnded(input.endDate)) {
+    return { ok: false, reason: 'Esta quedada ya finalizó. No se pueden enviar postulaciones.' };
+  }
+  return { ok: true, reason: null };
+};
+
 /**
  * Genera un slug único para un evento basado en el título y username del organizador
  */

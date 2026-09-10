@@ -4,7 +4,7 @@ import { MapPin, Users, Clock, Share2, Download, ExternalLink, ArrowLeft, UserPl
 import { supabase } from '../lib/supabase';
 import { AuthUser, Event } from '../types';
 import { downloadICSFile, openGoogleCalendar } from '../lib/calendarUtils';
-import { getEventStats, isEventEnded } from '../lib/eventUtils';
+import { getEventStats, isEventEnded, canApplyToEvent } from '../lib/eventUtils';
 import { Toast } from './Toast';
 import { ShareModal } from './ShareModal';
 import { EventModal } from './EventModal';
@@ -379,8 +379,9 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
 
     if (!event) return;
 
-    if (isEventEnded(event.endDate)) {
-      setToastMessage('Esta quedada ya finalizó. No se pueden enviar postulaciones.');
+    const eligibility = canApplyToEvent({ endDate: event.endDate, status: event.status });
+    if (!eligibility.ok) {
+      setToastMessage(eligibility.reason || 'No se puede postular a esta quedada.');
       setShowToast(true);
       return;
     }
@@ -447,8 +448,9 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
 
   const handlePreInscriptionSubmit = async () => {
     if (!user || !event) return;
-    if (isEventEnded(event.endDate)) {
-      setToastMessage('Esta quedada ya finalizó. No se pueden enviar postulaciones.');
+    const eligibility = canApplyToEvent({ endDate: event.endDate, status: event.status });
+    if (!eligibility.ok) {
+      setToastMessage(eligibility.reason || 'No se puede postular a esta quedada.');
       setShowToast(true);
       return;
     }

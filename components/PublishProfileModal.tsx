@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Globe, CheckCircle, AlertCircle } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 interface PublishProfileModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export const PublishProfileModal: React.FC<PublishProfileModalProps> = ({
   const [extension, setExtension] = useState(currentExtension || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const dialogRef = useModalA11y(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -61,13 +63,14 @@ export const PublishProfileModal: React.FC<PublishProfileModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 animate-fade-in" ref={dialogRef}>
       <div className="absolute inset-0 bg-terreta-dark/60 backdrop-blur-sm" onClick={onClose}></div>
       
-      <div className="relative bg-[#F9F6F0] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-scale-in">
+      <div className="relative bg-[#F9F6F0] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-scale-in" role="dialog" aria-modal="true" aria-labelledby="publish-profile-title">
         <button 
           onClick={onClose} 
           className="absolute top-4 right-4 text-terreta-dark/40 hover:text-terreta-dark p-1 z-10"
+          aria-label="Cerrar"
         >
           <X size={20} />
         </button>
@@ -77,7 +80,7 @@ export const PublishProfileModal: React.FC<PublishProfileModalProps> = ({
             <div className="w-16 h-16 bg-[#D97706] rounded-full flex items-center justify-center mx-auto mb-4">
               <Globe size={32} className="text-white" />
             </div>
-            <h2 className="font-serif text-3xl text-terreta-dark mb-2">
+            <h2 id="publish-profile-title" className="font-serif text-3xl text-terreta-dark mb-2">
               Publicar tu Perfil
             </h2>
             <p className="text-sm text-gray-500 font-sans">

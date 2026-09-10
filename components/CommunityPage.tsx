@@ -9,13 +9,14 @@ import { ReferralInviteModal } from './ReferralInviteModal';
 import { QueryState } from './QueryState';
 import { EmptyState } from './EmptyState';
 
-// Función para cargar usuarios reales desde Supabase (optimizada)
-const loadUsersFromSupabase = async (): Promise<{ users: UserProfile[]; error: string | null }> => {
+const COMMUNITY_PAGE_SIZE = 24;
+
+const loadUsersFromSupabase = async (limit: number): Promise<{ users: UserProfile[]; error: string | null }> => {
   try {
     // Optimized: Use RPC function to get community profiles with optimized avatars
     // This reduces payload from 5+ MB to < 100 KB by limiting avatar sizes
     const { data: profiles, error: profilesError } = await executeQueryWithRetry(
-      async () => await supabase.rpc('get_community_profiles', { limit_count: 50 }),
+      async () => await supabase.rpc('get_community_profiles', { limit_count: limit }),
       'load community profiles'
     );
 
@@ -29,7 +30,7 @@ const loadUsersFromSupabase = async (): Promise<{ users: UserProfile[]; error: s
           .select('id, name, username, avatar, role')
           .eq('show_in_community', true)
           .order('created_at', { ascending: false })
-          .limit(50),
+          .limit(limit),
         'load community profiles (fallback)'
       );
       
@@ -200,6 +201,9 @@ export const CommunityPage: React.FC<CommunityPageProps> = ({ user, onOpenAuth }
   const [sortType, setSortType] = useState<SortType>('views');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [visibleLimit, setVisibleLimit] = useState(COMMUNITY_PAGE_SIZE);
+  const [hasMoreMembers, setHasMoreMembers] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const referralLink = useMemo(() => {
     if (!user?.username) return '';
@@ -209,15 +213,21 @@ export const CommunityPage: React.FC<CommunityPageProps> = ({ user, onOpenAuth }
 
   useEffect(() => {
     const loadUsers = async () => {
-      setLoadingUsers(true);
+      if (visibleLimit === COMMUNITY_PAGE_SIZE) {
+        setLoadingUsers(true);
+      } else {
+        setLoadingMore(true);
+      }
       setLoadError(null);
-      const result = await loadUsersFromSupabase();
+      const result = await loadUsersFromSupabase(visibleLimit);
       setCommunityUsers(result.users);
+      setHasMoreMembers(result.users.length >= visibleLimit);
       setLoadError(result.error);
       setLoadingUsers(false);
+      setLoadingMore(false);
     };
     loadUsers();
-  }, []);
+  }, [visibleLimit]);
 
   // Filtrar y ordenar usuarios
   const filteredUsers = communityUsers
@@ -425,8 +435,9 @@ export const CommunityPage: React.FC<CommunityPageProps> = ({ user, onOpenAuth }
             onRetry={() => {
               setLoadingUsers(true);
               setLoadError(null);
-              loadUsersFromSupabase().then((result) => {
+              loadUsersFromSupabase(visibleLimit).then((result) => {
                 setCommunityUsers(result.users);
+                setHasMoreMembers(result.users.length >= visibleLimit);
                 setLoadError(result.error);
                 setLoadingUsers(false);
               });
@@ -466,6 +477,18 @@ export const CommunityPage: React.FC<CommunityPageProps> = ({ user, onOpenAuth }
                 }
               />
             )}
+            {hasMoreMembers && filteredUsers.length > 0 && !searchQuery ? (
+              <div className="mt-8 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleLimit((current) => current + COMMUNITY_PAGE_SIZE)}
+                  disabled={loadingMore}
+                  className="rounded-full border border-terreta-border bg-terreta-bg/50 px-6 py-2 text-sm font-medium text-terreta-dark transition-colors hover:bg-terreta-bg disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loadingMore ? 'Cargando...' : 'Cargar más miembros'}
+                </button>
+              </div>
+            ) : null}
           </>
         )}
       </div>

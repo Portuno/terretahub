@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Check, X, Eye, Clock, FolderKanban, CalendarDays, FileText } from 'lucide-react';
 import { AuthUser, ProjectStatus, EventStatus } from '../types';
 import { supabase } from '../lib/supabase';
+import { notifyProjectReview } from '../lib/notifications';
 
 interface AdminProjectsPanelProps {
   user: AuthUser;
@@ -209,6 +210,9 @@ const loadEvents = async () => {
     try {
       setProcessing(projectId);
 
+      const project =
+        projects.find((item) => item.id === projectId) || selectedProject;
+
       const { error } = await supabase
         .from('projects')
         .update({ status: newStatus })
@@ -220,7 +224,15 @@ const loadEvents = async () => {
         return;
       }
 
-      // Recargar proyectos
+      if (project?.author_id) {
+        await notifyProjectReview({
+          userId: project.author_id,
+          projectId: project.id,
+          projectName: project.name,
+          approved: newStatus === 'published',
+        });
+      }
+
       await loadProjects();
       setSelectedProject(null);
     } catch (err) {

@@ -25,6 +25,7 @@ import { createMentionNotifications } from '../lib/mentionUtils';
 import { PollCreator } from './PollCreator';
 import { QueryState } from './QueryState';
 import { EmptyState } from './EmptyState';
+import { rankTrends, TrendTag } from '../lib/trends';
 
 // Helper para formatear timestamps
 const formatTimestamp = (dateString: string): string => {
@@ -61,6 +62,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
   // Filtros
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [trendingTags, setTrendingTags] = useState<TrendTag[]>([]);
   type FeedTypeFilter = 'all' | 'post' | 'resource_request' | 'profile_created' | 'event_created';
   const [feedTypeFilter, setFeedTypeFilter] = useState<FeedTypeFilter>('all');
   
@@ -112,6 +114,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
       if (reset) {
         setLoading(true);
         setLoadError(null);
+        setHasMore(true);
       } else {
         setLoadingMore(true);
       }
@@ -356,11 +359,16 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
       const { data } = await supabase
         .from('agora_posts')
         .select('tags')
-        .not('tags', 'is', null);
+        .not('tags', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      const lists = (data || []).map((post: { tags?: string[] | null }) => post.tags);
+      setTrendingTags(rankTrends(lists));
 
       if (data) {
         const allTags = new Set<string>();
-        data.forEach((post: any) => {
+        data.forEach((post: { tags?: string[] | null }) => {
           if (post.tags && Array.isArray(post.tags)) {
             post.tags.forEach((tag: string) => allTags.add(tag));
           }
@@ -369,6 +377,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
       }
     } catch (err) {
       console.error('Error loading tags:', err);
+      setTrendingTags([]);
     }
   };
 
@@ -1867,23 +1876,24 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
 
         <aside className="hidden xl:block">
           <div className="sticky top-24 space-y-4">
+            {trendingTags.length > 0 ? (
             <div className="rounded-2xl border border-terreta-border bg-terreta-card/80 p-4 shadow-sm">
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-terreta-dark/60">Tendencias en la Terreta</p>
-              {topTags.length === 0 ? (
-                <p className="text-sm text-terreta-secondary">Publica algo para activar tendencias.</p>
-              ) : (
                 <div className="flex flex-wrap gap-2">
-                  {topTags.map((tag) => (
-                    <span
-                      key={tag}
+                  {trendingTags.map((item) => (
+                    <button
+                      key={item.tag}
+                      type="button"
+                      onClick={() => setSelectedTag(item.tag)}
                       className="rounded-full border border-terreta-accent/30 bg-terreta-accent/10 px-3 py-1 text-xs font-semibold text-terreta-accent"
+                      aria-label={`Filtrar por ${item.tag}, ${item.count} publicaciones`}
                     >
-                      #{tag}
-                    </span>
+                      #{item.tag}
+                    </button>
                   ))}
                 </div>
-              )}
             </div>
+            ) : null}
 
             <div className="rounded-2xl border border-terreta-border bg-terreta-card/80 p-4 shadow-sm">
               <div className="mb-2 flex items-center gap-2">

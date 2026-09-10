@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Copy, Link as LinkIcon, Users } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 interface ReferralInviteModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface ReferralInviteModalProps {
 
 export const ReferralInviteModal: React.FC<ReferralInviteModalProps> = ({ isOpen, onClose, referralLink, referralCode }) => {
   const [copyStatus, setCopyStatus] = useState('');
+  const dialogRef = useModalA11y(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -26,7 +28,7 @@ export const ReferralInviteModal: React.FC<ReferralInviteModalProps> = ({ isOpen
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 animate-fade-in" ref={dialogRef}>
       <div className="absolute inset-0 bg-terreta-dark/60 backdrop-blur-sm" onClick={onClose}></div>
       <div
         className="relative w-full max-w-lg bg-terreta-card border border-terreta-border rounded-2xl shadow-2xl p-6"

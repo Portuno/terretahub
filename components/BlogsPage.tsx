@@ -8,6 +8,8 @@ import { BlogAuthorizationRequest } from './BlogAuthorizationRequest';
 import { getBlogImageUrl } from '../lib/blogUtils';
 import { executeQueryWithRetry } from '../lib/supabaseHelpers';
 
+const BLOGS_PAGE_SIZE = 12;
+
 interface BlogsPageProps {
   user: AuthUser | null;
   onOpenAuth: (referrerUsername?: string) => void;
@@ -29,6 +31,8 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [filterTag, setFilterTag] = useState<FilterTag>(null);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [hasMoreBlogs, setHasMoreBlogs] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Verificar autorización del usuario
   useEffect(() => {
@@ -65,12 +69,19 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
 
   // Cargar blogs
   useEffect(() => {
-    loadBlogs();
+    loadBlogs(true);
   }, [sortBy, filterTag, searchQuery]);
 
-  const loadBlogs = async () => {
+  const loadBlogs = async (reset: boolean) => {
     try {
-      setLoading(true);
+      if (reset) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const offset = reset ? 0 : blogs.length;
+      const orderColumn = sortBy === 'views' ? 'views_count' : sortBy === 'likes' ? 'likes_count' : 'created_at';
 
       let query = supabase
         .from('blogs')
@@ -98,7 +109,8 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
           )
         `)
         .eq('status', 'published')
-        .order('created_at', { ascending: false });
+        .order(orderColumn, { ascending: false })
+        .range(offset, offset + BLOGS_PAGE_SIZE - 1);
 
       // Aplicar filtro de tag
       if (filterTag) {
@@ -117,20 +129,22 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
 
       if (blogsError) {
         console.error('Error loading blogs:', blogsError);
-        setBlogs([]);
+        if (reset) {
+          setBlogs([]);
+        }
         return;
       }
 
-      // Cargar likes/dislikes del usuario si está autenticado
       let userLikes: Map<string, 'like' | 'dislike'> = new Map();
-      if (user) {
+      if (user && blogsData && blogsData.length > 0) {
         const { data: likesData } = await supabase
           .from('blog_likes')
           .select('blog_id, type')
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .in('blog_id', blogsData.map((blog: { id: string }) => blog.id));
 
         if (likesData) {
-          likesData.forEach((like: any) => {
+          likesData.forEach((like: { blog_id: string; type: 'like' | 'dislike' }) => {
             userLikes.set(like.blog_id, like.type);
           });
         }
@@ -164,30 +178,29 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
         userLikeType: userLikes.get(blog.id) || null
       }));
 
-      // Ordenar
-      let sortedBlogs = [...transformedBlogs];
-      if (sortBy === 'views') {
-        sortedBlogs.sort((a, b) => b.viewsCount - a.viewsCount);
-      } else if (sortBy === 'likes') {
-        sortedBlogs.sort((a, b) => b.likesCount - a.likesCount);
+      if (reset) {
+        setBlogs(transformedBlogs);
       } else {
-        sortedBlogs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setBlogs((prev) => [...prev, ...transformedBlogs]);
       }
+      setHasMoreBlogs(transformedBlogs.length >= BLOGS_PAGE_SIZE);
 
-      setBlogs(sortedBlogs);
-
-      // Extraer tags únicos para el filtro
-      const allTags = new Set<string>();
+      const allTags = new Set<string>(reset ? [] : availableTags);
       transformedBlogs.forEach(blog => {
-        allTags.add(blog.primaryTag);
+        if (blog.primaryTag) {
+          allTags.add(blog.primaryTag);
+        }
         blog.tags.forEach(tag => allTags.add(tag));
       });
       setAvailableTags(Array.from(allTags).sort());
     } catch (err) {
       console.error('Error loading blogs:', err);
-      setBlogs([]);
+      if (reset) {
+        setBlogs([]);
+      }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -207,7 +220,7 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
 
   const handleBlogSaved = () => {
     setIsCreating(false);
-    loadBlogs();
+    loadBlogs(true);
   };
 
   if (isCreating && user && isAuthorized) {
@@ -325,6 +338,18 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
           ))}
         </div>
       )}
+      {hasMoreBlogs && blogs.length > 0 ? (
+        <div className="mt-8 flex justify-center">
+          <button
+            type="button"
+            onClick={() => loadBlogs(false)}
+            disabled={loadingMore}
+            className="rounded-full border border-terreta-border bg-terreta-bg/50 px-6 py-2 text-sm font-medium text-terreta-dark transition-colors hover:bg-terreta-bg disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loadingMore ? 'Cargando...' : 'Cargar más blogs'}
+          </button>
+        </div>
+      ) : null}
 
       {/* Modal de solicitud de autorización */}
       {showAuthRequest && user && (

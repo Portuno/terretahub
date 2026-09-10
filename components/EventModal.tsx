@@ -6,6 +6,7 @@ import { Toast } from './Toast';
 import { uploadEventImageToStorage } from '../lib/eventImageUtils';
 import { generateUniqueEventSlug } from '../lib/eventUtils';
 import { FieldErrors, validateEvent } from '../lib/contentValidation';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 const DURATION_PRESETS = [
   { label: 'Media hora', minutes: 30 },
@@ -57,6 +58,7 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
   const [showReviewSuccessModal, setShowReviewSuccessModal] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useModalA11y(isOpen, onClose);
 
   const durationMinutes = durationPreset === 'custom' ? durationCustomMinutes : durationPreset;
 
@@ -269,11 +271,17 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-terreta-dark/70 backdrop-blur-sm">
+      <div
+        ref={dialogRef}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-terreta-dark/70 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="event-modal-title"
+      >
         <div className="bg-terreta-card rounded-lg shadow-2xl w-full max-w-2xl border border-terreta-border overflow-hidden flex flex-col max-h-[90vh]">
           {/* Header */}
           <div className="shrink-0 bg-terreta-card border-b border-terreta-border px-6 py-4 flex items-center justify-between">
-            <h2 className="font-serif text-2xl font-bold text-terreta-dark">
+            <h2 id="event-modal-title" className="font-serif text-2xl font-bold text-terreta-dark">
               {event ? 'Editar Evento' : 'Crear Evento'}
             </h2>
             <button
