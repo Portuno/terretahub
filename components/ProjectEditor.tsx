@@ -4,36 +4,41 @@ import {
   Bold, Italic, Info, ChevronDown, CheckCircle,
   Layout, Maximize2, ExternalLink, Globe, Calendar, User
 } from 'lucide-react';
-import { Project, ProjectPhase, AuthUser } from '../types';
+import { Project, ProjectPhase, AuthUser, ProjectStatus } from '../types';
 import { renderMarkdown } from '../lib/utils';
+import { FieldErrors, validateProject } from '../lib/contentValidation';
 
 interface ProjectEditorProps {
   user: AuthUser;
   onCancel: () => void;
-  onSave: (project: Project) => void;
+  onSave: (project: Project) => void | Promise<void>;
+  initialProject?: Project;
 }
 
 const PHASES: ProjectPhase[] = ['Idea', 'MVP', 'Mercado Temprano', 'Escalado'];
 
-export const ProjectEditor: React.FC<ProjectEditorProps> = ({ user, onCancel, onSave }) => {
+export const ProjectEditor: React.FC<ProjectEditorProps> = ({ user, onCancel, onSave, initialProject }) => {
   // Form State
-  const [name, setName] = useState('');
-  const [slogan, setSlogan] = useState('');
-  const [description, setDescription] = useState('');
-  const [videoUrl, setVideoUrl] = useState('');
-  const [website, setWebsite] = useState('');
-  const [phase, setPhase] = useState<ProjectPhase>('Idea');
-  const [images, setImages] = useState<string[]>([]);
+  const [name, setName] = useState(initialProject?.name || '');
+  const [slogan, setSlogan] = useState(initialProject?.slogan || '');
+  const [description, setDescription] = useState(initialProject?.description || '');
+  const [videoUrl, setVideoUrl] = useState(initialProject?.videoUrl || '');
+  const [website, setWebsite] = useState(initialProject?.website || '');
+  const [phase, setPhase] = useState<ProjectPhase>(initialProject?.phase || 'Idea');
+  const [images, setImages] = useState<string[]>(initialProject?.images || []);
   
   // Tag State
   const [catInput, setCatInput] = useState('');
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>(initialProject?.categories || []);
   const [techInput, setTechInput] = useState('');
-  const [technologies, setTechnologies] = useState<string[]>([]);
+  const [technologies, setTechnologies] = useState<string[]>(initialProject?.technologies || []);
 
   // UI State
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isEditing = Boolean(initialProject?.id && initialProject.id !== 'draft');
 
   // --- HANDLERS ---
 
@@ -85,7 +90,10 @@ export const ProjectEditor: React.FC<ProjectEditorProps> = ({ user, onCancel, on
       Array.from(e.target.files).forEach((file) => {
         const reader = new FileReader();
         reader.onloadend = () => {
-          setImages(prev => [...prev, reader.result as string]);
+          setImages(prev => {
+            if (fieldErrors.images) setFieldErrors((current) => ({ ...current, images: '' }));
+            return [...prev, reader.result as string];
+          });
         };
         reader.readAsDataURL(file as Blob);
       });
@@ -96,13 +104,21 @@ export const ProjectEditor: React.FC<ProjectEditorProps> = ({ user, onCancel, on
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (status: Project['status']) => {
+  const handleSubmit = async (status: ProjectStatus) => {
+    if (isSubmitting) return;
+
+    const errors = validateProject({ name, slogan, description, images, status });
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+
     const newProject: Project = {
-      id: Date.now().toString(),
+      id: isEditing && initialProject ? initialProject.id : Date.now().toString(),
       authorId: user.id,
-      name,
-      slogan,
-      description,
+      name: name.trim(),
+      slogan: slogan.trim(),
+      description: description.trim(),
       images,
       videoUrl,
       website: website.trim() || undefined,
@@ -110,9 +126,15 @@ export const ProjectEditor: React.FC<ProjectEditorProps> = ({ user, onCancel, on
       technologies,
       phase,
       status,
-      createdAt: new Date().toISOString()
+      createdAt: initialProject?.createdAt || new Date().toISOString()
     };
-    onSave(newProject);
+
+    setIsSubmitting(true);
+    try {
+      await onSave(newProject);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Construct draft object for preview
@@ -141,9 +163,13 @@ export const ProjectEditor: React.FC<ProjectEditorProps> = ({ user, onCancel, on
           
           {/* Header */}
           <div className="mb-8 border-b border-gray-200 pb-4">
-            <h2 className="font-serif text-3xl text-terreta-dark mb-2">Sube tu Proyecto</h2>
+            <h2 className="font-serif text-3xl text-terreta-dark mb-2">
+              {isEditing ? 'Editar tu proyecto' : 'Sube tu Proyecto'}
+            </h2>
             <p className="text-sm text-gray-500 font-sans">
-              Comparte tu visión con la comunidad. Completa la información clave para incubación o inversores.
+              {isEditing
+                ? 'Actualizá la información. Los campos marcados son obligatorios para mantenerlo visible.'
+                : 'Comparte tu visión con la comunidad. Completa la información clave para incubación o inversores.'}
             </p>
           </div>
 
@@ -157,11 +183,19 @@ export const ProjectEditor: React.FC<ProjectEditorProps> = ({ user, onCancel, on
                 </label>
                 <input 
                   type="text" 
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-lg font-bold text-terreta-dark focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none placeholder-gray-300"
+                  className={`w-full bg-white border rounded-xl px-4 py-3 text-lg font-bold text-terreta-dark focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none placeholder-gray-300 ${fieldErrors.name ? 'border-red-400' : 'border-gray-200'}`}
                   placeholder="Ej. Terreta Hub"
                   value={name}
-                  onChange={e => setName(e.target.value)}
+                  onChange={e => {
+                    setName(e.target.value);
+                    if (fieldErrors.name) setFieldErrors(prev => ({ ...prev, name: undefined as unknown as string }));
+                  }}
+                  aria-invalid={Boolean(fieldErrors.name)}
+                  aria-describedby={fieldErrors.name ? 'project-name-error' : undefined}
                 />
+                {fieldErrors.name ? (
+                  <p id="project-name-error" className="mt-1 text-xs text-red-500" role="alert">{fieldErrors.name}</p>
+                ) : null}
               </div>
 
               <div>
@@ -170,11 +204,19 @@ export const ProjectEditor: React.FC<ProjectEditorProps> = ({ user, onCancel, on
                 </label>
                 <input 
                   type="text" 
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none placeholder-gray-300"
+                  className={`w-full bg-white border rounded-xl px-4 py-3 text-gray-700 focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none placeholder-gray-300 ${fieldErrors.slogan ? 'border-red-400' : 'border-gray-200'}`}
                   placeholder="Una línea que defina tu propuesta de valor..."
                   value={slogan}
-                  onChange={e => setSlogan(e.target.value)}
+                  onChange={e => {
+                    setSlogan(e.target.value);
+                    if (fieldErrors.slogan) setFieldErrors(prev => ({ ...prev, slogan: '' }));
+                  }}
+                  aria-invalid={Boolean(fieldErrors.slogan)}
+                  aria-describedby={fieldErrors.slogan ? 'project-slogan-error' : undefined}
                 />
+                {fieldErrors.slogan ? (
+                  <p id="project-slogan-error" className="mt-1 text-xs text-red-500" role="alert">{fieldErrors.slogan}</p>
+                ) : null}
               </div>
             </section>
 
@@ -192,11 +234,19 @@ export const ProjectEditor: React.FC<ProjectEditorProps> = ({ user, onCancel, on
               <div className="relative">
                 <textarea 
                     ref={descriptionRef}
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none placeholder-gray-300 min-h-[200px] resize-y font-sans leading-relaxed"
+                    className={`w-full bg-white border rounded-xl px-4 py-3 text-gray-700 focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] outline-none placeholder-gray-300 min-h-[200px] resize-y font-sans leading-relaxed ${fieldErrors.description ? 'border-red-400' : 'border-gray-200'}`}
                     placeholder="Cuenta tu historia. ¿Qué problema resuelves? ¿Cuál es tu solución? Usa **negrita** para resaltar."
                     value={description}
-                    onChange={e => setDescription(e.target.value)}
+                    onChange={e => {
+                      setDescription(e.target.value);
+                      if (fieldErrors.description) setFieldErrors(prev => ({ ...prev, description: '' }));
+                    }}
+                    aria-invalid={Boolean(fieldErrors.description)}
+                    aria-describedby={fieldErrors.description ? 'project-description-error' : undefined}
                 />
+                {fieldErrors.description ? (
+                  <p id="project-description-error" className="mt-1 text-xs text-red-500" role="alert">{fieldErrors.description}</p>
+                ) : null}
               </div>
             </section>
 
@@ -209,8 +259,11 @@ export const ProjectEditor: React.FC<ProjectEditorProps> = ({ user, onCancel, on
               {/* Image Upload */}
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
-                  Imágenes Destacadas (Logos, Mockups)
+                  Imágenes Destacadas (Logos, Mockups) <span className="text-red-400">*</span>
                 </label>
+                {fieldErrors.images ? (
+                  <p className="mb-2 text-xs text-red-500" role="alert">{fieldErrors.images}</p>
+                ) : null}
                 <div className="flex flex-wrap gap-3">
                   {images.map((img, idx) => (
                     <div key={idx} className="relative w-24 h-24 rounded-lg overflow-hidden group shadow-sm">
@@ -356,17 +409,23 @@ export const ProjectEditor: React.FC<ProjectEditorProps> = ({ user, onCancel, on
 
             {/* Actions */}
             <div className="flex flex-col-reverse md:flex-row gap-4 pt-4">
+              {initialProject?.status !== 'published' ? (
+                <button 
+                  type="button"
+                  onClick={() => handleSubmit('draft')}
+                  disabled={isSubmitting}
+                  className="flex-1 py-4 border-2 border-gray-200 text-gray-600 font-bold rounded-xl hover:border-gray-400 hover:text-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <Save size={18} /> {isSubmitting ? 'Guardando...' : 'Guardar Borrador'}
+                </button>
+              ) : null}
               <button 
-                onClick={() => handleSubmit('draft')}
-                className="flex-1 py-4 border-2 border-gray-200 text-gray-600 font-bold rounded-xl hover:border-gray-400 hover:text-gray-800 transition-colors flex items-center justify-center gap-2"
+                type="button"
+                onClick={() => handleSubmit(initialProject?.status === 'published' ? 'published' : 'review')}
+                disabled={isSubmitting}
+                className="flex-[2] py-4 bg-[#D97706] text-white font-bold rounded-xl hover:bg-[#B45309] shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
-                <Save size={18} /> Guardar Borrador
-              </button>
-              <button 
-                onClick={() => handleSubmit('review')}
-                className="flex-[2] py-4 bg-[#D97706] text-white font-bold rounded-xl hover:bg-[#B45309] shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 flex items-center justify-center gap-2"
-              >
-                <Send size={18} /> Enviar para Revisión
+                <Send size={18} /> {isSubmitting ? 'Enviando...' : initialProject?.status === 'published' ? 'Guardar cambios' : 'Enviar para Revisión'}
               </button>
             </div>
             

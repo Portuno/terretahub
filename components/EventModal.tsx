@@ -5,6 +5,7 @@ import { AuthUser, Event, EventStatus, AdmissionType } from '../types';
 import { Toast } from './Toast';
 import { uploadEventImageToStorage } from '../lib/eventImageUtils';
 import { generateUniqueEventSlug } from '../lib/eventUtils';
+import { FieldErrors, validateEvent } from '../lib/contentValidation';
 
 const DURATION_PRESETS = [
   { label: 'Media hora', minutes: 30 },
@@ -54,6 +55,7 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [showReviewSuccessModal, setShowReviewSuccessModal] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   const durationMinutes = durationPreset === 'custom' ? durationCustomMinutes : durationPreset;
@@ -115,11 +117,23 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
       setAttendeeQuestion('');
     }
     setStep(1);
+    setFieldErrors({});
   }, [event, isOpen]);
 
   const validateStep1 = (): boolean => {
-    if (!title.trim()) {
-      setToastMessage('El título es obligatorio');
+    const errors = validateEvent({
+      title,
+      description,
+      startDate: startDate || '2000-01-01',
+      startTime: startTime || '00:00',
+      isNew: !event
+    });
+    const step1Errors: FieldErrors = {};
+    if (errors.title) step1Errors.title = errors.title;
+    if (errors.description) step1Errors.description = errors.description;
+    setFieldErrors(step1Errors);
+    if (Object.keys(step1Errors).length > 0) {
+      setToastMessage(Object.values(step1Errors)[0]);
       setShowToast(true);
       return false;
     }
@@ -134,13 +148,16 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
   const handleBack = () => setStep(1);
 
   const handleSave = async () => {
-    if (!title.trim()) {
-      setToastMessage('El título es obligatorio');
-      setShowToast(true);
-      return;
-    }
-    if (!startDate || !startTime) {
-      setToastMessage('La fecha y hora de inicio son obligatorias');
+    const errors = validateEvent({
+      title,
+      description,
+      startDate,
+      startTime,
+      isNew: !event
+    });
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setToastMessage(Object.values(errors)[0]);
       setShowToast(true);
       return;
     }
@@ -298,21 +315,35 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
                   <input
                     type="text"
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-2 bg-terreta-bg border border-terreta-border rounded-lg text-terreta-dark focus:outline-none focus:ring-2 focus:ring-terreta-accent"
+                    onChange={(e) => {
+                      setTitle(e.target.value);
+                      if (fieldErrors.title) setFieldErrors((prev) => ({ ...prev, title: '' }));
+                    }}
+                    className={`w-full px-4 py-2 bg-terreta-bg border rounded-lg text-terreta-dark focus:outline-none focus:ring-2 focus:ring-terreta-accent ${fieldErrors.title ? 'border-red-400' : 'border-terreta-border'}`}
                     placeholder="Ej: Networking de Emprendedores"
                     aria-required
+                    aria-invalid={Boolean(fieldErrors.title)}
                   />
+                  {fieldErrors.title ? (
+                    <p className="mt-1 text-xs text-red-500" role="alert">{fieldErrors.title}</p>
+                  ) : null}
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-terreta-dark mb-2">Descripción</label>
+                  <label className="block text-sm font-semibold text-terreta-dark mb-2">Descripción *</label>
                   <textarea
                     value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    onChange={(e) => {
+                      setDescription(e.target.value);
+                      if (fieldErrors.description) setFieldErrors((prev) => ({ ...prev, description: '' }));
+                    }}
                     rows={4}
-                    className="w-full px-4 py-2 bg-terreta-bg border border-terreta-border rounded-lg text-terreta-dark focus:outline-none focus:ring-2 focus:ring-terreta-accent resize-none"
+                    className={`w-full px-4 py-2 bg-terreta-bg border rounded-lg text-terreta-dark focus:outline-none focus:ring-2 focus:ring-terreta-accent resize-none ${fieldErrors.description ? 'border-red-400' : 'border-terreta-border'}`}
                     placeholder="Describe el evento..."
+                    aria-invalid={Boolean(fieldErrors.description)}
                   />
+                  {fieldErrors.description ? (
+                    <p className="mt-1 text-xs text-red-500" role="alert">{fieldErrors.description}</p>
+                  ) : null}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-terreta-dark mb-2">Categoría</label>
@@ -404,8 +435,11 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
                       <input
                         type="date"
                         value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full px-3 py-2 bg-terreta-bg border border-terreta-border rounded-lg text-terreta-dark focus:outline-none focus:ring-2 focus:ring-terreta-accent text-sm"
+                        onChange={(e) => {
+                          setStartDate(e.target.value);
+                          if (fieldErrors.startDate) setFieldErrors((prev) => ({ ...prev, startDate: '' }));
+                        }}
+                        className={`w-full px-3 py-2 bg-terreta-bg border rounded-lg text-terreta-dark focus:outline-none focus:ring-2 focus:ring-terreta-accent text-sm ${fieldErrors.startDate ? 'border-red-400' : 'border-terreta-border'}`}
                       />
                     </div>
                     <div>
@@ -413,11 +447,17 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
                       <input
                         type="time"
                         value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
-                        className="w-full px-3 py-2 bg-terreta-bg border border-terreta-border rounded-lg text-terreta-dark focus:outline-none focus:ring-2 focus:ring-terreta-accent text-sm"
+                        onChange={(e) => {
+                          setStartTime(e.target.value);
+                          if (fieldErrors.startDate) setFieldErrors((prev) => ({ ...prev, startDate: '' }));
+                        }}
+                        className={`w-full px-3 py-2 bg-terreta-bg border rounded-lg text-terreta-dark focus:outline-none focus:ring-2 focus:ring-terreta-accent text-sm ${fieldErrors.startDate ? 'border-red-400' : 'border-terreta-border'}`}
                       />
                     </div>
                   </div>
+                  {fieldErrors.startDate ? (
+                    <p className="text-xs text-red-500" role="alert">{fieldErrors.startDate}</p>
+                  ) : null}
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"

@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Calendar, MapPin, Users, Clock, Share2, Download, ExternalLink, ArrowLeft, UserPlus, Check, X as XIcon, BarChart2, Eye, Pencil } from 'lucide-react';
+import { MapPin, Users, Clock, Share2, Download, ExternalLink, ArrowLeft, UserPlus, Check, X as XIcon, BarChart2, Eye, Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { AuthUser, Event } from '../types';
 import { downloadICSFile, openGoogleCalendar } from '../lib/calendarUtils';
-import { getEventStats } from '../lib/eventUtils';
+import { getEventStats, isEventEnded } from '../lib/eventUtils';
 import { Toast } from './Toast';
 import { ShareModal } from './ShareModal';
 import { EventModal } from './EventModal';
+import { executeQueryWithRetry } from '../lib/supabaseHelpers';
+import { QueryState } from './QueryState';
 
 interface EventPageProps {
   user: AuthUser | null;
@@ -20,6 +22,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -112,11 +115,13 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
     try {
       setLoading(true);
       setError(null);
+      setLoadFailed(false);
 
-      // Buscar evento por slug y username del organizador
-      const { data: eventData, error: eventError } = await supabase
-        .from('events')
-        .select(`
+      const { data: eventData, error: eventError } = await executeQueryWithRetry(
+        async () =>
+          await supabase
+            .from('events')
+            .select(`
           id,
           organizer_id,
           title,
@@ -142,12 +147,16 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
           created_at,
           updated_at
         `)
-        .eq('slug', slug)
-        .eq('status', 'published')
-        .single();
+            .eq('slug', slug)
+            .eq('status', 'published')
+            .single(),
+        'load event page'
+      );
 
       if (eventError || !eventData) {
-        setError('Evento no encontrado');
+        const isTimeout = Boolean(eventError?.message?.toLowerCase().includes('timeout'));
+        setError(isTimeout ? 'No pudimos cargar el evento. Probá de nuevo.' : 'Evento no encontrado');
+        setLoadFailed(isTimeout || Boolean(eventError?.message?.toLowerCase().includes('network')));
         setLoading(false);
         return;
       }
@@ -240,7 +249,8 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
       }
     } catch (err) {
       console.error('Error loading event:', err);
-      setError('Error al cargar el evento');
+      setError('No pudimos cargar el evento. Probá de nuevo.');
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -369,6 +379,12 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
 
     if (!event) return;
 
+    if (isEventEnded(event.endDate)) {
+      setToastMessage('Esta quedada ya finalizó. No se pueden enviar postulaciones.');
+      setShowToast(true);
+      return;
+    }
+
     setIsRegistering(true);
     try {
       // Verificar que el evento esté publicado
@@ -431,6 +447,11 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
 
   const handlePreInscriptionSubmit = async () => {
     if (!user || !event) return;
+    if (isEventEnded(event.endDate)) {
+      setToastMessage('Esta quedada ya finalizó. No se pueden enviar postulaciones.');
+      setShowToast(true);
+      return;
+    }
     const purposeTrim = preInscriptionPurpose.trim();
     if (!purposeTrim) {
       setToastMessage('El propósito es obligatorio: indica qué vas a aportar a Terreta Hub.');
@@ -575,6 +596,34 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
     }
   };
 
+  const handleDeleteEvent = async () => {
+    if (!user || !event) return;
+    const confirmed = window.confirm(
+      '¿Eliminar esta quedada? Dejará de verse en el listado. Esta acción no se puede deshacer.'
+    );
+    if (!confirmed) return;
+    setIsRegistering(true);
+    try {
+      const { error: deleteError } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', event.id)
+        .eq('organizer_id', user.id);
+      if (deleteError) {
+        setToastMessage(deleteError.message || 'No se pudo eliminar el evento');
+        setShowToast(true);
+        return;
+      }
+      navigate('/eventos');
+    } catch (err) {
+      console.error('[EventPage] Error deleting event:', err);
+      setToastMessage('No se pudo eliminar el evento');
+      setShowToast(true);
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   const handleExportToCalendar = (method: 'download' | 'google') => {
     if (!event) return;
 
@@ -617,13 +666,15 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
     });
   };
 
-  if (loading) {
+  if (loading || loadFailed) {
     return (
       <div className="min-h-screen bg-terreta-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-terreta-accent mx-auto mb-4"></div>
-          <p className="text-terreta-dark">Cargando evento...</p>
-        </div>
+        <QueryState
+          loading={loading}
+          error={loadFailed ? error : null}
+          onRetry={loadEvent}
+          loadingLabel="Cargando evento..."
+        />
       </div>
     );
   }
@@ -655,8 +706,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
   const displayEndDate = showDatePublic ? formatDate(event.endDate) : (event.datePlaceholder || 'Fecha por confirmar');
   const displayLocation = showLocationPublic ? (event.location || (event.isOnline ? event.locationUrl : null)) : (event.locationPlaceholder || 'Ubicación por confirmar');
   const displayLocationLabel = showLocationPublic ? (event.isOnline ? 'Evento en línea' : 'Ubicación') : 'Ubicación';
-  const now = new Date();
-  const isPastEvent = new Date(event.endDate) < now;
+  const isPastEvent = isEventEnded(event.endDate);
 
   return (
     <div className="min-h-screen bg-terreta-bg py-8 px-4">
@@ -670,7 +720,25 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
             Volver a Quedadas
           </button>
           {isOrganizer && (
-            <div className="flex rounded-full border border-terreta-border bg-terreta-card p-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-terreta-accent hover:opacity-90 text-white rounded-full font-semibold transition-all"
+              >
+                <Pencil size={18} />
+                Editar
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteEvent}
+                disabled={isRegistering}
+                className="flex items-center gap-2 px-4 py-2 rounded-full font-semibold border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60"
+              >
+                <Trash2 size={18} />
+                Eliminar
+              </button>
+              <div className="flex rounded-full border border-terreta-border bg-terreta-card p-1">
               <button
                 type="button"
                 onClick={() => setOrganizerView('event')}
@@ -687,6 +755,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
                 <BarChart2 size={18} />
                 Estadísticas
               </button>
+            </div>
             </div>
           )}
         </div>
@@ -926,7 +995,25 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
 
           {/* Acciones */}
           <div className="flex flex-wrap items-center gap-4 pt-6 border-t border-terreta-border">
-            {!user ? (
+            {isPastEvent ? (
+              <div className="w-full rounded-xl border-2 border-terreta-border bg-terreta-bg p-6">
+                <h3 className="font-serif text-xl font-bold text-terreta-dark mb-2">Quedada finalizada</h3>
+                <p className="text-sm text-terreta-dark/80 mb-4">
+                  Esta quedada ya pasó. Ya no se aceptan postulaciones nuevas.
+                </p>
+                {event.isUserPending ? (
+                  <button
+                    onClick={handleCancelRegistration}
+                    disabled={isRegistering}
+                    className="bg-terreta-sidebar hover:bg-terreta-border text-terreta-dark px-6 py-2 rounded-full font-semibold transition-all disabled:opacity-50 text-sm"
+                  >
+                    {isRegistering ? 'Cancelando...' : 'Retirar solicitud'}
+                  </button>
+                ) : event.isUserRegistered ? (
+                  <p className="text-sm font-semibold text-terreta-dark">Estuviste inscrito en esta quedada.</p>
+                ) : null}
+              </div>
+            ) : !user ? (
               <div className="w-full bg-terreta-accent/10 border-2 border-terreta-accent rounded-xl p-6 mb-4">
                 <div className="flex items-center gap-3 mb-3">
                   <UserPlus size={24} className="text-terreta-accent" />

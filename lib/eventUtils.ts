@@ -1,6 +1,12 @@
 import { supabase } from './supabase';
 import { generateSlug } from './utils';
 
+export const isEventEnded = (endDate: string | Date | null | undefined): boolean => {
+  if (!endDate) return false;
+  const end = endDate instanceof Date ? endDate : new Date(endDate);
+  return !Number.isNaN(end.getTime()) && end.getTime() < Date.now();
+};
+
 /**
  * Genera un slug único para un evento basado en el título y username del organizador
  */

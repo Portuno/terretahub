@@ -14,6 +14,7 @@ import { trackLinkClick, getProfileViewsStats, getLinkClicksStats } from '../lib
 import { uploadAvatarToStorage, migrateAvatarToStorage } from '../lib/avatarUtils';
 import { ReferralPanel } from './ReferralPanel';
 import { useFollow } from '../hooks/useFollow';
+import { QueryState } from './QueryState';
 
 interface ProfileEditorProps {
   user: AuthUser;
@@ -208,6 +209,8 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
   const [saving, setSaving] = useState(false);
   const [draggedBlockIndex, setDraggedBlockIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
   const [isPublished, setIsPublished] = useState(false);
   const [customSlug, setCustomSlug] = useState<string | null>(null);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
@@ -326,6 +329,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
           console.error('[ProfileEditor] This suggests a network or Supabase connection issue');
           if (isMounted) {
             setLoading(false);
+            setLoadError('La carga tardó demasiado. Probá de nuevo.');
           }
         }
       }, 15000);
@@ -462,6 +466,9 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
         }
       } catch (err) {
         console.error('[ProfileEditor] Exception caught:', err);
+        if (isMounted) {
+          setLoadError('No pudimos cargar el perfil. Probá de nuevo.');
+        }
       } finally {
         if (isMounted) {
           console.log('[ProfileEditor] Finally block - setting loading to false');
@@ -482,7 +489,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
       if (timeoutId) clearTimeout(timeoutId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Solo ejecutar una vez al montar
+  }, [reloadToken]);
 
   // Cargar estadísticas cuando se abre la pestaña de stats
   useEffect(() => {
@@ -1098,13 +1105,21 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
     setDraggedBlockIndex(null);
   };
 
-  if (loading) {
+  if (loading || loadError) {
     return (
       <div className="h-[calc(100vh-80px)] flex items-center justify-center bg-terreta-bg">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-terreta-accent mx-auto mb-4"></div>
-          <p className="text-terreta-secondary">Cargando perfil...</p>
-        </div>
+        <QueryState
+          loading={loading}
+          error={loadError}
+          onRetry={() => {
+            hasLoadedRef.current = false;
+            isLoadingRef.current = false;
+            setLoadError(null);
+            setLoading(true);
+            setReloadToken((token) => token + 1);
+          }}
+          loadingLabel="Cargando perfil..."
+        />
       </div>
     );
   }

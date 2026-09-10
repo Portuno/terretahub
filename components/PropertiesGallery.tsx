@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { PropertyOperationType, PropertyType } from '../types';
 import { executeQueryWithRetry } from '../lib/supabaseHelpers';
 import { PropertyModal } from './PropertyModal';
+import { QueryState } from './QueryState';
 
 interface PropertyFromDB {
   id: string;
@@ -59,6 +60,8 @@ export const PropertiesGallery: React.FC<PropertiesGalleryProps> = ({
 }) => {
   const [properties, setProperties] = useState<PropertyWithOwner[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOperation, setSelectedOperation] = useState<PropertyOperationType | null>(null);
   const [selectedPropertyType, setSelectedPropertyType] = useState<PropertyType | null>(null);
@@ -75,6 +78,7 @@ export const PropertiesGallery: React.FC<PropertiesGalleryProps> = ({
     const loadProperties = async () => {
       try {
         setLoading(true);
+        setLoadError(null);
 
         const { data, error } = await executeQueryWithRetry(
           async () =>
@@ -99,6 +103,7 @@ export const PropertiesGallery: React.FC<PropertiesGalleryProps> = ({
         if (error) {
           console.error('[PropertiesGallery] Error al cargar propiedades:', error);
           setProperties([]);
+          setLoadError('No pudimos cargar los espacios. Probá de nuevo.');
           return;
         }
 
@@ -136,13 +141,14 @@ export const PropertiesGallery: React.FC<PropertiesGalleryProps> = ({
       } catch (error) {
         console.error('[PropertiesGallery] Error inesperado:', error);
         setProperties([]);
+        setLoadError('No pudimos cargar los espacios. Probá de nuevo.');
       } finally {
         setLoading(false);
       }
     };
 
     loadProperties();
-  }, []);
+  }, [reloadToken]);
 
   const allCities = useMemo(() => {
     const cities = new Set<string>();
@@ -224,12 +230,14 @@ export const PropertiesGallery: React.FC<PropertiesGalleryProps> = ({
     setOnlyPetsAllowed(false);
   };
 
-  if (loading) {
+  if (loading || loadError) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-terreta-accent mb-4" />
-        <p className="text-terreta-secondary">Cargando propiedades...</p>
-      </div>
+      <QueryState
+        loading={loading}
+        error={loadError}
+        onRetry={() => setReloadToken((token) => token + 1)}
+        loadingLabel="Cargando propiedades..."
+      />
     );
   }
 

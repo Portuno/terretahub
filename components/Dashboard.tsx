@@ -36,6 +36,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
     };
 
     loadBalance();
+
+    const handleTerrisUpdate = (event: Event) => {
+      const custom = event as CustomEvent<{ balance?: number }>;
+      if (typeof custom.detail?.balance === 'number') {
+        setTotesBalance(custom.detail.balance);
+      } else {
+        loadBalance();
+      }
+    };
+
+    window.addEventListener('terrisBalanceUpdated', handleTerrisUpdate);
+    return () => window.removeEventListener('terrisBalanceUpdated', handleTerrisUpdate);
   }, [currentUser]);
 
   // Actualizar usuario cuando cambia el prop o cuando se actualiza el perfil
@@ -90,7 +102,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/agora': return 'Ágora Comunitario';
-      case '/comunidad': return 'Miembros';
+      case '/comunidad': return 'Comunidad';
+      case '/grupos': return 'Grupos';
       case '/miembros': return 'Miembros';
       case '/proyectos': return 'Proyectos Destacados';
       case '/dominio': return 'Dominios';

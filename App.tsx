@@ -42,6 +42,7 @@ import { FrameHackPage } from './components/FrameHackPage';
 import { QRPage } from './components/QRPage';
 import { ChatbotPage } from './components/ChatbotPage';
 import { TerrisPage } from './components/TerrisPage';
+import { GruposComingPage } from './components/GruposComingPage';
 import { FallasGuideLayout } from './components/fallas2026/FallasGuideLayout';
 import { BibliotecaLayout } from './components/biblioteca/BibliotecaLayout';
 import { BibliotecaHubPage } from './components/biblioteca/BibliotecaHubPage';
@@ -499,6 +500,7 @@ const AppContent: React.FC = () => {
           <Route path="explorar" element={<LandingPage />} />
           <Route path="agora" element={<AgoraFeed user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="comunidad" element={<CommunityHubPage />} />
+          <Route path="grupos" element={<GruposComingPage />} />
           <Route path="miembros" element={<CommunityPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="proyectos" element={<ProjectsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="propiedades" element={<PropertiesPage user={user} onOpenAuth={handleOpenAuth} />} />
@@ -545,7 +547,7 @@ const AppContent: React.FC = () => {
         />
         <Route 
           path="/proyecto/:slug" 
-          element={<PublicProject />} 
+          element={<PublicProject user={user} />} 
         />
         <Route 
           path="/propiedad/:username/:slug" 

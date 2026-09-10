@@ -6,9 +6,10 @@ import { AuthUser, UserProfile } from '../types';
 import { UserCard } from './UserCard';
 import { useProfileNavigation } from '../hooks/useProfileNavigation';
 import { ReferralInviteModal } from './ReferralInviteModal';
+import { QueryState } from './QueryState';
 
 // Función para cargar usuarios reales desde Supabase (optimizada)
-const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
+const loadUsersFromSupabase = async (): Promise<{ users: UserProfile[]; error: string | null }> => {
   try {
     // Optimized: Use RPC function to get community profiles with optimized avatars
     // This reduces payload from 5+ MB to < 100 KB by limiting avatar sizes
@@ -32,7 +33,7 @@ const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
       );
       
       if (fallbackResult.error || !fallbackResult.data) {
-        return [];
+        return { users: [], error: 'No pudimos cargar la comunidad. Probá de nuevo.' };
       }
       
       // Use fallback profiles
@@ -71,7 +72,8 @@ const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
         });
       }
       
-      return fallbackProfiles.map((profile: any) => {
+      return {
+        users: fallbackProfiles.map((profile: any) => {
         const tags = (tagsByUser.get(profile.id) || []).slice(0, 5);
         const displayRole = profile.role === 'admin' ? 'ADMIN' : 'MIEMBRO';
         return {
@@ -85,11 +87,13 @@ const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
           createdAt: profile.created_at,
           profileViewsCount: 0
         };
-      });
+      }),
+        error: null
+      };
     }
 
     if (!profiles || profiles.length === 0) {
-      return [];
+      return { users: [], error: null };
     }
 
     // Cargar tags de forma optimizada
@@ -171,10 +175,10 @@ const loadUsersFromSupabase = async (): Promise<UserProfile[]> => {
       };
     });
 
-    return usersWithTags;
+    return { users: usersWithTags, error: null };
   } catch (error) {
     console.error('[CommunityPage] Error al cargar usuarios:', error);
-    return [];
+    return { users: [], error: 'No pudimos cargar la comunidad. Probá de nuevo.' };
   }
 };
 
@@ -191,6 +195,7 @@ export const CommunityPage: React.FC<CommunityPageProps> = ({ user, onOpenAuth }
   const [searchQuery, setSearchQuery] = useState('');
   const [communityUsers, setCommunityUsers] = useState<UserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [sortType, setSortType] = useState<SortType>('views');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -204,8 +209,10 @@ export const CommunityPage: React.FC<CommunityPageProps> = ({ user, onOpenAuth }
   useEffect(() => {
     const loadUsers = async () => {
       setLoadingUsers(true);
-      const users = await loadUsersFromSupabase();
-      setCommunityUsers(users);
+      setLoadError(null);
+      const result = await loadUsersFromSupabase();
+      setCommunityUsers(result.users);
+      setLoadError(result.error);
       setLoadingUsers(false);
     };
     loadUsers();
@@ -410,11 +417,21 @@ export const CommunityPage: React.FC<CommunityPageProps> = ({ user, onOpenAuth }
         </div>
 
         {/* Loading State */}
-        {loadingUsers ? (
-          <div className="text-center py-20">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-terreta-accent"></div>
-            <p className="mt-4 text-terreta-secondary">Cargando comunidad...</p>
-          </div>
+        {loadingUsers || loadError ? (
+          <QueryState
+            loading={loadingUsers}
+            error={loadError}
+            onRetry={() => {
+              setLoadingUsers(true);
+              setLoadError(null);
+              loadUsersFromSupabase().then((result) => {
+                setCommunityUsers(result.users);
+                setLoadError(result.error);
+                setLoadingUsers(false);
+              });
+            }}
+            loadingLabel="Cargando comunidad..."
+          />
         ) : (
           <>
             {/* Grid */}

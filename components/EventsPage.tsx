@@ -6,6 +6,9 @@ import { AuthUser, Event } from '../types';
 import { openGoogleCalendar } from '../lib/calendarUtils';
 import { Toast } from './Toast';
 import { EventModal } from './EventModal';
+import { executeQueryWithRetry } from '../lib/supabaseHelpers';
+import { QueryState } from './QueryState';
+import { isEventEnded } from '../lib/eventUtils';
 
 interface EventsPageProps {
   user: AuthUser | null;
@@ -16,6 +19,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
   const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -29,17 +33,22 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
   const loadEvents = async () => {
     try {
       setIsLoading(true);
-      
-      // Cargar eventos publicados
-      // Primero cargar eventos
-      const { data: eventsData, error: eventsError } = await supabase
-        .from('events')
-        .select('id, organizer_id, title, slug, description, location, location_url, start_date, end_date, image_url, category, is_online, max_attendees, registration_required, admission_type, attendee_question, date_public, date_placeholder, duration_minutes, location_public, location_placeholder, status, created_at, updated_at')
-        .eq('status', 'published')
-        .order('start_date', { ascending: filter !== 'past' });
+      setLoadError(null);
+
+      const { data: eventsData, error: eventsError } = await executeQueryWithRetry(
+        async () =>
+          await supabase
+            .from('events')
+            .select('id, organizer_id, title, slug, description, location, location_url, start_date, end_date, image_url, category, is_online, max_attendees, registration_required, admission_type, attendee_question, date_public, date_placeholder, duration_minutes, location_public, location_placeholder, status, created_at, updated_at')
+            .eq('status', 'published')
+            .order('start_date', { ascending: filter !== 'past' }),
+        'load published events'
+      );
 
       if (eventsError) {
         console.error('[EventsPage] Error loading events:', eventsError);
+        setLoadError('No pudimos cargar las quedadas. Probá de nuevo.');
+        setEvents([]);
         return;
       }
 
@@ -142,6 +151,8 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
       setEvents(formattedEvents);
     } catch (error) {
       console.error('[EventsPage] Error loading events:', error);
+      setLoadError('No pudimos cargar las quedadas. Probá de nuevo.');
+      setEvents([]);
     } finally {
       setIsLoading(false);
     }
@@ -150,6 +161,13 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
   const handleRegister = async (eventId: string) => {
     if (!user) {
       onOpenAuth();
+      return;
+    }
+
+    const eventFromList = events.find((e) => e.id === eventId);
+    if (eventFromList && isEventEnded(eventFromList.endDate)) {
+      setToastMessage('Esta quedada ya finalizó. No se pueden enviar postulaciones.');
+      setShowToast(true);
       return;
     }
 
@@ -189,8 +207,6 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
         }
       }
 
-      // Verificar que el evento existe y está disponible; si es pre-inscripción, redirigir a la página del evento
-      const eventFromList = events.find((e) => e.id === eventId);
       const isPreReg = eventFromList?.admissionType === 'pre_registration' || (eventFromList?.admissionType == null && eventFromList?.registrationRequired);
       if (isPreReg && eventFromList?.organizer?.username && eventFromList?.slug) {
         navigate(`/evento/${eventFromList.organizer.username}/${eventFromList.slug}`);
@@ -505,10 +521,13 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
         </div>
 
         {/* Events List */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-terreta-accent"></div>
-          </div>
+        {isLoading || loadError ? (
+          <QueryState
+            loading={isLoading}
+            error={loadError}
+            onRetry={loadEvents}
+            loadingLabel="Cargando quedadas..."
+          />
         ) : events.length === 0 ? (
           <div className="text-center py-12">
             <CalendarDays size={48} className="mx-auto mb-4 text-terreta-dark/30" />
@@ -619,7 +638,21 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                   <div className="flex flex-col gap-2">
                     {(event.admissionType === 'pre_registration' || (event.admissionType == null && event.registrationRequired)) && (
                       <>
-                        {event.isUserRegistered ? (
+                        {isEventEnded(event.endDate) ? (
+                          event.isUserPending ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewEvent(event);
+                              }}
+                              className="w-full bg-terreta-sidebar text-terreta-dark px-4 py-2 rounded-full font-semibold transition-all border border-terreta-border"
+                            >
+                              Evento finalizado · Retirar solicitud
+                            </button>
+                          ) : (
+                            <p className="text-center text-sm font-semibold text-terreta-secondary">Quedada finalizada</p>
+                          )
+                        ) : event.isUserRegistered ? (
                           <>
                             <button
                               onClick={(e) => {

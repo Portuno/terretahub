@@ -57,9 +57,10 @@ export const TerrisPage: React.FC = () => {
           <section className="space-y-3">
             <h2 className="font-serif text-xl font-bold text-terreta-dark md:text-2xl">Cómo conseguirlos</h2>
             <p className="leading-relaxed text-terreta-dark/85">
-              Por cada <strong className="text-terreta-dark">área</strong> que completes por primera vez en tu
-              recorrido, se acreditan{' '}
-              <strong className="text-terreta-accent">{TOTES_REWARD_PER_TOPIC} Terris</strong>. Las áreas son:
+              Por cada <strong className="text-terreta-dark">área</strong> que completes por primera vez (introducción
+              de Explorar, con sesión iniciada), el servidor acredita{' '}
+              <strong className="text-terreta-accent">{TOTES_REWARD_PER_TOPIC} Terris</strong> en tu saldo. Solo cuenta
+              si el Hub confirma el crédito: visitar una ruta sin completar no suma. Las áreas son:
             </p>
             <ul className="list-inside list-disc space-y-2 pl-1 text-terreta-dark/85">
               {TOTES_TOPICS.map((key) => (

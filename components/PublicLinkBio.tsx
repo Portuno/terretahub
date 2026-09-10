@@ -6,6 +6,7 @@ import { ProfileRenderer } from './ProfileEditor';
 import { NotFound404 } from './NotFound404';
 import { trackProfileView } from '../lib/analytics';
 import { useDynamicMetaTags } from '../hooks/useDynamicMetaTags';
+import { QueryState } from './QueryState';
 
 interface PublicLinkBioProps {
   user: AuthUser | null;
@@ -401,26 +402,34 @@ export const PublicLinkBio: React.FC<PublicLinkBioProps> = ({ user, onOpenAuth }
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D97706] mb-4"></div>
-        <p className="text-gray-500">Cargando perfil...</p>
-        <p className="text-xs text-gray-400 mt-2">Extensión: {extension}</p>
-        <button
-          onClick={() => {
-            console.log('[PublicLinkBio] Manual reset triggered by user');
-            if (timeoutRef.current) {
-              clearTimeout(timeoutRef.current);
-              timeoutRef.current = null;
-            }
-            isLoadingRef.current = false;
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <QueryState loading loadingLabel={`Cargando perfil... (${extension || ''})`} />
+      </div>
+    );
+  }
+
+  const isRecoverableLoadError = Boolean(
+    error &&
+      (error.toLowerCase().includes('tardando') ||
+        error.toLowerCase().includes('tiempo de espera') ||
+        error.toLowerCase().includes('conexión') ||
+        error.toLowerCase().includes('error al cargar') ||
+        error.toLowerCase().includes('recarga'))
+  );
+
+  if (isRecoverableLoadError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <QueryState
+          error={error}
+          onRetry={() => {
             lastExtensionRef.current = null;
-            setLoading(false);
-            setError('Recarga cancelada. Por favor, recarga la página.');
+            isLoadingRef.current = false;
+            setError(null);
+            setLoading(true);
+            window.location.reload();
           }}
-          className="mt-4 text-sm text-[#D97706] hover:underline"
-        >
-          Cancelar carga
-        </button>
+        />
       </div>
     );
   }

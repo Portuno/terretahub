@@ -48,7 +48,7 @@ export const SectionLearningModal: React.FC<SectionLearningModalProps> = ({
           Aquí vas a aprender sobre <span className="font-bold text-terreta-dark">{topicTitle}</span>.
         </p>
         <p className="mt-2 text-xs text-terreta-dark/60">
-          Al completar esta introducción ganarás 12 Totes (solo una vez por tópico).
+          Al completar esta introducción, si tu sesión está activa, se acreditan 12 Terris en tu saldo (una sola vez por área). No basta con pasar de largo: hay que completar.
         </p>
 
         <button

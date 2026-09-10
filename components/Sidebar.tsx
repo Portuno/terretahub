@@ -28,7 +28,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
 
-  const isComunidadActive = location.pathname === '/miembros' || location.pathname === '/proyectos';
+  const isComunidadActive = location.pathname === '/miembros' || location.pathname === '/proyectos' || location.pathname === '/grupos';
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -184,18 +184,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         </>
                       )}
                     </NavLink>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        onOpenGruposModal?.();
-                      }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 border border-transparent text-terreta-dark/70 hover:bg-terreta-card/40 hover:text-terreta-dark text-left"
-                      aria-label="Grupos – Próximamente"
+                    <NavLink
+                      to="/grupos"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={({ isActive }) =>
+                        `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 border ${
+                          isActive
+                            ? 'bg-terreta-card text-terreta-dark border-terreta-accent/40'
+                            : 'text-terreta-dark/70 hover:bg-terreta-card/40 border-transparent'
+                        }`
+                      }
                     >
-                      <UsersRound size={18} className="opacity-70" />
-                      <span className="font-sans font-medium text-sm">Grupos</span>
-                    </button>
+                      {({ isActive }) => (
+                        <>
+                          <UsersRound size={18} className={isActive ? 'text-terreta-accent' : 'opacity-70'} />
+                          <span className="font-sans font-medium text-sm">Grupos</span>
+                          <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-terreta-secondary">Pronto</span>
+                        </>
+                      )}
+                    </NavLink>
                   </div>
                 )}
               </div>

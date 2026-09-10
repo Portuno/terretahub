@@ -3,8 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { generateSlug, normalizeUrl, renderMarkdown } from '../lib/utils';
 import { NotFound404 } from './NotFound404';
-import { Calendar, User, Video, Image as ImageIcon, ArrowLeft, ExternalLink } from 'lucide-react';
+import { Calendar, Image as ImageIcon, ArrowLeft, ExternalLink, Pencil, Trash2, Undo2 } from 'lucide-react';
 import { useDynamicMetaTags } from '../hooks/useDynamicMetaTags';
+import { AuthUser, Project } from '../types';
+import { executeQueryWithRetry } from '../lib/supabaseHelpers';
+import { QueryState } from './QueryState';
+import { ProjectEditor } from './ProjectEditor';
+import { Toast } from './Toast';
+import {
+  deleteOwnProject,
+  mapDbProjectToProject,
+  persistProject,
+  withdrawProjectFromReview
+} from '../lib/projectPersistence';
 
 // Helper to convert YouTube/Vimeo URLs to embed format
 const getEmbedUrl = (url: string): string => {
@@ -84,13 +95,22 @@ interface ProjectWithAuthor extends ProjectFromDB {
   };
 }
 
-export const PublicProject: React.FC = () => {
+interface PublicProjectProps {
+  user?: AuthUser | null;
+}
+
+export const PublicProject: React.FC<PublicProjectProps> = ({ user = null }) => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [project, setProject] = useState<ProjectWithAuthor | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<'not-found' | 'pending' | null>(null);
+  const [error, setError] = useState<'not-found' | 'pending' | 'load' | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isMutating, setIsMutating] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     if (!slug) {
@@ -100,22 +120,40 @@ export const PublicProject: React.FC = () => {
     }
 
     loadProject();
-  }, [slug]);
+  }, [slug, user?.id]);
 
   const loadProject = async () => {
+    if (!slug) {
+      setError('not-found');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
+      setLoadError(null);
 
-      // Cargar todos los proyectos publicados
-      const { data: projectsData, error: projectsError } = await supabase
+      let query = supabase
         .from('projects')
         .select('*')
         .order('created_at', { ascending: false });
 
+      if (user?.id) {
+        query = query.or(`status.eq.published,author_id.eq.${user.id}`);
+      } else {
+        query = query.eq('status', 'published');
+      }
+
+      const { data: projectsData, error: projectsError } = await executeQueryWithRetry(
+        async () => await query,
+        'load public project by slug'
+      );
+
       if (projectsError) {
         console.error('Error al cargar proyectos:', projectsError);
-        setError('not-found');
+        setError('load');
+        setLoadError('No pudimos cargar el proyecto. Probá de nuevo.');
         setLoading(false);
         return;
       }
@@ -126,33 +164,16 @@ export const PublicProject: React.FC = () => {
         return;
       }
 
-      // Buscar el proyecto que coincida con el slug
-      const matchingProject = projectsData.find((p: ProjectFromDB) => {
-        const projectSlug = generateSlug(p.name);
-        return projectSlug === slug;
-      });
+      const matchingProject = (projectsData as ProjectFromDB[]).find((p) => generateSlug(p.name) === slug);
 
       if (!matchingProject) {
-        // Verificar si existe un proyecto con ese nombre pero no está publicado
-        const allProjects = projectsData as ProjectFromDB[];
-        const existsButNotPublished = allProjects.find((p) => {
-          const projectSlug = generateSlug(p.name);
-          return projectSlug === slug && p.status !== 'published';
-        });
-
-        if (existsButNotPublished) {
-          setError('pending');
-          setLoading(false);
-          return;
-        }
-
         setError('not-found');
         setLoading(false);
         return;
       }
 
-      // Verificar que esté publicado
-      if (matchingProject.status !== 'published') {
+      const isOwner = Boolean(user?.id && user.id === matchingProject.author_id);
+      if (matchingProject.status !== 'published' && !isOwner) {
         setError('pending');
         setLoading(false);
         return;
@@ -199,10 +220,66 @@ export const PublicProject: React.FC = () => {
       setProject(projectWithAuthor);
     } catch (err) {
       console.error('Error al cargar proyecto:', err);
-      setError('not-found');
+      setError('load');
+      setLoadError('No pudimos cargar el proyecto. Probá de nuevo.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const isOwner = Boolean(user?.id && project && user.id === project.author_id);
+
+  const handleOwnerSave = async (updated: Project) => {
+    if (!user) return;
+    const result = await persistProject(user.id, updated);
+    if (result.error) {
+      setToastMessage(result.error);
+      setShowToast(true);
+      return;
+    }
+    setIsEditing(false);
+    setToastMessage(updated.status === 'draft' ? 'Borrador guardado' : 'Proyecto actualizado');
+    setShowToast(true);
+    const nextSlug = generateSlug(updated.name);
+    if (nextSlug && nextSlug !== slug) {
+      navigate(`/proyecto/${nextSlug}`, { replace: true });
+      return;
+    }
+    await loadProject();
+  };
+
+  const handleDeleteProject = async () => {
+    if (!user || !project || isMutating) return;
+    const confirmed = window.confirm(
+      '¿Eliminar este proyecto? Dejará de verse en la galería. Esta acción no se puede deshacer.'
+    );
+    if (!confirmed) return;
+    setIsMutating(true);
+    const errorMessage = await deleteOwnProject(user.id, project.id);
+    setIsMutating(false);
+    if (errorMessage) {
+      setToastMessage(errorMessage);
+      setShowToast(true);
+      return;
+    }
+    navigate('/proyectos');
+  };
+
+  const handleWithdrawReview = async () => {
+    if (!user || !project || isMutating) return;
+    const confirmed = window.confirm('¿Retirar este proyecto de la revisión? Volverá a borrador.');
+    if (!confirmed) return;
+    setIsMutating(true);
+    const errorMessage = await withdrawProjectFromReview(user.id, project.id);
+    setIsMutating(false);
+    if (errorMessage) {
+      setToastMessage(errorMessage);
+      setShowToast(true);
+      return;
+    }
+    setToastMessage('Proyecto retirado de revisión');
+    setShowToast(true);
+    await loadProject();
   };
 
   const projectUrl = slug ? `/proyecto/${slug}` : '/proyecto';
@@ -292,11 +369,15 @@ export const PublicProject: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (loading || error === 'load') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#F5E8D8]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#A65D46] mb-4"></div>
-        <p className="text-gray-600">Cargando proyecto...</p>
+      <div className="flex min-h-screen items-center justify-center bg-[#F5E8D8]">
+        <QueryState
+          loading={loading}
+          error={loadError}
+          onRetry={loadProject}
+          loadingLabel="Cargando proyecto..."
+        />
       </div>
     );
   }
@@ -311,6 +392,17 @@ export const PublicProject: React.FC = () => {
 
   if (!project) {
     return <NotFound404 variant="project-not-found" />;
+  }
+
+  if (isEditing && user && isOwner) {
+    return (
+      <ProjectEditor
+        user={user}
+        initialProject={mapDbProjectToProject(project)}
+        onCancel={() => setIsEditing(false)}
+        onSave={handleOwnerSave}
+      />
+    );
   }
 
   return (
@@ -391,6 +483,40 @@ export const PublicProject: React.FC = () => {
                 {project.phase}
               </span>
             </div>
+            {isOwner ? (
+              <div className="mb-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-terreta-border bg-white px-3 py-1.5 text-xs font-bold text-terreta-dark hover:border-[#D97706]"
+                >
+                  <Pencil size={14} /> Editar
+                </button>
+                {project.status === 'review' ? (
+                  <button
+                    type="button"
+                    onClick={handleWithdrawReview}
+                    disabled={isMutating}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-terreta-border bg-white px-3 py-1.5 text-xs font-bold text-terreta-dark hover:border-[#D97706] disabled:opacity-60"
+                  >
+                    <Undo2 size={14} /> Retirar de revisión
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={handleDeleteProject}
+                  disabled={isMutating}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                >
+                  <Trash2 size={14} /> Eliminar
+                </button>
+                {project.status !== 'published' ? (
+                  <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800">
+                    {project.status === 'review' ? 'En revisión' : 'Borrador'}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
 
             {/* Author & Date */}
             <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-gray-200">
@@ -544,6 +670,9 @@ export const PublicProject: React.FC = () => {
           Volver
         </button>
       </div>
+      {showToast ? (
+        <Toast message={toastMessage} onClose={() => setShowToast(false)} variant="terreta" />
+      ) : null}
     </div>
   );
 };

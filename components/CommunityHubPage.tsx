@@ -6,7 +6,6 @@ import { AuthUser } from '../types';
 interface DashboardOutletContext {
   user: AuthUser | null;
   onOpenAuth: () => void;
-  onOpenGruposModal: () => void;
 }
 
 interface CommunityHubCard {
@@ -15,11 +14,12 @@ interface CommunityHubCard {
   description: string;
   icon: React.ReactNode;
   handleClick: () => void;
+  badge?: string;
 }
 
 export const CommunityHubPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, onOpenAuth, onOpenGruposModal } = useOutletContext<DashboardOutletContext>();
+  const { user, onOpenAuth } = useOutletContext<DashboardOutletContext>();
 
   const handleRequireAuth = (callback: () => void) => {
     if (!user) {
@@ -48,9 +48,10 @@ export const CommunityHubPage: React.FC = () => {
     {
       id: 'grupos',
       title: 'Grupos',
-      description: 'Únete a espacios temáticos para colaborar y aprender.',
+      description: 'Espacios temáticos en preparación. Dejá tu interés: no hay listado todavía.',
       icon: <UsersRound size={20} />,
-      handleClick: () => handleRequireAuth(() => onOpenGruposModal())
+      handleClick: () => navigate('/grupos'),
+      badge: 'Próximamente'
     }
   ];
 
@@ -76,6 +77,9 @@ export const CommunityHubPage: React.FC = () => {
               {card.icon}
             </div>
             <h2 className="text-lg font-bold text-terreta-dark">{card.title}</h2>
+            {card.badge ? (
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-terreta-accent">{card.badge}</p>
+            ) : null}
             <p className="mt-2 text-sm leading-relaxed text-terreta-dark/70">{card.description}</p>
           </button>
         ))}

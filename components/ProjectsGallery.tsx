@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { executeQueryWithRetry, executeBatchedQuery } from '../lib/supabaseHelpers';
 import { ProjectStatus } from '../types';
 import { ProjectModal } from './ProjectModal';
+import { QueryState } from './QueryState';
 
 interface ProjectFromDB {
   id: string;
@@ -39,6 +40,7 @@ interface ProjectsGalleryProps {
 export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile, onCreateProject, user }) => {
   const [projects, setProjects] = useState<ProjectWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>([]);
@@ -54,6 +56,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
   const loadProjects = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       
       // Optimized: Use database function that does JOIN in a single query
       // This eliminates multiple round trips and reduces payload size significantly
@@ -123,7 +126,6 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
       setProjects(projectsWithAuthors);
     } catch (err) {
       console.error('[ProjectsGallery] Error al cargar proyectos:', err);
-      // Fallback to old method on error
       await loadProjectsFallback();
     } finally {
       setLoading(false);
@@ -146,6 +148,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
       if (projectsError) {
         console.error('[ProjectsGallery] Error al cargar proyectos (fallback):', projectsError);
         setProjects([]);
+        setLoadError('No pudimos cargar los proyectos. Probá de nuevo.');
         return;
       }
 
@@ -237,6 +240,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
     } catch (err) {
       console.error('[ProjectsGallery] Error en fallback:', err);
       setProjects([]);
+      setLoadError('No pudimos cargar los proyectos. Probá de nuevo.');
     }
   };
 
@@ -311,12 +315,14 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
 
   const hasActiveFilters = searchQuery || selectedCategories.length > 0 || selectedTechnologies.length > 0 || selectedPhase;
 
-  if (loading) {
+  if (loading || loadError) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-terreta-accent mb-4"></div>
-        <p className="text-terreta-secondary">Cargando proyectos...</p>
-      </div>
+      <QueryState
+        loading={loading}
+        error={loadError}
+        onRetry={loadProjects}
+        loadingLabel="Cargando proyectos..."
+      />
     );
   }
 

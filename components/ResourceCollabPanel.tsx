@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { AuthUser } from '../types';
-import { HandHeart, MessageSquare, X, Send, CheckCircle2 } from 'lucide-react';
+import { HandHeart, MessageSquare, X, Send, CheckCircle2, Trash2 } from 'lucide-react';
+import { executeQueryWithRetry } from '../lib/supabaseHelpers';
+import { QueryState } from './QueryState';
+import { FieldErrors, validateResourceNeed } from '../lib/contentValidation';
 
 type SubmissionState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -44,7 +47,9 @@ const HelpRequestCard: React.FC<{
   currentUser?: AuthUser | null;
   onRequestClick: (request: ResourceNeed) => void;
   onMarkResolved?: (requestId: string) => void;
-}> = ({ request, currentUser, onRequestClick, onMarkResolved }) => {
+  onDelete?: (requestId: string) => void;
+  isDeleting?: boolean;
+}> = ({ request, currentUser, onRequestClick, onMarkResolved, onDelete, isDeleting }) => {
   const isAuthor = currentUser?.id === request.user_id;
   const isResolved = request.status === 'resolved';
 
@@ -77,6 +82,21 @@ const HelpRequestCard: React.FC<{
           >
             <CheckCircle2 size={14} />
             <span>Marcar Resuelto</span>
+          </button>
+        )}
+        {isAuthor && onDelete && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(request.id);
+            }}
+            disabled={isDeleting}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
+            aria-label="Eliminar pedido"
+          >
+            <Trash2 size={14} />
+            <span>Eliminar</span>
           </button>
         )}
       </div>
@@ -156,7 +176,11 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
   const [details, setDetails] = useState('');
   const [submitState, setSubmitState] = useState<SubmissionState>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
   const [markingResolved, setMarkingResolved] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const VERTICALS = [
     'Tecnología',
@@ -172,32 +196,26 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
     const loadRequests = async () => {
       try {
         setLoadingRequests(true);
-        
-        console.log('Loading requests - User:', user?.id || 'Not authenticated', 'Filter:', filterStatus);
-        
-        // Construir query según el filtro
+        setLoadError(null);
+
         let query = supabase
           .from('resource_needs')
           .select('*')
           .order('created_at', { ascending: false });
 
-        // Filtrar por status
         if (filterStatus === 'resolved') {
           query = query.eq('status', 'resolved');
         }
-        // Para 'active', cargamos todos y filtramos en el cliente
 
-        const { data, error } = await query.limit(100);
+        const { data, error } = await executeQueryWithRetry(
+          async () => await query.limit(100),
+          'load resource needs'
+        );
 
         if (error) {
           console.error('Error loading requests:', error);
-          console.error('Error details:', {
-            message: error.message,
-            code: error.code,
-            details: error.details,
-            hint: error.hint
-          });
           setRequests([]);
+          setLoadError('No pudimos cargar los pedidos. Probá de nuevo.');
           return;
         }
 
@@ -301,13 +319,14 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
       } catch (err) {
         console.error('Exception loading requests:', err);
         setRequests([]);
+        setLoadError('No pudimos cargar los pedidos. Probá de nuevo.');
       } finally {
         setLoadingRequests(false);
       }
     };
 
     loadRequests();
-  }, [user, filterStatus]);
+  }, [user, filterStatus, reloadToken]);
 
   const handleRequestClick = async (request: ResourceNeed) => {
     setSelectedRequest(request);
@@ -391,6 +410,35 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
     }
   };
 
+  const handleDeleteRequest = async (requestId: string) => {
+    if (!user) return;
+    const confirmed = window.confirm('¿Eliminar este pedido de ayuda? Esta acción no se puede deshacer.');
+    if (!confirmed) return;
+
+    try {
+      setDeletingId(requestId);
+      const { error } = await supabase
+        .from('resource_needs')
+        .delete()
+        .eq('id', requestId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error deleting request:', error);
+        return;
+      }
+
+      setRequests((prev) => prev.filter((req) => req.id !== requestId));
+      if (selectedRequest?.id === requestId) {
+        setSelectedRequest(null);
+      }
+    } catch (err) {
+      console.error('Exception deleting request:', err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const handleSubmitComment = async () => {
     if (!user || !selectedRequest || !commentText.trim()) return;
 
@@ -471,34 +519,28 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
   };
 
   const isSubmitDisabled = useMemo(() => {
-    const hasDetails = details.trim().length > 12;
-    return !hasDetails || selectedVerticals.length === 0;
+    return Object.keys(validateResourceNeed({ details, verticals: selectedVerticals })).length > 0;
   }, [details, selectedVerticals]);
 
   const handleSubmit = async () => {
-    if (isSubmitDisabled || submitState === 'loading') return;
+    if (submitState === 'loading') return;
 
     setSubmitState('loading');
     setErrorMessage('');
 
-    const trimmedDetails = details.trim();
-    if (!trimmedDetails || trimmedDetails.length <= 12) {
+    const errors = validateResourceNeed({ details, verticals: selectedVerticals });
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
       setSubmitState('error');
-      setErrorMessage('Por favor, proporciona más detalles sobre tu necesidad (mínimo 12 caracteres).');
+      setErrorMessage(Object.values(errors)[0]);
       setTimeout(() => setSubmitState('idle'), 3000);
       return;
     }
 
+    const trimmedDetails = details.trim();
     if (trimmedDetails.length > 10000) {
       setSubmitState('error');
       setErrorMessage('El texto es demasiado largo. Por favor, reduce la descripción a menos de 10,000 caracteres.');
-      setTimeout(() => setSubmitState('idle'), 3000);
-      return;
-    }
-
-    if (!selectedVerticals || selectedVerticals.length === 0) {
-      setSubmitState('error');
-      setErrorMessage('Por favor, selecciona al menos una vertical de interés.');
       setTimeout(() => setSubmitState('idle'), 3000);
       return;
     }
@@ -648,13 +690,13 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
 
       {/* Grid de Pedidos de Ayuda */}
       <div className="flex-1 overflow-y-auto pr-2">
-        {loadingRequests ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-terreta-accent"></div>
-              <p className="mt-4 text-terreta-secondary text-sm">Cargando pedidos de ayuda...</p>
-            </div>
-          </div>
+        {loadingRequests || loadError ? (
+          <QueryState
+            loading={loadingRequests}
+            error={loadError}
+            onRetry={() => setReloadToken((token) => token + 1)}
+            loadingLabel="Cargando pedidos de ayuda..."
+          />
         ) : filteredRequests.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
@@ -679,6 +721,8 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
                 currentUser={user}
                 onRequestClick={handleRequestClick}
                 onMarkResolved={handleMarkAsResolved}
+                onDelete={handleDeleteRequest}
+                isDeleting={deletingId === request.id}
               />
             ))}
           </div>
@@ -704,6 +748,7 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
                   setFormatTags([]);
                   setSubmitState('idle');
                   setErrorMessage('');
+                  setFieldErrors({});
                 }}
                 className="text-terreta-secondary hover:text-terreta-dark transition-colors p-1 rounded-lg hover:bg-terreta-bg"
               >
@@ -724,7 +769,10 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
                       <button
                         key={vertical}
                         type="button"
-                        onClick={() => toggleItem(vertical, selectedVerticals, setSelectedVerticals)}
+                        onClick={() => {
+                          toggleItem(vertical, selectedVerticals, setSelectedVerticals);
+                          if (fieldErrors.verticals) setFieldErrors((prev) => ({ ...prev, verticals: '' }));
+                        }}
                         className={`px-4 py-2 text-sm rounded-full border transition ${
                           isActive
                             ? 'border-emerald-500 bg-emerald-50/10 text-emerald-600'
@@ -736,6 +784,9 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
                     );
                   })}
                 </div>
+                {fieldErrors.verticals ? (
+                  <p className="mt-1 text-xs text-red-500" role="alert">{fieldErrors.verticals}</p>
+                ) : null}
               </div>
 
               {/* Format Tags */}
@@ -776,10 +827,17 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
                 </label>
                 <textarea
                   value={details}
-                  onChange={(event) => setDetails(event.target.value)}
+                  onChange={(event) => {
+                    setDetails(event.target.value);
+                    if (fieldErrors.details) setFieldErrors((prev) => ({ ...prev, details: '' }));
+                  }}
                   placeholder="Describe qué necesitas..."
-                  className="w-full rounded-xl border border-terreta-border bg-terreta-card/50 px-4 py-3 text-base text-terreta-dark placeholder-terreta-secondary/40 focus:border-terreta-accent focus:bg-terreta-card transition-all resize-none outline-none leading-relaxed min-h-[120px]"
+                  className={`w-full rounded-xl border bg-terreta-card/50 px-4 py-3 text-base text-terreta-dark placeholder-terreta-secondary/40 focus:border-terreta-accent focus:bg-terreta-card transition-all resize-none outline-none leading-relaxed min-h-[120px] ${fieldErrors.details ? 'border-red-400' : 'border-terreta-border'}`}
+                  aria-invalid={Boolean(fieldErrors.details)}
                 />
+                {fieldErrors.details ? (
+                  <p className="mt-1 text-xs text-red-500" role="alert">{fieldErrors.details}</p>
+                ) : null}
               </div>
 
               {/* Error Message */}
@@ -871,7 +929,7 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
                   </p>
                 </div>
                 {user?.id === selectedRequest.user_id && selectedRequest.status !== 'resolved' && (
-                  <div className="ml-auto">
+                  <div className="ml-auto flex gap-2">
                     <button
                       onClick={() => {
                         if (selectedRequest.id) {
@@ -883,6 +941,15 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
                     >
                       <CheckCircle2 size={16} />
                       <span>Marcar como Resuelto</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => selectedRequest.id && handleDeleteRequest(selectedRequest.id)}
+                      disabled={deletingId === selectedRequest.id}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      <Trash2 size={16} />
+                      Eliminar
                     </button>
                   </div>
                 )}

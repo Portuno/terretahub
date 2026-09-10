@@ -61,14 +61,12 @@ export const LandingPage: React.FC = () => {
 
   const loadTotesData = async (userId: string) => {
     const localKey = `terreta_totes_progress_${userId}`;
-    let localBalance = 0;
     let localCompleted = new Set<TotesTopicKey>();
 
     try {
       const raw = localStorage.getItem(localKey);
       if (raw) {
-        const parsed = JSON.parse(raw) as { balance?: number; completed?: string[] };
-        localBalance = Number(parsed.balance) || 0;
+        const parsed = JSON.parse(raw) as { completed?: string[] };
         localCompleted = new Set(
           (parsed.completed ?? []).filter((topic) =>
             ['perfil', 'foro', 'mapa', 'recursos', 'comunidad', 'dominio', 'feedback'].includes(topic)
@@ -84,7 +82,7 @@ export const LandingPage: React.FC = () => {
       fetchCompletedTotesTopics(userId)
     ]);
 
-    const mergedBalance = Math.max(summary.balance, localBalance);
+    const mergedBalance = summary.balance;
     const mergedTopics = new Set<TotesTopicKey>([...topics, ...localCompleted]);
 
     setTotesBalance(mergedBalance);
@@ -163,14 +161,18 @@ export const LandingPage: React.FC = () => {
 
       if (result.awarded) {
         setTotesBalance(result.balance);
-        setRewardMessage('+12 Totes desbloqueados');
+        setRewardMessage('+12 Terris acreditados');
+        window.dispatchEvent(new CustomEvent('terrisBalanceUpdated', { detail: { balance: result.balance } }));
+      } else {
+        setTotesBalance(result.balance);
+        setRewardMessage('Esta área ya estaba completada');
       }
 
       if (localProgressKey) {
         localStorage.setItem(
           localProgressKey,
           JSON.stringify({
-            balance: result.awarded ? result.balance : totesBalance,
+            balance: result.balance,
             completed: Array.from(updatedTopics)
           })
         );
@@ -180,24 +182,8 @@ export const LandingPage: React.FC = () => {
       setActiveTopic(null);
       handleExecuteAction(topicToNavigate);
     } catch (error) {
-      console.error('[LandingPage] Error completing learning topic, usando fallback local:', error);
-      const nextBalance = totesBalance + 12;
-      const nextCompleted = new Set([...completedTopics, activeTopic]);
-
-      setTotesBalance(nextBalance);
-      setCompletedTopics(nextCompleted);
-      setRewardMessage('+12 Totes desbloqueados');
-
-      if (localProgressKey) {
-        localStorage.setItem(
-          localProgressKey,
-          JSON.stringify({
-            balance: nextBalance,
-            completed: Array.from(nextCompleted)
-          })
-        );
-      }
-
+      console.error('[LandingPage] Error completing learning topic:', error);
+      setRewardMessage('No pudimos acreditar Terris ahora. Podés seguir explorando.');
       const topicToNavigate = activeTopic;
       setActiveTopic(null);
       handleExecuteAction(topicToNavigate);
@@ -342,6 +328,11 @@ export const LandingPage: React.FC = () => {
               <Flame size={18} />
               Feedback
             </button>
+            {rewardMessage ? (
+              <p className="mt-3 text-center text-sm font-semibold text-terreta-accent" role="status">
+                {rewardMessage}
+              </p>
+            ) : null}
 
           </div>
         </div>

@@ -23,6 +23,7 @@ import { useMentions } from '../hooks/useMentions';
 import { MentionSuggestions } from './MentionSuggestions';
 import { createMentionNotifications } from '../lib/mentionUtils';
 import { PollCreator } from './PollCreator';
+import { QueryState } from './QueryState';
 
 // Helper para formatear timestamps
 const formatTimestamp = (dateString: string): string => {
@@ -46,6 +47,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
   const [posts, setPosts] = useState<AgoraPost[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   
@@ -108,6 +110,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     try {
       if (reset) {
         setLoading(true);
+        setLoadError(null);
       } else {
         setLoadingMore(true);
       }
@@ -152,6 +155,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         console.error('[AgoraFeed] Error al cargar posts:', postsError);
         if (reset) {
           setPosts([]);
+          setLoadError('No pudimos cargar el Ágora. Probá de nuevo.');
         }
         return [];
       }
@@ -336,6 +340,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
       console.error('[AgoraFeed] Error al cargar posts:', err);
       if (reset) {
         setPosts([]);
+        setLoadError('No pudimos cargar el Ágora. Probá de nuevo.');
       }
       return [];
     } finally {
@@ -790,6 +795,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     } catch (err) {
       console.error('[AgoraFeed] Error al cargar posts:', err);
       setPosts([]);
+      setLoadError('No pudimos cargar el Ágora. Probá de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -1777,11 +1783,13 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
       </div>
 
       {/* Feed List */}
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-terreta-accent mb-4"></div>
-          <p className="text-terreta-secondary">Cargando feed...</p>
-        </div>
+      {loading || loadError ? (
+        <QueryState
+          loading={loading}
+          error={loadError}
+          onRetry={() => loadPosts(0, 12, true)}
+          loadingLabel="Cargando feed..."
+        />
       ) : filteredFeedItems.length === 0 ? (
         <div className="text-center py-12 text-terreta-secondary">
           <p className="text-lg mb-2">
@@ -1872,7 +1880,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
             <div className="rounded-2xl border border-terreta-border bg-terreta-card/80 p-4 shadow-sm">
               <div className="mb-2 flex items-center gap-2">
                 <TrendingUp size={14} className="text-terreta-accent" />
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-terreta-dark/60">Ranking de Totes</p>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-terreta-dark/60">Ranking de Terris</p>
               </div>
               <p className="text-sm text-terreta-secondary">
                 Completa acciones en Perfil, Manual y Ágora para subir tu saldo y desbloquear nuevas capas de participación.
