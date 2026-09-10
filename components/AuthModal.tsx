@@ -507,7 +507,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
 
                 {!isRegistering && (
-                  <div className="text-right">
+                  <div className="pt-1">
                     <button
                       type="button"
                       onClick={() => {
@@ -516,7 +516,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         setPassword('');
                       }}
                       style={{ color: accentColor }}
-                      className="text-xs font-bold hover:underline transition-all"
+                      className="w-full text-center text-sm font-semibold underline underline-offset-2 hover:opacity-80 transition-all"
                     >
                       ¿Olvidaste tu contraseña?
                     </button>

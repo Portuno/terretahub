@@ -215,6 +215,9 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
   const [customSlug, setCustomSlug] = useState<string | null>(null);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [toastVariant, setToastVariant] = useState<'success' | 'error'>('success');
+  const [toastMessage, setToastMessage] = useState('¡Perfil Guardado!');
+  const [toastSecondary, setToastSecondary] = useState<string | undefined>(undefined);
   const [showInCommunity, setShowInCommunity] = useState(true);
   const [cvUploading, setCvUploading] = useState(false);
   const hasLoadedRef = useRef(false);
@@ -875,14 +878,23 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
       
       // Mostrar toast de éxito
       console.log('[ProfileEditor] Mostrando toast de éxito');
+      setToastVariant('success');
+      setToastMessage('¡Perfil Guardado!');
+      setToastSecondary(
+        isPublished && customSlug
+          ? `Tu espacio está publicado en: terretahub.com/p/${customSlug}`
+          : undefined
+      );
       setShowToast(true);
     } catch (error: any) {
       console.error('[ProfileEditor] Error completo al guardar:', error);
       
       // Verificar si es un error de sesión
       if (error.message?.includes('session') || error.message?.includes('auth') || error.code === 'PGRST301') {
-        alert('Tu sesión ha expirado. Por favor, recarga la página e inicia sesión nuevamente.');
-        // No hacer nada más, dejar que el usuario recargue
+        setToastVariant('error');
+        setToastMessage('Tu sesión expiró');
+        setToastSecondary('Recargá la página e iniciá sesión de nuevo.');
+        setShowToast(true);
         return;
       }
       
@@ -898,7 +910,10 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
         console.error('[ProfileEditor] Error guardando backup:', backupError);
       }
       
-      alert('Error al guardar el perfil: ' + (error.message || 'Error desconocido') + '\n\nSe ha guardado un backup local. Intenta guardar nuevamente.');
+      setToastVariant('error');
+      setToastMessage('No pudimos guardar el perfil');
+      setToastSecondary('Quedó un backup local. Probá guardar de nuevo.');
+      setShowToast(true);
     } finally {
       console.log('[ProfileEditor] handleSave finally - setting saving to false');
       setSaving(false);
@@ -1846,19 +1861,16 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
         {/* Toast Notification */}
         {showToast && (
           <Toast
-            message="¡Perfil Guardado!"
-            secondaryMessage={
-              isPublished && customSlug
-                ? `Tu espacio está publicado en: terretahub.com/p/${customSlug}`
-                : undefined
-            }
+            message={toastMessage}
+            secondaryMessage={toastSecondary}
             secondaryLink={
-              isPublished && customSlug
+              toastVariant === 'success' && isPublished && customSlug
                 ? `/p/${customSlug}`
                 : undefined
             }
             onClose={() => setShowToast(false)}
             duration={4000}
+            variant={toastVariant}
           />
         )}
       </div>

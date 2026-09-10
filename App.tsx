@@ -43,6 +43,7 @@ import { QRPage } from './components/QRPage';
 import { ChatbotPage } from './components/ChatbotPage';
 import { TerrisPage } from './components/TerrisPage';
 import { GruposComingPage } from './components/GruposComingPage';
+import { ResetPasswordPage } from './components/ResetPasswordPage';
 import { FallasGuideLayout } from './components/fallas2026/FallasGuideLayout';
 import { BibliotecaLayout } from './components/biblioteca/BibliotecaLayout';
 import { BibliotecaHubPage } from './components/biblioteca/BibliotecaHubPage';
@@ -303,6 +304,18 @@ const AppContent: React.FC = () => {
     // Escuchar cambios en la autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[App] Auth state changed', { event, hasSession: !!session, sessionChecked, isCheckingSession, isLoadingProfile });
+
+      if (event === 'PASSWORD_RECOVERY') {
+        console.log('[App] Password recovery session detected');
+        if (isMounted) {
+          setIsLoadingSession(false);
+          sessionChecked = true;
+          if (window.location.pathname !== '/reset-password') {
+            navigate('/reset-password', { replace: true });
+          }
+        }
+        return;
+      }
       
       // Ignorar eventos durante la inicialización - checkSession ya los maneja
       if (!sessionChecked && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
@@ -470,6 +483,16 @@ const AppContent: React.FC = () => {
   };
 
   // Mostrar loading mientras se verifica la sesión
+  if (location.pathname === '/reset-password') {
+    return (
+      <>
+        <ResetPasswordPage />
+        <Analytics />
+        <SpeedInsights />
+      </>
+    );
+  }
+
   if (isLoadingSession || (user && onboardingCompleted === null)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-terreta-bg">
@@ -504,6 +527,7 @@ const AppContent: React.FC = () => {
           <Route path="miembros" element={<CommunityPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="proyectos" element={<ProjectsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="propiedades" element={<PropertiesPage user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="mapa" element={<Navigate to="/propiedades" replace />} />
           <Route path="dominio" element={<DominioPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="framehack" element={<FrameHackPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="chatbot" element={<ChatbotPage />} />
@@ -541,6 +565,10 @@ const AppContent: React.FC = () => {
           </Route>
         </Route>
 
+        <Route
+          path="/reset-password"
+          element={<ResetPasswordPage />}
+        />
         <Route 
           path="/p/:extension" 
           element={<PublicLinkBio user={user} onOpenAuth={handleOpenAuth} />} 

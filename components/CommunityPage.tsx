@@ -7,6 +7,7 @@ import { UserCard } from './UserCard';
 import { useProfileNavigation } from '../hooks/useProfileNavigation';
 import { ReferralInviteModal } from './ReferralInviteModal';
 import { QueryState } from './QueryState';
+import { EmptyState } from './EmptyState';
 
 // Función para cargar usuarios reales desde Supabase (optimizada)
 const loadUsersFromSupabase = async (): Promise<{ users: UserProfile[]; error: string | null }> => {
@@ -442,13 +443,28 @@ export const CommunityPage: React.FC<CommunityPageProps> = ({ user, onOpenAuth }
             </div>
             
             {filteredUsers.length === 0 && !loadingUsers && (
-              <div className="text-center py-20 opacity-50">
-                {searchQuery ? (
-                  <p>No se encontraron resultados para "{searchQuery}"</p>
-                ) : (
-                  <p>No hay usuarios en la comunidad aún</p>
-                )}
-              </div>
+              <EmptyState
+                title={searchQuery ? `No hay resultados para “${searchQuery}”` : 'Todavía no hay miembros visibles'}
+                description={
+                  searchQuery
+                    ? 'Probá con otro nombre, rol o tag.'
+                    : 'Invitá a alguien de Valencia o completá tu perfil para aparecer en la comunidad.'
+                }
+                actionLabel={
+                  searchQuery
+                    ? undefined
+                    : user
+                    ? 'Invitar a la comunidad'
+                    : 'Ingresá para unirte'
+                }
+                onAction={
+                  searchQuery
+                    ? undefined
+                    : user
+                    ? () => setIsInviteOpen(true)
+                    : () => onOpenAuth()
+                }
+              />
             )}
           </>
         )}

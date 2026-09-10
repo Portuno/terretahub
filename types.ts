@@ -14,6 +14,7 @@ export interface DomainDefinition {
   description: string;
   routePath: string;
   icon?: React.ReactNode;
+  comingSoon?: boolean;
 }
 
 export interface ContactFormState {

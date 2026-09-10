@@ -10,8 +10,9 @@ export const DOMAINS: DomainDefinition[] = [
   {
     id: 'framehack',
     name: 'FrameHack',
-    description: 'Dominio experimental FrameHack (actualmente en construcción).',
+    description: 'Dominio experimental FrameHack. Aún no hay producto público.',
     routePath: '/framehack',
+    comingSoon: true,
   },
   {
     id: 'qr',

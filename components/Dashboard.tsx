@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import { AuthUser } from '../types';
 import { Navbar } from './Navbar';
 import { fetchUserTotesSummary } from '../lib/totes';
+import { useRouteMeta } from '../hooks/useRouteMeta';
 
 interface DashboardProps {
   user: AuthUser | null;
@@ -18,11 +19,16 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout }) => {
   const location = useLocation();
+  useRouteMeta();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(user);
-  
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isGruposModalOpen, setIsGruposModalOpen] = useState(false);
   const [totesBalance, setTotesBalance] = useState(0);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!currentUser) {
@@ -112,6 +118,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
       case '/terreta': return 'Finde en la Terreta';
       case '/recursos': return "L'Almoina";
       case '/eventos': return 'Próximas Quedadas';
+      case '/propiedades': return 'Mapa de espacios';
+      case '/mapa': return 'Mapa de espacios';
       case '/blogs': return 'Blogs';
       case '/qr': return 'Creador de QR';
       case '/terris': return 'Terris';
@@ -125,7 +133,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
   const title = getPageTitle();
 
   return (
-  <div className="flex h-screen overflow-hidden bg-terreta-bg transition-colors duration-500">
+  <div className="flex h-screen max-w-[100vw] overflow-hidden bg-terreta-bg transition-colors duration-500">
       
       {/* Sidebar - Fixed */}
       <Sidebar 
@@ -134,21 +142,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
         onLogout={onLogout}
         onOpenFeedback={() => setIsFeedbackOpen(true)}
         onOpenGruposModal={() => setIsGruposModalOpen(true)}
+        isMobileMenuOpen={isMobileMenuOpen}
+        onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300">
+      <main className="flex min-w-0 flex-1 flex-col h-screen overflow-hidden transition-all duration-300">
         <Navbar
           user={currentUser}
           title={title}
           totesBalance={totesBalance}
           onOpenAuth={onOpenAuth}
           onLogout={onLogout}
+          onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           rightSlot={currentUser ? <Notifications userId={currentUser.id} /> : null}
         />
 
         {/* Content Area */}
-        <div className={`flex-1 overflow-y-auto px-4 pb-4 md:px-8`}>
+        <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-4 md:px-8">
           <Outlet
             context={{
               user: currentUser ?? user,

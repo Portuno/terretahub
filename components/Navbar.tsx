@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Coins, LogIn, User, ChevronDown } from 'lucide-react';
+import { Coins, LogIn, User, ChevronDown, Menu } from 'lucide-react';
 import { AuthUser } from '../types';
 
 const TERRIS_PANEL_ID = 'terris-hint-panel';
@@ -12,6 +12,7 @@ interface NavbarProps {
   totesBalance: number;
   onOpenAuth: (referrerUsername?: string) => void;
   onLogout: () => void;
+  onOpenMobileMenu?: () => void;
   rightSlot?: React.ReactNode;
   centerContent?: React.ReactNode;
 }
@@ -22,6 +23,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   totesBalance,
   onOpenAuth,
   onLogout,
+  onOpenMobileMenu,
   rightSlot,
   centerContent
 }) => {
@@ -156,18 +158,30 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-gray-100 bg-terreta-nav/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center justify-between gap-3 px-4 md:px-6">
-        <Link
-          to="/explorar"
-          className="inline-flex min-w-0 items-center gap-3 rounded-full px-2 py-1 transition-colors hover:bg-terreta-bg/70"
-          aria-label="Ir a explorar en Terreta Hub"
-        >
+    <header className="sticky top-0 z-30 min-w-0 border-b border-gray-100 bg-terreta-nav/90 backdrop-blur-md">
+      <div className="mx-auto flex h-16 w-full min-w-0 max-w-[1600px] items-center justify-between gap-2 px-3 md:gap-3 md:px-6">
+        <div className="flex min-w-0 items-center gap-1">
+          {onOpenMobileMenu ? (
+            <button
+              type="button"
+              onClick={onOpenMobileMenu}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-terreta-dark transition-colors hover:bg-terreta-bg/70 md:hidden"
+              aria-label="Abrir menú de navegación"
+            >
+              <Menu size={22} />
+            </button>
+          ) : null}
+          <Link
+            to="/explorar"
+            className="inline-flex min-w-0 items-center gap-2 rounded-full px-1 py-1 transition-colors hover:bg-terreta-bg/70 sm:gap-3 sm:px-2"
+            aria-label="Ir a explorar en Terreta Hub"
+          >
           <img src="/logo.png" alt="Faro de Terreta Hub" className="h-9 w-9 rounded-full object-cover" />
           <span className="hidden font-serif text-xl font-semibold tracking-tight text-terreta-dark sm:inline">
             Terreta Hub
           </span>
-        </Link>
+          </Link>
+        </div>
 
         <div className="mx-2 flex min-w-0 flex-1 justify-center">
           {centerContent ? (

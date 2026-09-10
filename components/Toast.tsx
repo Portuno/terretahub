@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, CheckCircle } from 'lucide-react';
+import { X, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface ToastProps {
   message: string;
@@ -7,7 +7,7 @@ interface ToastProps {
   secondaryLink?: string;
   onClose: () => void;
   duration?: number;
-  variant?: 'success' | 'terreta';
+  variant?: 'success' | 'terreta' | 'error';
 }
 
 export const Toast: React.FC<ToastProps> = ({
@@ -60,8 +60,8 @@ export const Toast: React.FC<ToastProps> = ({
 
       {/* Toast Container */}
       <div
-        className={`relative rounded-[13px] shadow-2xl p-5 min-w-[320px] max-w-[500px] pointer-events-auto transition-all duration-300 ${
-          variant === 'terreta' ? 'bg-[#D97706]' : 'bg-[#2D8659]'
+        className={`relative w-[calc(100%-0.5rem)] min-w-0 max-w-[500px] rounded-[13px] shadow-2xl p-5 pointer-events-auto transition-all duration-300 ${
+          variant === 'error' ? 'bg-[#B45309]' : variant === 'terreta' ? 'bg-[#D97706]' : 'bg-[#2D8659]'
         } ${
           isVisible && !isExiting
             ? 'opacity-100 translate-y-0 scale-100'
@@ -81,7 +81,11 @@ export const Toast: React.FC<ToastProps> = ({
         <div className="flex items-start gap-4 pr-6">
           {/* Success Icon */}
           <div className="flex-shrink-0">
-            <CheckCircle size={32} className="text-white" strokeWidth={2.5} />
+            {variant === 'error' ? (
+              <AlertCircle size={32} className="text-white" strokeWidth={2.5} />
+            ) : (
+              <CheckCircle size={32} className="text-white" strokeWidth={2.5} />
+            )}
           </div>
 
           {/* Text Content */}

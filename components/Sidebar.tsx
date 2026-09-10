@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, MessageSquareText, MessageCircle, Shield, X, FileText, ChevronDown, ChevronUp, User, UsersRound } from 'lucide-react';
+import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, MessageSquareText, MessageCircle, Shield, X, FileText, MapPin } from 'lucide-react';
 import { AuthUser } from '../types';
 import { isAdmin } from '../lib/userRoles';
-import { useTheme, THEMES } from '../context/ThemeContext';
 import { ThemeOracle } from './ThemeOracle';
 
 interface SidebarProps {
@@ -12,6 +11,8 @@ interface SidebarProps {
   onLogout: () => void;
   onOpenFeedback?: () => void;
   onOpenGruposModal?: () => void;
+  isMobileMenuOpen?: boolean;
+  onCloseMobileMenu?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -19,41 +20,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenAuth,
   onLogout,
   onOpenFeedback,
-  onOpenGruposModal,
+  onOpenGruposModal: _onOpenGruposModal,
+  isMobileMenuOpen = false,
+  onCloseMobileMenu,
 }) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isComunidadOpen, setIsComunidadOpen] = useState(false);
-  const comunidadRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
 
-  const isComunidadActive = location.pathname === '/miembros' || location.pathname === '/proyectos' || location.pathname === '/grupos';
+  const closeMobileMenu = () => {
+    onCloseMobileMenu?.();
+  };
 
   useEffect(() => {
-    setIsMobileMenuOpen(false);
+    closeMobileMenu();
   }, [location.pathname]);
-
-  useEffect(() => {
-    setIsComunidadOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (comunidadRef.current && !comunidadRef.current.contains(event.target as Node)) {
-        setIsComunidadOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const menuItems = [
     { id: 'agora', path: '/agora', label: 'Ágora', icon: <MessageSquareText size={20} /> },
-    { id: 'comunidad', path: '/miembros', label: 'Comunidad', icon: <Users size={20} /> },
-    { id: 'dominio', path: '/dominio', label: 'Dominios', icon: <FolderKanban size={20} /> },
-    { id: 'recursos', path: '/recursos', label: 'Recursos', icon: <BookOpen size={20} /> },
+    { id: 'comunidad', path: '/comunidad', label: 'Comunidad', icon: <Users size={20} /> },
+    { id: 'proyectos', path: '/proyectos', label: 'Proyectos', icon: <FolderKanban size={20} /> },
     { id: 'eventos', path: '/eventos', label: 'Quedadas', icon: <CalendarDays size={20} /> },
+    { id: 'mapa', path: '/propiedades', label: 'Mapa', icon: <MapPin size={20} /> },
+    { id: 'recursos', path: '/recursos', label: 'Recursos', icon: <BookOpen size={20} /> },
+    { id: 'dominio', path: '/dominio', label: 'Dominios', icon: <FolderKanban size={20} /> },
     { id: 'blogs', path: '/blogs', label: 'Blogs', icon: <FileText size={20} /> },
   ];
 
@@ -67,7 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {isMobileMenuOpen && (
         <div 
           className="md:hidden fixed inset-0 bg-black/50 z-40"
-          onClick={() => setIsMobileMenuOpen(false)}
+          onClick={closeMobileMenu}
         />
       )}
 
@@ -87,7 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={(e) => {
             e.preventDefault();
-            setIsMobileMenuOpen(false);
+            closeMobileMenu();
           }}
           className="md:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-terreta-bg/40"
           aria-label="Close menu"
@@ -106,112 +95,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Navigation */}
       <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
-        {menuItems.map((item) => {
-          if (item.id === 'comunidad') {
-            return (
-              <div key={item.id} ref={comunidadRef} className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsComunidadOpen((prev) => !prev)}
-                  className={`w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl transition-all duration-200 group border ${
-                    isComunidadActive
-                      ? 'bg-terreta-card text-terreta-dark shadow-lg border-terreta-accent/40'
-                      : 'text-terreta-dark/70 hover:bg-terreta-card/40 hover:text-terreta-dark border-transparent'
-                  }`}
-                  aria-expanded={isComunidadOpen}
-                  aria-haspopup="true"
-                  aria-label="Comunidad: Miembros, Proyectos, Grupos"
-                >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <span
-                      className={
-                        isComunidadActive
-                          ? 'text-terreta-accent'
-                          : 'text-current opacity-70 group-hover:opacity-100'
-                      }
-                    >
-                      {item.icon}
-                    </span>
-                    <span
-                      className={`font-sans font-medium text-sm tracking-wide truncate ${
-                        isComunidadActive ? 'font-bold' : ''
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                  </div>
-                  {isComunidadOpen ? (
-                    <ChevronUp size={18} className="flex-shrink-0 text-terreta-dark/70" />
-                  ) : (
-                    <ChevronDown size={18} className="flex-shrink-0 text-terreta-dark/70" />
-                  )}
-                </button>
-                {isComunidadOpen && (
-                  <div className="mt-1 ml-4 pl-4 border-l-2 border-terreta-border space-y-1">
-                    <NavLink
-                      to="/miembros"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className={({ isActive }) =>
-                        `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 border ${
-                          isActive
-                            ? 'bg-terreta-card text-terreta-dark border-terreta-accent/40'
-                            : 'text-terreta-dark/70 hover:bg-terreta-card/40 border-transparent'
-                        }`
-                      }
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <User size={18} className={isActive ? 'text-terreta-accent' : 'opacity-70'} />
-                          <span className="font-sans font-medium text-sm">Miembros</span>
-                        </>
-                      )}
-                    </NavLink>
-                    <NavLink
-                      to="/proyectos"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className={({ isActive }) =>
-                        `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 border ${
-                          isActive
-                            ? 'bg-terreta-card text-terreta-dark border-terreta-accent/40'
-                            : 'text-terreta-dark/70 hover:bg-terreta-card/40 border-transparent'
-                        }`
-                      }
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <FolderKanban size={18} className={isActive ? 'text-terreta-accent' : 'opacity-70'} />
-                          <span className="font-sans font-medium text-sm">Proyectos</span>
-                        </>
-                      )}
-                    </NavLink>
-                    <NavLink
-                      to="/grupos"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className={({ isActive }) =>
-                        `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 border ${
-                          isActive
-                            ? 'bg-terreta-card text-terreta-dark border-terreta-accent/40'
-                            : 'text-terreta-dark/70 hover:bg-terreta-card/40 border-transparent'
-                        }`
-                      }
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <UsersRound size={18} className={isActive ? 'text-terreta-accent' : 'opacity-70'} />
-                          <span className="font-sans font-medium text-sm">Grupos</span>
-                          <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-terreta-secondary">Pronto</span>
-                        </>
-                      )}
-                    </NavLink>
-                  </div>
-                )}
-              </div>
-            );
-          }
-          return (
+        {menuItems.map((item) => (
             <NavLink
               key={item.id}
               to={item.path}
+              onClick={closeMobileMenu}
               className={({ isActive }) =>
                 `w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group border ${
                   isActive
@@ -241,8 +129,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </>
               )}
             </NavLink>
-          );
-        })}
+        ))}
       </nav>
 
       {/* Footer / User Auth */}
@@ -254,7 +141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
          {user ? (
             <div 
               onClick={() => {
-                setIsMobileMenuOpen(false);
+                closeMobileMenu();
                 navigate('/perfil');
               }}
               className="flex items-center gap-3 p-2 rounded-lg bg-terreta-card/50 border border-terreta-card/40 cursor-pointer hover:bg-terreta-card/70 transition-colors mb-4"
@@ -288,7 +175,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
          <button
            type="button"
            onClick={() => {
-             setIsMobileMenuOpen(false);
+             closeMobileMenu();
              onOpenFeedback?.();
            }}
            className="w-full px-2 py-2 text-left rounded-lg hover:bg-terreta-card/40 transition-colors focus:outline-none focus:ring-2 focus:ring-terreta-accent focus:ring-offset-2 focus:ring-offset-terreta-sidebar"

@@ -194,17 +194,17 @@ export const LandingPage: React.FC = () => {
 
   const options: ExploreOption[] = [
     { key: 'perfil', label: 'Perfil', icon: <User size={16} />, handleAction: () => handleOpenTopic('perfil') },
-    { key: 'foro', label: 'Foro', icon: <MessageCircle size={16} />, handleAction: () => handleOpenTopic('foro') },
-    { key: 'mapa', label: 'Mapa', icon: <MapPinned size={16} />, handleAction: () => handleOpenTopic('mapa') },
+    { key: 'foro', label: 'Ágora', icon: <MessageCircle size={16} />, handleAction: () => handleOpenTopic('foro') },
+    { key: 'mapa', label: 'Quedadas', icon: <MapPinned size={16} />, handleAction: () => handleOpenTopic('mapa') },
     { key: 'recursos', label: 'Recursos', icon: <Wrench size={16} />, handleAction: () => handleOpenTopic('recursos') },
     { key: 'comunidad', label: 'Comunidad', icon: <Users size={16} />, handleAction: () => handleOpenTopic('comunidad') },
-    { key: 'dominio', label: 'Explorar (Dominios)', icon: <Compass size={16} />, handleAction: () => handleOpenTopic('dominio') }
+    { key: 'dominio', label: 'Dominios', icon: <Compass size={16} />, handleAction: () => handleOpenTopic('dominio') }
   ];
 
   const activeTopicLabel = options.find((option) => option.key === activeTopic)?.label ?? 'esta sección';
 
   return (
-    <div className="relative flex h-full min-h-[calc(100vh-56px)] w-full items-start justify-center px-4 pb-8 pt-6 md:min-h-screen md:items-center md:pt-8">
+    <div className="relative flex h-full min-h-0 w-full min-w-0 items-start justify-center overflow-x-hidden px-3 pb-8 pt-6 sm:px-4 md:min-h-screen md:items-center md:pt-8">
       <div className="absolute left-4 top-4 z-20">
         <div className="relative">
           <button
@@ -256,14 +256,14 @@ export const LandingPage: React.FC = () => {
         </div>
       </div>
 
-      <section className="w-full max-w-md pt-14 md:max-w-xl">
-        <div className="relative min-h-[560px] overflow-hidden">
+      <section className="w-full min-w-0 max-w-md pt-14 md:max-w-xl">
+        <div className="relative min-h-[520px] sm:min-h-[560px]">
           <div
             className={`absolute inset-0 transition-all duration-300 ease-out ${
               isExploreOpen ? 'pointer-events-none translate-y-3 opacity-0' : 'translate-y-0 opacity-100'
             }`}
           >
-            <h1 className="font-serif text-4xl font-bold tracking-tight text-terreta-dark md:text-5xl">
+            <h1 className="font-serif text-3xl font-bold tracking-tight text-terreta-dark sm:text-4xl md:text-5xl">
               Terreta Hub
             </h1>
             <p className="mt-3 text-base leading-relaxed text-terreta-dark/75 md:text-lg">
@@ -304,17 +304,17 @@ export const LandingPage: React.FC = () => {
               Elige cómo quieres interactuar con la plataforma.
             </p>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="mt-5 grid grid-cols-2 gap-2 sm:gap-3">
                 {options.map((option) => (
                   <button
                     key={option.key}
                     type="button"
                     onClick={option.handleAction}
-                    className="flex min-h-20 items-center gap-3 rounded-xl border border-terreta-border bg-terreta-bg px-4 py-4 text-left text-base font-bold uppercase tracking-wide text-terreta-dark transition-colors hover:bg-terreta-sidebar"
+                    className="flex min-h-[4.25rem] min-w-0 items-center gap-2 rounded-xl border border-terreta-border bg-terreta-bg px-3 py-3 text-left text-xs font-bold text-terreta-dark transition-colors hover:bg-terreta-sidebar sm:min-h-20 sm:gap-3 sm:px-4 sm:text-sm sm:uppercase sm:tracking-wide"
                     aria-label={`Abrir ${option.label}`}
                   >
-                    <span className="text-terreta-accent">{option.icon}</span>
-                    <span className="leading-tight">{option.label}</span>
+                    <span className="shrink-0 text-terreta-accent">{option.icon}</span>
+                    <span className="min-w-0 leading-tight break-words">{option.label}</span>
                   </button>
                 ))}
             </div>

@@ -24,6 +24,7 @@ import { MentionSuggestions } from './MentionSuggestions';
 import { createMentionNotifications } from '../lib/mentionUtils';
 import { PollCreator } from './PollCreator';
 import { QueryState } from './QueryState';
+import { EmptyState } from './EmptyState';
 
 // Helper para formatear timestamps
 const formatTimestamp = (dateString: string): string => {
@@ -1352,7 +1353,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     { label: 'Ágora', href: '/agora', icon: <MessageSquareText size={16} /> },
     { label: 'Proyectos', href: '/proyectos', icon: <FolderKanban size={16} /> },
     { label: 'Manual', href: '/manual', icon: <BookOpen size={16} /> },
-    { label: 'Eventos', href: '/eventos', icon: <CalendarDays size={16} /> }
+    { label: 'Quedadas', href: '/eventos', icon: <CalendarDays size={16} /> }
   ];
 
   const topTags = availableTags.slice(0, 5);
@@ -1791,16 +1792,23 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
           loadingLabel="Cargando feed..."
         />
       ) : filteredFeedItems.length === 0 ? (
-        <div className="text-center py-12 text-terreta-secondary">
-          <p className="text-lg mb-2">
-            {feedTypeFilter === 'all' ? 'Aún no hay actividad' : 'No hay ítems de este tipo'}
-          </p>
-          <p className="text-sm">
-            {feedTypeFilter === 'all'
-              ? 'Sé el primero en compartir algo con la comunidad'
-              : 'Prueba con otro filtro o publica algo'}
-          </p>
-        </div>
+        <EmptyState
+          title={feedTypeFilter === 'all' ? 'Aún no hay actividad' : 'No hay ítems de este tipo'}
+          description={
+            feedTypeFilter === 'all'
+              ? 'Publicá lo que está pasando en la Terreta y arrancá la conversación.'
+              : 'Probá con otro filtro o publicá algo nuevo.'
+          }
+          actionLabel={user ? 'Publicar en el Ágora' : 'Ingresá para publicar'}
+          onAction={() => {
+            if (!user) {
+              onOpenAuth();
+              return;
+            }
+            setIsComposerExpanded(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
       ) : (
         <>
           <div className="space-y-4">

@@ -101,7 +101,7 @@ export const DominioPage: React.FC<DominioPageProps> = ({ user: _user, onOpenAut
                   </p>
                 </div>
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-terreta-accent/80">
-                  Ir al dominio
+                  {domain.comingSoon ? 'Próximamente' : 'Ir al dominio'}
                 </span>
               </button>
             </li>

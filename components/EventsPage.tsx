@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Users, Clock, Plus, CalendarDays, ExternalLink, ChevronDown, ChevronUp, Share2 } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Plus, ExternalLink, ChevronDown, ChevronUp, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { AuthUser, Event } from '../types';
@@ -8,6 +8,7 @@ import { Toast } from './Toast';
 import { EventModal } from './EventModal';
 import { executeQueryWithRetry } from '../lib/supabaseHelpers';
 import { QueryState } from './QueryState';
+import { EmptyState } from './EmptyState';
 import { isEventEnded } from '../lib/eventUtils';
 
 interface EventsPageProps {
@@ -529,16 +530,24 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
             loadingLabel="Cargando quedadas..."
           />
         ) : events.length === 0 ? (
-          <div className="text-center py-12">
-            <CalendarDays size={48} className="mx-auto mb-4 text-terreta-dark/30" />
-            <p className="text-terreta-dark/60 text-lg">
-              {filter === 'upcoming' 
-                ? 'No hay quedadas próximas programadas'
+          <EmptyState
+            title={
+              filter === 'upcoming'
+                ? 'No hay quedadas próximas'
                 : filter === 'past'
                 ? 'No hay quedadas pasadas'
-                : 'No hay quedadas disponibles'}
-            </p>
-          </div>
+                : 'No hay quedadas todavía'
+            }
+            description="Organizá un encuentro y compartilo con la comunidad de Valencia."
+            actionLabel={user ? 'Crear quedada' : 'Ingresá para crear una quedada'}
+            onAction={() => {
+              if (!user) {
+                onOpenAuth();
+                return;
+              }
+              setIsCreating(true);
+            }}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {events.map((event) => (

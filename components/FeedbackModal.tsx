@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Send, MessageCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { Toast } from './Toast';
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose })
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showToast, setShowToast] = useState(false);
   
   // Animation states
   const [shouldRender, setShouldRender] = useState(false);
@@ -86,6 +88,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose })
       }
 
       setSuccess(true);
+      setShowToast(true);
       setTimeout(() => {
         setSuccess(false);
         setFeedback('');
@@ -104,9 +107,11 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose })
     }
   };
 
-  if (!shouldRender) return null;
+  if (!shouldRender && !showToast) return null;
 
   return (
+    <>
+    {shouldRender ? (
     <div
       className={`fixed inset-0 z-[70] flex items-center justify-center p-4 transition-all duration-700 ease-out-expo ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       role="dialog"
@@ -233,5 +238,15 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose })
         </div>
       </div>
     </div>
+    ) : null}
+    {showToast ? (
+      <Toast
+        message="¡Gracias por tu feedback!"
+        secondaryMessage="Tu opinión nos ayuda a mejorar Terreta Hub."
+        onClose={() => setShowToast(false)}
+        variant="terreta"
+      />
+    ) : null}
+    </>
   );
 };

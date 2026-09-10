@@ -4,6 +4,8 @@ import { AuthUser } from '../types';
 import { HandHeart, MessageSquare, X, Send, CheckCircle2, Trash2 } from 'lucide-react';
 import { executeQueryWithRetry } from '../lib/supabaseHelpers';
 import { QueryState } from './QueryState';
+import { EmptyState } from './EmptyState';
+import { Toast } from './Toast';
 import { FieldErrors, validateResourceNeed } from '../lib/contentValidation';
 
 type SubmissionState = 'idle' | 'loading' | 'success' | 'error';
@@ -181,6 +183,8 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
   const [reloadToken, setReloadToken] = useState(0);
   const [markingResolved, setMarkingResolved] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('Pedido de ayuda publicado');
 
   const VERTICALS = [
     'Tecnología',
@@ -582,6 +586,8 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
       setSelectedVerticals([]);
       setFormatTags([]);
       setShowPedirAyudaModal(false);
+      setToastMessage('Pedido de ayuda publicado');
+      setShowToast(true);
       
       // Recargar solicitudes (solo vigentes)
       const { data: newRequests } = await supabase
@@ -698,20 +704,30 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
             loadingLabel="Cargando pedidos de ayuda..."
           />
         ) : filteredRequests.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <p className="text-terreta-secondary mb-2">
-                {filterStatus === 'active' 
-                  ? 'Aún no hay pedidos de ayuda vigentes' 
-                  : 'Aún no hay pedidos resueltos'}
-              </p>
-              <p className="text-sm text-terreta-secondary/70">
-                {filterStatus === 'active' 
-                  ? 'Sé el primero en pedir ayuda' 
-                  : 'Los pedidos resueltos aparecerán aquí'}
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            title={
+              filterStatus === 'active'
+                ? 'Aún no hay pedidos de ayuda vigentes'
+                : 'Aún no hay pedidos resueltos'
+            }
+            description={
+              filterStatus === 'active'
+                ? 'Contá qué necesitás y la comunidad puede echarte una mano.'
+                : 'Los pedidos resueltos aparecerán aquí.'
+            }
+            actionLabel={filterStatus === 'active' ? (user ? 'Pedir ayuda' : 'Ingresá para pedir ayuda') : undefined}
+            onAction={
+              filterStatus === 'active'
+                ? () => {
+                    if (!user && onOpenAuth) {
+                      onOpenAuth();
+                    } else {
+                      setShowPedirAyudaModal(true);
+                    }
+                  }
+                : undefined
+            }
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredRequests.map((request) => (
@@ -1103,6 +1119,13 @@ export const ResourceCollabPanel: React.FC<ResourceCollabPanelProps> = ({ user, 
           </div>
         </div>
       )}
+      {showToast ? (
+        <Toast
+          message={toastMessage}
+          onClose={() => setShowToast(false)}
+          variant="terreta"
+        />
+      ) : null}
     </div>
   );
 };

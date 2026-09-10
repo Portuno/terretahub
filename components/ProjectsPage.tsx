@@ -18,6 +18,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ user, onOpenAuth }) 
   const navigateToProfile = useProfileNavigation();
   const [isCreating, setIsCreating] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [toastVariant, setToastVariant] = useState<'terreta' | 'error'>('terreta');
   const [toastMessage, setToastMessage] = useState('¡Proyecto enviado!');
   const [toastSecondary, setToastSecondary] = useState(
     'Tu proyecto fue enviado y será revisado. Espera una respuesta pronto de parte de la administración.'
@@ -32,10 +33,14 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ user, onOpenAuth }) 
 
     const result = await persistProject(user.id, project);
     if (result.error) {
-      alert('Error al guardar el proyecto: ' + result.error);
+      setToastVariant('error');
+      setToastMessage('No pudimos guardar el proyecto');
+      setToastSecondary(result.error);
+      setShowToast(true);
       return;
     }
 
+    setToastVariant('terreta');
     if (project.status === 'draft') {
       setToastMessage('Proyecto guardado como borrador');
       setToastSecondary('Podés seguir editándolo desde tu proyecto cuando quieras.');
@@ -53,13 +58,26 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ user, onOpenAuth }) 
     }
   };
 
+  const toastNode = showToast ? (
+    <Toast
+      message={toastMessage}
+      secondaryMessage={toastSecondary}
+      onClose={() => setShowToast(false)}
+      duration={6000}
+      variant={toastVariant}
+    />
+  ) : null;
+
   if (isCreating && user) {
     return (
-      <ProjectEditor
-        user={user}
-        onCancel={() => setIsCreating(false)}
-        onSave={handleProjectSave}
-      />
+      <>
+        <ProjectEditor
+          user={user}
+          onCancel={() => setIsCreating(false)}
+          onSave={handleProjectSave}
+        />
+        {toastNode}
+      </>
     );
   }
 
@@ -70,15 +88,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ user, onOpenAuth }) 
         onCreateProject={user ? () => setIsCreating(true) : onOpenAuth}
         user={user}
       />
-      {showToast && (
-        <Toast
-          message={toastMessage}
-          secondaryMessage={toastSecondary}
-          onClose={() => setShowToast(false)}
-          duration={6000}
-          variant="terreta"
-        />
-      )}
+      {toastNode}
     </>
   );
 };

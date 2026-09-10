@@ -5,6 +5,7 @@ import { executeQueryWithRetry, executeBatchedQuery } from '../lib/supabaseHelpe
 import { ProjectStatus } from '../types';
 import { ProjectModal } from './ProjectModal';
 import { QueryState } from './QueryState';
+import { EmptyState } from './EmptyState';
 
 interface ProjectFromDB {
   id: string;
@@ -477,27 +478,28 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
 
         {/* Projects Grid */}
         {filteredProjects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-20 h-20 bg-terreta-bg rounded-full flex items-center justify-center mb-6">
-              <FolderKanban size={40} className="text-terreta-accent" />
-            </div>
-            <h4 className="font-sans text-2xl text-terreta-dark mb-2">
-              {projects.length === 0 ? 'Aún no hay proyectos públicos' : 'No se encontraron proyectos'}
-            </h4>
-            <p className="max-w-md text-terreta-secondary mb-4">
-              {projects.length === 0
-                ? 'Sé el primero en compartir tu idea con la comunidad. Los proyectos aprobados aparecerán aquí.'
-                : 'Intenta ajustar tus filtros de búsqueda para encontrar más proyectos.'}
-            </p>
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="text-terreta-accent hover:text-terreta-accent/80 font-bold"
-              >
-                Limpiar filtros
-              </button>
-            )}
-          </div>
+          <EmptyState
+            title={projects.length === 0 ? 'Aún no hay proyectos públicos' : 'No se encontraron proyectos'}
+            description={
+              projects.length === 0
+                ? 'Compartí tu idea con la comunidad. Los proyectos aprobados aparecen aquí.'
+                : 'Ajustá los filtros de búsqueda para ver más proyectos.'
+            }
+            actionLabel={
+              projects.length === 0
+                ? (user ? 'Subir proyecto' : 'Ingresá para subir un proyecto')
+                : hasActiveFilters
+                ? 'Limpiar filtros'
+                : undefined
+            }
+            onAction={
+              projects.length === 0
+                ? onCreateProject
+                : hasActiveFilters
+                ? clearFilters
+                : undefined
+            }
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProjects.map((project) => (
