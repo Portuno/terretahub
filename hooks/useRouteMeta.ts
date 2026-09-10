@@ -39,12 +39,12 @@ const ROUTE_META: Record<string, RouteMeta> = {
     description: 'Quedadas y encuentros de la comunidad Terreta Hub en Valencia.',
   },
   '/propiedades': {
-    title: 'Mapa de espacios · Terreta Hub',
+    title: 'Espacios · Terreta Hub',
     description: 'Espacios e inmuebles de la comunidad Terreta Hub en Valencia.',
   },
   '/mapa': {
-    title: 'Mapa de espacios · Terreta Hub',
-    description: 'Espacios e inmuebles de la comunidad Terreta Hub en Valencia.',
+    title: 'Mapa · Terreta Hub',
+    description: 'Valencia en vivo: negocios, eventos y acontecimientos de la comunidad.',
   },
   '/recursos': {
     title: 'Recursos · Terreta Hub',

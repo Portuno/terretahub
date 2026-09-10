@@ -105,33 +105,56 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
     };
   }, [user, currentUser]);
 
-  const getPageTitle = () => {
+  const getPageMeta = () => {
     switch (location.pathname) {
-      case '/agora': return 'Ágora Comunitario';
-      case '/comunidad': return 'Comunidad';
-      case '/grupos': return 'Grupos';
-      case '/miembros': return 'Miembros';
-      case '/proyectos': return 'Proyectos Destacados';
-      case '/dominio': return 'Dominios';
-      case '/framehack': return 'FrameHack';
-      case '/chatbot': return 'Explorar la Comunidad';
+      case '/':
+      case '/explorar':
+        return { title: '', description: '' };
+      case '/agora':
+        return { title: 'Ágora', description: 'El muro de la comunidad en Valencia.' };
+      case '/comunidad':
+        return { title: 'Comunidad', description: 'Miembros, proyectos y espacios de Terreta Hub.' };
+      case '/grupos':
+        return { title: 'Grupos', description: 'Grupos de la comunidad. Aún no hay producto público.' };
+      case '/miembros':
+        return { title: 'Miembros', description: 'Personas y perfiles de Terreta Hub en Valencia.' };
+      case '/proyectos':
+        return { title: 'Proyectos', description: 'Ideas y productos que se están construyendo en Valencia.' };
+      case '/dominio':
+        return { title: 'Dominios', description: 'Áreas y experimentos de Terreta Hub.' };
+      case '/mapa':
+        return { title: 'Mapa', description: 'Valencia en vivo: negocios, eventos y acontecimientos de la comunidad.' };
+      case '/propiedades':
+        return { title: 'Espacios', description: 'Espacios e inmuebles de la comunidad Terreta Hub en Valencia.' };
+      case '/framehack':
+        return { title: 'FrameHack', description: 'Dominio experimental. Aún no hay producto público.' };
+      case '/chatbot':
+        return { title: 'Explorar la Comunidad', description: 'Asistente para explorar recursos y resolver dudas.' };
       case '/terreta':
-      case '/unfinde': return 'Un Finde';
-      case '/recursos': return "L'Almoina";
-      case '/eventos': return 'Próximas Quedadas';
-      case '/propiedades': return 'Mapa de espacios';
-      case '/mapa': return 'Mapa de espacios';
-      case '/blogs': return 'Blogs';
-      case '/qr': return 'Creador de QR';
-      case '/terris': return 'Terris';
-      case '/perfil': return 'Editor de Perfil';
-      case '/admin': return 'Panel de Administración';
-      case '/': return ''; // Landing has its own hero
-      default: return 'Terreta Hub';
+      case '/unfinde':
+        return { title: 'Un Finde', description: 'Archivo de Un Finde en la Terreta.' };
+      case '/recursos':
+        return { title: "L'Almoina", description: 'Pedí y ofrecé ayuda dentro de la comunidad.' };
+      case '/eventos':
+        return { title: 'Quedadas', description: 'Quedadas y encuentros de la comunidad en Valencia.' };
+      case '/blogs':
+        return { title: 'Blogs', description: 'Artículos e historias de la comunidad.' };
+      case '/qr':
+        return { title: 'Creador de QR', description: 'Genera códigos QR para compartir enlaces y recursos.' };
+      case '/terris':
+        return { title: 'Terris', description: 'La moneda nativa y local de la Terreta.' };
+      case '/perfil':
+        return { title: 'Perfil', description: 'Gestiona tu información y configuración personal.' };
+      case '/admin':
+        return { title: 'Panel de Administración', description: 'Gestión interna de contenido y comunidad.' };
+      case '/admin/blogs':
+        return { title: 'Admin Blogs', description: 'Administración de publicaciones del blog.' };
+      default:
+        return { title: 'Terreta Hub', description: '' };
     }
   };
 
-  const title = getPageTitle();
+  const { title, description } = getPageMeta();
 
   return (
   <div className="flex h-screen max-w-[100vw] overflow-hidden bg-terreta-bg transition-colors duration-500">
@@ -152,6 +175,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
         <Navbar
           user={currentUser}
           title={title}
+          description={description}
           totesBalance={totesBalance}
           onOpenAuth={onOpenAuth}
           onLogout={onLogout}

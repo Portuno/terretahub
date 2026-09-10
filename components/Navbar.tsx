@@ -9,6 +9,7 @@ const HOVER_LEAVE_MS = 220;
 interface NavbarProps {
   user: AuthUser | null;
   title: string;
+  description?: string;
   totesBalance: number;
   onOpenAuth: (referrerUsername?: string) => void;
   onLogout: () => void;
@@ -176,10 +177,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="inline-flex min-w-0 items-center gap-2 rounded-full px-1 py-1 transition-colors hover:bg-terreta-bg/70 sm:gap-3 sm:px-2"
             aria-label="Ir a explorar en Terreta Hub"
           >
-          <img src="/logo.png" alt="Faro de Terreta Hub" className="h-9 w-9 rounded-full object-cover" />
-          <span className="hidden font-serif text-xl font-semibold tracking-tight text-terreta-dark sm:inline">
-            Terreta Hub
-          </span>
+            <img src="/logo.png" alt="Faro de Terreta Hub" className="h-9 w-9 rounded-full object-cover" />
+            <span className="hidden font-serif text-xl font-semibold tracking-tight text-terreta-dark sm:inline">
+              Terreta Hub
+            </span>
           </Link>
         </div>
 

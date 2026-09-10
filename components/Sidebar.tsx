@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, MessageSquareText, MessageCircle, Shield, X, FileText, MapPin } from 'lucide-react';
+import { Users, FolderKanban, BookOpen, CalendarDays, LogIn, MessageSquareText, MessageCircle, Shield, X, FileText, MapPin, Map } from 'lucide-react';
 import { AuthUser } from '../types';
 import { isAdmin } from '../lib/userRoles';
 import { ThemeOracle } from './ThemeOracle';
@@ -40,7 +40,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'comunidad', path: '/comunidad', label: 'Comunidad', icon: <Users size={20} /> },
     { id: 'proyectos', path: '/proyectos', label: 'Proyectos', icon: <FolderKanban size={20} /> },
     { id: 'eventos', path: '/eventos', label: 'Quedadas', icon: <CalendarDays size={20} /> },
-    { id: 'mapa', path: '/propiedades', label: 'Mapa', icon: <MapPin size={20} /> },
+    { id: 'mapa', path: '/mapa', label: 'Mapa', icon: <Map size={20} /> },
+    { id: 'propiedades', path: '/propiedades', label: 'Espacios', icon: <MapPin size={20} /> },
     { id: 'recursos', path: '/recursos', label: 'Recursos', icon: <BookOpen size={20} /> },
     { id: 'dominio', path: '/dominio', label: 'Dominios', icon: <FolderKanban size={20} /> },
     { id: 'blogs', path: '/blogs', label: 'Blogs', icon: <FileText size={20} /> },

@@ -51,6 +51,7 @@ import { TorreLayout } from './components/biblioteca/TorreLayout';
 import { TorreQueEsPage } from './components/biblioteca/TorreQueEsPage';
 import { TorreCreadorPage } from './components/biblioteca/TorreCreadorPage';
 import { TorreSeoPageView } from './components/biblioteca/TorreSeoPageView';
+import { MapaPage } from './components/MapaPage';
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -527,7 +528,7 @@ const AppContent: React.FC = () => {
           <Route path="miembros" element={<CommunityPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="proyectos" element={<ProjectsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="propiedades" element={<PropertiesPage user={user} onOpenAuth={handleOpenAuth} />} />
-          <Route path="mapa" element={<Navigate to="/propiedades" replace />} />
+          <Route path="mapa" element={<MapaPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="dominio" element={<DominioPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="framehack" element={<FrameHackPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="chatbot" element={<ChatbotPage />} />
