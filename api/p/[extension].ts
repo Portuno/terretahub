@@ -60,17 +60,50 @@ const getPublicAvatarUrl = (avatar: string | null | undefined, userId: string | 
 };
 
 // Generar HTML con meta tags
+const DEFAULT_OG_IMAGE = 'https://terretahub.com/logo.png';
+const HUB_TITLE = 'Terreta Hub · red social de Valencia';
+const HUB_DESCRIPTION =
+  'Terreta Hub es la red social de Valencia: perfil, gente y lo que pasa en la ciudad.';
+
+const ogSafeImageUrl = (url?: string | null): string => {
+  if (!url) {
+    return DEFAULT_OG_IMAGE;
+  }
+
+  const lower = url.toLowerCase();
+  if (lower.startsWith('data:')) {
+    return DEFAULT_OG_IMAGE;
+  }
+  if (
+    lower.includes('.svg') ||
+    lower.includes('image/svg') ||
+    lower.includes('dicebear.com')
+  ) {
+    return DEFAULT_OG_IMAGE;
+  }
+  if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
+    return DEFAULT_OG_IMAGE;
+  }
+
+  return url;
+};
+
 const generateHTML = (
   title: string,
   description: string,
   image: string,
-  url: string
+  url: string,
+  type: 'profile' | 'website' = 'profile'
 ): string => {
+  const imageType = image.toLowerCase().includes('.png') ? 'image/png' : 'image/jpeg';
+  const bodyLinkLabel = type === 'profile' ? 'Ver perfil en Terreta Hub' : 'Ir a Terreta Hub';
+
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="canonical" href="${escapeHtml(url)}" />
   
   <!-- Primary Meta Tags -->
   <title>${escapeHtml(title)}</title>
@@ -78,19 +111,17 @@ const generateHTML = (
   <meta name="description" content="${escapeHtml(description)}" />
   
   <!-- Open Graph / Facebook -->
-  <meta property="og:type" content="profile" />
+  <meta property="og:type" content="${type}" />
   <meta property="og:url" content="${escapeHtml(url)}" />
   <meta property="og:title" content="${escapeHtml(title)}" />
   <meta property="og:description" content="${escapeHtml(description)}" />
   <meta property="og:image" content="${escapeHtml(image)}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="1200" />
-  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:type" content="${imageType}" />
   <meta property="og:image:secure_url" content="${escapeHtml(image)}" />
   <meta property="og:site_name" content="Terreta Hub" />
   <meta property="og:locale" content="es_ES" />
-  <!-- Facebook App ID (opcional pero recomendado) -->
-  <!-- Si tienes una Facebook App, agrega: <meta property="fb:app_id" content="TU_APP_ID" /> -->
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
@@ -101,8 +132,11 @@ const generateHTML = (
   
 </head>
 <body>
-  <div id="root"></div>
-  <!-- No scripts needed for bots - they don't execute JavaScript -->
+  <main>
+    <h1>${escapeHtml(title)}</h1>
+    <p>${escapeHtml(description)}</p>
+    <p><a href="${escapeHtml(url)}">${bodyLinkLabel}</a></p>
+  </main>
 </body>
 </html>`;
 };
@@ -153,10 +187,11 @@ export default async function handler(
     res.status(200);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.send(generateHTML(
-      'Terreta Hub | Red Social Valenciana',
-      'Bienvenido al Epicentre de Terreta Hub.',
-      'https://terretahub.com/logo.png',
-      currentUrl
+      HUB_TITLE,
+      HUB_DESCRIPTION,
+      DEFAULT_OG_IMAGE,
+      currentUrl,
+      'website'
     ));
   }
 
@@ -216,14 +251,16 @@ export default async function handler(
     const currentUrl = `${protocol}://${host}/p/${extension}`;
 
     if (!profileData) {
-      console.log('Profile not found, using defaults');
-      const defaultTitle = 'Terreta Hub | Red Social Valenciana';
-      const defaultDescription = 'Bienvenido al Epicentre de Terreta Hub. Reserva tu link personalizado, proyecta tus ideas en nuestro laboratorio digital y forma parte de la vanguardia valenciana.';
-      const defaultImage = 'https://terretahub.com/logo.png';
-      
-      res.status(200);
+      console.log('Profile not found');
+      res.status(404);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      return res.send(generateHTML(defaultTitle, defaultDescription, defaultImage, currentUrl));
+      return res.send(generateHTML(
+        'Perfil no encontrado · Terreta Hub',
+        'Ese perfil no está publicado en Terreta Hub, la red social de Valencia.',
+        DEFAULT_OG_IMAGE,
+        currentUrl,
+        'website'
+      ));
     }
 
     console.log('Profile found:', {
@@ -237,7 +274,9 @@ export default async function handler(
     const profileDescription = profileData.bio 
       ? profileData.bio.substring(0, 160)
       : `Perfil de ${profileData.display_name || profileData.username} en Terreta Hub`;
-    const avatarUrl = getPublicAvatarUrl(profileData.avatar, profileData.user_id, supabaseUrl);
+    const avatarUrl = ogSafeImageUrl(
+      getPublicAvatarUrl(profileData.avatar, profileData.user_id, supabaseUrl)
+    );
 
     console.log('Generated meta tags:', {
       title: profileTitle,
@@ -265,12 +304,12 @@ export default async function handler(
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const currentUrl = `${protocol}://${host}/p/${extension}`;
     
-    const defaultTitle = 'Terreta Hub | Red Social Valenciana';
-    const defaultDescription = 'Bienvenido al Epicentre de Terreta Hub. Reserva tu link personalizado, proyecta tus ideas en nuestro laboratorio digital y forma parte de la vanguardia valenciana.';
-    const defaultImage = 'https://terretahub.com/logo.png';
+    const defaultTitle = HUB_TITLE;
+    const defaultDescription = HUB_DESCRIPTION;
+    const defaultImage = DEFAULT_OG_IMAGE;
     
     res.status(200);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    return res.send(generateHTML(defaultTitle, defaultDescription, defaultImage, currentUrl));
+    return res.send(generateHTML(defaultTitle, defaultDescription, defaultImage, currentUrl, 'website'));
   }
 }

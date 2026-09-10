@@ -46,6 +46,9 @@ export const Footer: React.FC = () => {
           </a>
         </div>
       </div>
+      <p className="mt-2 text-center text-[10px] leading-relaxed text-terreta-dark/45 sm:text-xs">
+        Terreta Hub no es Terreta Business Hub S.L. (otra empresa).
+      </p>
     </footer>
   );
 };

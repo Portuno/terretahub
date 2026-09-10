@@ -35,18 +35,22 @@ const translations = {
     nav: { concept: 'Festival', tracks: 'La experiencia', agenda: 'Edición Cine', logistics: 'Participar', sponsorship: 'Patrocinar' },
     header: { back: '← Volver' },
     hero: {
-      badge: 'Terreta Hub presenta',
+      badge: 'Archivo · edición 2026',
       claim: EVENT_CLAIM_ES,
       subtext: 'cine, streaming y experimentos interactivos',
-      attend: 'Quiero participar',
+      attend: 'Dejá interés',
       sponsor: 'Quiero ser sponsor',
       collaborate: 'Quiero colaborar',
       duration: '3 días',
       speaker: 'Speaker / Mentor / Jurado',
+      profileCta: 'Creá tu perfil / reclamá tu link',
+    },
+    archive: {
+      banner: 'Esta página documenta una edición ya celebrada (3–5 de julio 2026). No hay agenda vigente: el hub sigue abierto.',
     },
     participate: {
       title: 'Participar',
-      subtitle: 'Elegí tu rol y anotate en minutos.',
+      subtitle: 'Dejá tu interés para próximas ediciones.',
       cards: {
         attendee: {
           title: 'Participante',
@@ -170,8 +174,8 @@ const translations = {
       { q: '¿Cómo participo como sponsor o colaborador/a?', a: 'Elegí tu rol y completá el formulario. Te contactamos para coordinar.' },
     ],
     toast: { error: 'Error al enviar. Intenta de nuevo.', attendeeOk: '¡Registro recibido! Te contactaremos pronto.', sponsorOk: '¡Solicitud recibida! Te contactaremos para concretar.', collaboratorOk: '¡Solicitud recibida! Te contactaremos para coordinar.', speakerOk: '¡Aplicación recibida! Revisaremos y te responderemos.' },
-    meta: { title: 'Un Finde en la Terreta | Festival Audiovisual | Terreta Hub', description: 'Cada persona cuenta su Terreta. A través del cine, el streaming y experimentos interactivos. 3, 4 y 5 de Julio 2026.' },
-    footer: { privacy: 'Política de Privacidad', terms: 'Términos y Condiciones', by: 'Plataforma creada por', accept: 'Al enviar cualquiera de los formularios aceptas nuestra' },
+    meta: { title: 'Un Finde en la Terreta · archivo | Terreta Hub', description: 'Archivo de Un Finde en la Terreta (3–5 de julio 2026): cine, streaming y experimentos. Creá tu perfil en Terreta Hub, la red social de Valencia.' },
+    footer: { privacy: 'Política de Privacidad', terms: 'Términos y Condiciones', by: 'Plataforma creada por', accept: 'Al enviar cualquiera de los formularios aceptas nuestra', disclaimer: 'Terreta Hub no es Terreta Business Hub S.L. (otra empresa).' },
     faqTitle: 'FAQ',
     modal: {
       close: 'Cerrar',
@@ -228,18 +232,22 @@ const translations = {
     nav: { concept: 'Festival', tracks: 'The experience', agenda: 'Film Edition', logistics: 'Participate', sponsorship: 'Sponsor' },
     header: { back: '← Back' },
     hero: {
-      badge: 'Terreta Hub presents',
+      badge: 'Archive · 2026 edition',
       claim: EVENT_CLAIM_EN,
       subtext: 'film, streaming and interactive experiments',
-      attend: 'I want to participate',
+      attend: 'Leave interest',
       sponsor: 'I want to be a sponsor',
       collaborate: 'I want to collaborate',
       duration: '3 days',
       speaker: 'Speaker / Mentor / Jury',
+      profileCta: 'Create your profile / claim your link',
+    },
+    archive: {
+      banner: 'This page documents a past edition (3–5 July 2026). There is no live agenda: the hub stays open.',
     },
     participate: {
       title: 'Participate',
-      subtitle: 'Choose your role and sign up in minutes.',
+      subtitle: 'Leave your interest for future editions.',
       cards: {
         attendee: {
           title: 'Participant',
@@ -363,8 +371,8 @@ const translations = {
       { q: 'How do I join as sponsor or collaborator?', a: 'Pick your role and complete the form. We will contact you to coordinate.' },
     ],
     toast: { error: 'Error sending. Please try again.', attendeeOk: 'Registration received! We\'ll be in touch soon.', sponsorOk: 'Request received! We\'ll contact you to follow up.', collaboratorOk: 'Request received! We\'ll contact you to coordinate.', speakerOk: 'Application received! We\'ll review and get back to you.' },
-    meta: { title: 'Un Finde en la Terreta | Audiovisual Festival | Terreta Hub', description: 'Every person tells their Terreta. Through film, streaming and interactive experiments. July 3-5, 2026.' },
-    footer: { privacy: 'Privacy Policy', terms: 'Terms and Conditions', by: 'Platform created by', accept: 'By submitting any form you accept our' },
+    meta: { title: 'Un Finde en la Terreta · archive | Terreta Hub', description: 'Archive of Un Finde en la Terreta (3–5 July 2026): film, streaming and experiments. Create your profile on Terreta Hub, Valencia’s social network.' },
+    footer: { privacy: 'Privacy Policy', terms: 'Terms and Conditions', by: 'Platform created by', accept: 'By submitting any form you accept our', disclaimer: 'Terreta Hub is not Terreta Business Hub S.L. (a different company).' },
     faqTitle: 'FAQ',
     modal: {
       close: 'Close',
@@ -771,7 +779,7 @@ export const UnFindePage: React.FC = () => {
       startDate: `${EVENT_DATE}T18:00:00+02:00`,
       endDate: `${EVENT_DATE_END}T21:00:00+02:00`,
       eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-      eventStatus: 'https://schema.org/EventScheduled',
+      eventStatus: 'https://schema.org/EventCompleted',
       location: { '@type': 'Place', name: eventPlace },
       organizer: { '@type': 'Organization', name: 'Terreta Hub', url: 'https://terretahub.com' },
     },
@@ -957,6 +965,9 @@ export const UnFindePage: React.FC = () => {
       <main className="pb-24 md:pb-0">
         {/* Hero */}
         <section id="festival" className="max-w-5xl mx-auto px-4 md:px-8 py-12 md:py-16 text-center">
+          <p className="mx-auto mb-6 max-w-2xl rounded-xl border border-terreta-border bg-terreta-card/70 px-4 py-3 text-sm leading-relaxed text-terreta-dark/80">
+            {t.archive.banner}
+          </p>
           <p className="text-sm uppercase tracking-widest text-terreta-accent font-semibold mb-3">
             {t.hero.badge}
           </p>
@@ -977,11 +988,22 @@ export const UnFindePage: React.FC = () => {
               <MapPin size={18} aria-hidden /> <span className="font-semibold text-terreta-dark/80 text-sm text-center break-words leading-tight">{eventPlace}</span>
             </div>
           </div>
+          <div className="mx-auto mb-3 max-w-xl">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="w-full px-7 py-3.5 bg-terreta-accent text-white font-bold rounded-lg hover:opacity-90 transition-opacity shadow-sm"
+              tabIndex={0}
+              aria-label={t.hero.profileCta}
+            >
+              {t.hero.profileCta}
+            </button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-xl mx-auto">
             <button
               type="button"
               onClick={() => setRegistrationModalType('attendee')}
-              className="w-full px-7 py-3.5 bg-terreta-accent text-white font-bold rounded-lg hover:opacity-90 transition-opacity shadow-sm"
+              className="w-full px-7 py-3.5 border border-terreta-accent/60 text-terreta-accent font-bold rounded-lg hover:bg-terreta-accent/10 transition-colors"
               tabIndex={0}
               aria-label={t.hero.attend}
             >
@@ -1310,6 +1332,9 @@ export const UnFindePage: React.FC = () => {
               <a href="https://www.versaproducciones.com" target="_blank" rel="noopener noreferrer" className="text-terreta-dark/70 hover:text-terreta-accent transition-colors font-medium">
                 Versa Producciones
               </a>
+            </p>
+            <p className="mt-2 w-full text-center text-[10px] leading-relaxed text-terreta-dark/45 sm:text-xs">
+              {t.footer.disclaimer}
             </p>
           </div>
         </section>

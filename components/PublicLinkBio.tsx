@@ -7,6 +7,7 @@ import { NotFound404 } from './NotFound404';
 import { trackProfileView } from '../lib/analytics';
 import { useDynamicMetaTags } from '../hooks/useDynamicMetaTags';
 import { QueryState } from './QueryState';
+import { ogSafeImageUrl } from '../lib/ogImage';
 
 interface PublicLinkBioProps {
   user: AuthUser | null;
@@ -384,7 +385,6 @@ export const PublicLinkBio: React.FC<PublicLinkBioProps> = ({ user, onOpenAuth }
   };
 
   // Actualizar meta tags dinámicamente cuando el perfil se carga
-  const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
   const avatarUrl = profile ? getPublicAvatarUrl(profile.avatar, profileUserId) : '';
   const profileTitle = profile 
     ? `${profile.displayName || profile.username} | Terreta Hub`
@@ -396,8 +396,9 @@ export const PublicLinkBio: React.FC<PublicLinkBioProps> = ({ user, onOpenAuth }
   useDynamicMetaTags({
     title: profile ? profileTitle : undefined,
     description: profile ? profileDescription : undefined,
-    image: profile && avatarUrl ? avatarUrl : undefined,
-    url: currentUrl || undefined
+    image: profile ? ogSafeImageUrl(avatarUrl) : undefined,
+    url: extension ? `/p/${extension}` : undefined,
+    type: 'profile',
   });
 
   if (loading) {

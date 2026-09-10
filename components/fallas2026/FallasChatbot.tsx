@@ -131,7 +131,7 @@ export const FallasChatbot: React.FC = () => {
                 </div>
               </div>
               <p className="font-serif text-terreta-dark font-semibold text-lg mb-1">
-                {language === 'es' ? 'Asistente Fallas 2026' : 'Fallas 2026 Assistant'}
+                {language === 'es' ? 'Asistente de Fallas' : 'Fallas assistant'}
               </p>
               <p className="text-terreta-dark/70 text-sm mb-5">
                 {language === 'es'

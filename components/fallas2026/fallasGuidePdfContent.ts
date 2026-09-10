@@ -28,7 +28,7 @@ export function getFallasGuidePdfContent(lang: Lang): { title: string; sections:
   }
 
   return {
-    title: t('Fallas 2026: Guía completa', 'Fallas 2026: Complete Guide'),
+    title: t('Guía de Fallas en Valencia', 'Fallas guide to Valencia'),
     sections: [
       {
         title: t('En esta guía encontrarás', 'In this guide you will find'),

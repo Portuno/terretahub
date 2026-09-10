@@ -115,7 +115,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
       case '/dominio': return 'Dominios';
       case '/framehack': return 'FrameHack';
       case '/chatbot': return 'Explorar la Comunidad';
-      case '/terreta': return 'Finde en la Terreta';
+      case '/terreta':
+      case '/unfinde': return 'Un Finde';
       case '/recursos': return "L'Almoina";
       case '/eventos': return 'Próximas Quedadas';
       case '/propiedades': return 'Mapa de espacios';

@@ -22,8 +22,8 @@ export const DOMAINS: DomainDefinition[] = [
   },
   {
     id: 'fallas2026',
-    name: 'Fallas 2026',
-    description: 'Guía completa de Fallas 2026 en Valencia: calendario, barrios y consejos prácticos.',
+    name: 'Guía de Fallas',
+    description: 'Guía práctica de Fallas en Valencia: calendario, barrios y consejos.',
     routePath: '/fallas2026',
   },
   {

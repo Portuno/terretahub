@@ -16,6 +16,7 @@ import { LanguageToggle } from './LanguageToggle';
 import { downloadFallasGuidePdf } from './fallasGuidePdfGenerator';
 import { ThemeOracle } from '../ThemeOracle';
 import { supabase } from '../../lib/supabase';
+import { useDynamicMetaTags } from '../../hooks/useDynamicMetaTags';
 
 const navItems = [
   {
@@ -152,7 +153,7 @@ const GuideNav: React.FC<GuideNavProps> = ({
           </button>
         </div>
 
-        <nav aria-label={language === 'es' ? 'Navegación Fallas 2026' : 'Fallas 2026 navigation'}>
+        <nav aria-label={language === 'es' ? 'Navegación de la guía de Fallas' : 'Fallas guide navigation'}>
           <ul className="py-1">
             {navItems.map((item) => (
               <li key={item.id}>
@@ -217,6 +218,22 @@ const FallasGuideLayoutInner: React.FC = () => {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   const downloadLabel = language === 'es' ? 'Descargar guía' : 'Download guide';
+  const titleText =
+    language === 'es' ? 'Guía de Fallas en Valencia' : 'Fallas guide to Valencia';
+  const subtitle =
+    language === 'es'
+      ? 'Guía práctica · rutas, horarios, consejos. Incluye la edición 2026 como referencia.'
+      : 'Practical guide · routes, schedules, tips. Includes the 2026 edition as reference.';
+
+  useDynamicMetaTags({
+    title: language === 'es' ? 'Guía de Fallas en Valencia · Terreta Hub' : 'Fallas guide to Valencia · Terreta Hub',
+    description:
+      language === 'es'
+        ? 'Guía práctica de Fallas: calendario, cómo moverse, seguridad y consejos. Creá tu perfil en Terreta Hub.'
+        : 'Practical Fallas guide: schedule, getting around, safety and tips. Create your profile on Terreta Hub.',
+    url: '/fallas2026',
+    type: 'website',
+  });
 
   const handleDownloadGuide = () => {
     downloadFallasGuidePdf(language);
@@ -238,13 +255,6 @@ const FallasGuideLayoutInner: React.FC = () => {
       }
     })();
   };
-  const titleText =
-    language === 'es' ? 'Fallas 2026: Guía Completa' : 'Fallas 2026: Complete Guide';
-  const subtitle =
-    language === 'es'
-      ? 'Guía práctica · Rutas, horarios, consejos y todo lo que te recomendamos.'
-      : 'Practical guide · Routes, schedules, tips and everything we recommend.';
-
   const isOverviewActive =
     location.pathname === '/fallas2026' || location.pathname === '/fallas2026/';
 
@@ -276,6 +286,12 @@ const FallasGuideLayoutInner: React.FC = () => {
               {titleText}
             </h1>
             <p className="text-xs text-terreta-dark/70">{subtitle}</p>
+            <Link
+              to="/"
+              className="mt-1 inline-block text-xs font-semibold text-terreta-accent hover:underline"
+            >
+              {language === 'es' ? 'Creá tu perfil / reclamá tu link' : 'Create your profile / claim your link'}
+            </Link>
           </div>
           <div className="flex items-center justify-end gap-2 md:hidden mt-1">
             <button
@@ -329,7 +345,7 @@ const FallasGuideLayoutInner: React.FC = () => {
           <div className="absolute inset-y-0 left-0 w-72 max-w-[80%] bg-terreta-bg border-r border-terreta-border shadow-xl flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-terreta-border/70 bg-terreta-card">
               <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-terreta-secondary">
-                {language === 'es' ? 'Guía Fallas 2026' : 'Fallas 2026 guide'}
+                {language === 'es' ? 'Guía de Fallas' : 'Fallas guide'}
               </span>
               <button
                 type="button"

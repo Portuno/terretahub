@@ -38,10 +38,6 @@ export const LandingPage: React.FC = () => {
   const [rewardMessage, setRewardMessage] = useState<string | null>(null);
   const localProgressKey = user ? `terreta_totes_progress_${user.id}` : null;
 
-  const handleGoToFinde = () => {
-    navigate('/terreta');
-  };
-
   const handleGoToExplore = () => {
     if (isAnimatingView) {
       return;
@@ -267,17 +263,23 @@ export const LandingPage: React.FC = () => {
               Terreta Hub
             </h1>
             <p className="mt-3 text-base leading-relaxed text-terreta-dark/75 md:text-lg">
-              Tu punto de entrada para descubrir que hacer en la Terreta.
+              Terreta Hub es la red social de Valencia: perfil, gente y lo que pasa en la ciudad.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 md:mt-10">
               <button
                 type="button"
-                onClick={handleGoToFinde}
+                onClick={() => {
+                  if (user) {
+                    navigate('/perfil');
+                    return;
+                  }
+                  onOpenAuth();
+                }}
                 className="w-full rounded-xl bg-terreta-accent px-4 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-md transition-all hover:-translate-y-0.5 hover:opacity-90"
-                aria-label="Ir a Finde en la Terreta"
+                aria-label={user ? 'Ir a tu perfil' : 'Creá tu perfil o reclamá tu link'}
               >
-                Finde en la Terreta
+                {user ? 'Tu perfil' : 'Creá tu perfil / reclamá tu link'}
               </button>
               <button
                 type="button"
@@ -301,7 +303,7 @@ export const LandingPage: React.FC = () => {
               Explorar
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-terreta-dark/75 md:text-base">
-              Elige cómo quieres interactuar con la plataforma.
+              Ágora, gente, proyectos y quedadas de Valencia.
             </p>
 
             <div className="mt-5 grid grid-cols-2 gap-2 sm:gap-3">
