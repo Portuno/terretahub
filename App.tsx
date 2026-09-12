@@ -52,6 +52,7 @@ import { TorreQueEsPage } from './components/biblioteca/TorreQueEsPage';
 import { TorreCreadorPage } from './components/biblioteca/TorreCreadorPage';
 import { TorreSeoPageView } from './components/biblioteca/TorreSeoPageView';
 import { MapaPage } from './components/MapaPage';
+import { AnswerPage } from './components/AnswerPage';
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -535,6 +536,14 @@ const AppContent: React.FC = () => {
           <Route path="terreta" element={<Navigate to="/unfinde" replace />} />
           <Route path="recursos" element={<ResourceCollabPanel user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="eventos" element={<EventsPage user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="que-es-terreta-hub" element={<AnswerPage path="/que-es-terreta-hub" />} />
+          <Route path="faq" element={<AnswerPage path="/faq" />} />
+          <Route path="donde-networking-valencia" element={<AnswerPage path="/donde-networking-valencia" />} />
+          <Route path="vibehack" element={<AnswerPage path="/vibehack" />} />
+          <Route path="comunidad-tech-valencia-2026" element={<AnswerPage path="/comunidad-tech-valencia-2026" />} />
+          <Route path="recursos-emprendedores-valencia" element={<AnswerPage path="/recursos-emprendedores-valencia" />} />
+          <Route path="para-recien-llegados-valencia" element={<AnswerPage path="/para-recien-llegados-valencia" />} />
+          <Route path="guia-fallas" element={<Navigate to="/fallas2026" replace />} />
           <Route path="blogs" element={<BlogsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="qr" element={<QRPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="terris" element={<TerrisPage />} />

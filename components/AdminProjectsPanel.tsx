@@ -4,6 +4,7 @@ import { Check, X, Eye, Clock, FolderKanban, CalendarDays, FileText } from 'luci
 import { AuthUser, ProjectStatus, EventStatus } from '../types';
 import { supabase } from '../lib/supabase';
 import { notifyProjectReview } from '../lib/notifications';
+import { firstErrorMessage, validateProject } from '../lib/contentValidation';
 
 interface AdminProjectsPanelProps {
   user: AuthUser;
@@ -135,6 +136,23 @@ export const AdminProjectsPanel: React.FC<AdminProjectsPanelProps> = ({ user }) 
   };
 
   const handleApprove = async (projectId: string) => {
+    const project =
+      projects.find((item) => item.id === projectId) || selectedProject;
+    const fieldErrors = validateProject({
+      name: project?.name || '',
+      slogan: project?.slogan || '',
+      description: project?.description || '',
+      images: project?.images || [],
+      status: 'published',
+    });
+    if (Object.keys(fieldErrors).length > 0) {
+      alert(
+        firstErrorMessage(fieldErrors) ||
+          'Este proyecto está incompleto. Pedile al autor que lo complete antes de aprobarlo.'
+      );
+      return;
+    }
+
     if (!confirm('¿Aprobar este proyecto? Se publicará en la galería.')) {
       return;
     }

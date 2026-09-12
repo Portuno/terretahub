@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, X, MessageSquare, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Notification as NotificationType } from '../types';
-import { generateSlug } from '../lib/utils';
+import { getProjectSlug } from '../lib/utils';
 import { useModalA11y } from '../hooks/useModalA11y';
 
 interface NotificationsProps {
@@ -139,12 +139,12 @@ export const Notifications: React.FC<NotificationsProps> = ({ userId }) => {
         case 'project': {
           const { data: projectData, error: projectError } = await supabase
             .from('projects')
-            .select('name')
+            .select('id, name')
             .eq('id', notification.related_id)
             .single();
 
           if (!projectError && projectData) {
-            navigate(`/proyecto/${generateSlug(projectData.name)}`);
+            navigate(`/proyecto/${getProjectSlug(projectData.name, projectData.id)}`);
           } else {
             navigate('/proyectos');
           }

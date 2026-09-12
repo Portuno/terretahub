@@ -30,6 +30,9 @@ export const DominioPage: React.FC<DominioPageProps> = ({ user: _user, onOpenAut
     navigate(routePath);
   };
 
+  const activeDomains = DOMAINS.filter((domain) => !domain.comingSoon);
+  const upcomingDomains = DOMAINS.filter((domain) => domain.comingSoon);
+
   return (
     <section className="flex flex-col gap-6 py-4">
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -75,7 +78,7 @@ export const DominioPage: React.FC<DominioPageProps> = ({ user: _user, onOpenAut
 
       {viewMode === 'cards' ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {DOMAINS.map((domain) => (
+          {activeDomains.map((domain) => (
             <DomainCard
               key={domain.id}
               domain={domain}
@@ -85,7 +88,7 @@ export const DominioPage: React.FC<DominioPageProps> = ({ user: _user, onOpenAut
         </div>
       ) : (
         <ul className="flex flex-col gap-2">
-          {DOMAINS.map((domain) => (
+          {activeDomains.map((domain) => (
             <li key={domain.id}>
               <button
                 type="button"
@@ -101,13 +104,34 @@ export const DominioPage: React.FC<DominioPageProps> = ({ user: _user, onOpenAut
                   </p>
                 </div>
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-terreta-accent/80">
-                  {domain.comingSoon ? 'Próximamente' : 'Ir al dominio'}
+                  Ir al dominio
                 </span>
               </button>
             </li>
           ))}
         </ul>
       )}
+
+      {upcomingDomains.length > 0 ? (
+        <section className="mt-2 border-t border-terreta-border/70 pt-4">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-terreta-dark/45">
+            En preparación
+          </h2>
+          <ul className="mt-2 space-y-1">
+            {upcomingDomains.map((domain) => (
+              <li key={domain.id}>
+                <button
+                  type="button"
+                  onClick={() => handleDomainClick(domain.routePath)}
+                  className="text-left text-sm text-terreta-dark/55 underline decoration-terreta-dark/20 underline-offset-2 hover:text-terreta-dark"
+                >
+                  {domain.name} — próximamente
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </section>
   );
 };

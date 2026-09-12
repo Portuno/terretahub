@@ -1,5 +1,27 @@
 {
+  "redirects": [
+    {
+      "source": "/guia-fallas",
+      "destination": "/fallas2026",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "terretahub.com"
+        }
+      ],
+      "destination": "https://www.terretahub.com/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
     {
       "source": "/p/:extension",
       "destination": "/api/p/:extension",
@@ -24,7 +46,7 @@
       "destination": "/:path*"
     },
     {
-      "source": "/((?!api|assets|favicon.ico|robots.txt|sitemap.xml).*)",
+      "source": "/((?!api|assets|favicon.ico|robots.txt|sitemap.xml|llms.txt).*)",
       "destination": "/index.html"
     }
   ],

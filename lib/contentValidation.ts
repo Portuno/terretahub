@@ -67,6 +67,13 @@ export const validateProject = (input: ProjectValidationInput): FieldErrors => {
   return errors;
 };
 
+export const isListablePublishedProject = (input: ProjectValidationInput): boolean => {
+  if (input.status !== 'published') {
+    return false;
+  }
+  return Object.keys(validateProject(input)).length === 0;
+};
+
 export const validateEvent = (input: EventValidationInput): FieldErrors => {
   const errors: FieldErrors = {};
 

@@ -7,6 +7,7 @@ import { BlogEditor } from './BlogEditor';
 import { BlogAuthorizationRequest } from './BlogAuthorizationRequest';
 import { getBlogImageUrl } from '../lib/blogUtils';
 import { executeQueryWithRetry } from '../lib/supabaseHelpers';
+import { QueryState } from './QueryState';
 
 const BLOGS_PAGE_SIZE = 12;
 
@@ -21,6 +22,7 @@ type FilterTag = string | null;
 export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [showAuthRequest, setShowAuthRequest] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -76,6 +78,7 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
     try {
       if (reset) {
         setLoading(true);
+        setLoadError(null);
       } else {
         setLoadingMore(true);
       }
@@ -131,9 +134,12 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
         console.error('Error loading blogs:', blogsError);
         if (reset) {
           setBlogs([]);
+          setLoadError('No pudimos cargar los blogs. Probá de nuevo.');
         }
         return;
       }
+
+      setLoadError(null);
 
       let userLikes: Map<string, 'like' | 'dislike'> = new Map();
       if (user && blogsData && blogsData.length > 0) {
@@ -197,6 +203,7 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
       console.error('Error loading blogs:', err);
       if (reset) {
         setBlogs([]);
+        setLoadError('No pudimos cargar los blogs. Probá de nuevo.');
       }
     } finally {
       setLoading(false);
@@ -316,11 +323,13 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({ user, onOpenAuth }) => {
       </div>
 
       {/* Grid de blogs */}
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-terreta-accent mb-4"></div>
-          <p className="text-terreta-secondary">Cargando blogs...</p>
-        </div>
+      {loading || loadError ? (
+        <QueryState
+          loading={loading}
+          error={loadError}
+          onRetry={() => loadBlogs(true)}
+          loadingLabel="Cargando blogs..."
+        />
       ) : blogs.length === 0 ? (
         <div className="text-center py-12 text-terreta-secondary">
           <BookOpen size={48} className="mx-auto mb-4 opacity-50" />

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Calendar, User, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import { ProjectWithAuthor } from './ProjectsGallery';
-import { generateSlug, normalizeUrl, renderMarkdown } from '../lib/utils';
+import { getProjectSlug, normalizeUrl, renderMarkdown } from '../lib/utils';
 import { useModalA11y } from '../hooks/useModalA11y';
 
 interface ProjectModalProps {
@@ -92,7 +92,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ project, isOpen, onC
 
   if (!shouldRender || !project) return null;
 
-  const projectSlug = generateSlug(project.name);
+  const projectSlug = getProjectSlug(project.name, project.id);
   const projectUrl = `/proyecto/${projectSlug}`;
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {

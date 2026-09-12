@@ -407,8 +407,9 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
             <h1 className="font-sans text-3xl md:text-4xl text-terreta-dark font-bold mb-2">
               Quedadas
             </h1>
-            <p className="text-terreta-dark/60">
-              Descubre y participa en quedadas de la comunidad Terreta Hub
+            <p className="text-terreta-dark/60 max-w-xl">
+              Las quedadas de Terreta Hub son encuentros reales de la red social de Valencia.
+              Si no hay próximas, el listado se queda vacío a propósito: no inventamos eventos.
             </p>
           </div>
           
@@ -538,7 +539,13 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
                 ? 'No hay quedadas pasadas'
                 : 'No hay quedadas todavía'
             }
-            description="Organizá un encuentro y compartilo con la comunidad de Valencia."
+            description={
+              filter === 'upcoming'
+                ? 'Todavía no hay quedadas próximas publicadas. Cuando se organicen, van a aparecer acá. Mientras tanto, creá la tuya o mirá el Ágora.'
+                : filter === 'past'
+                ? 'No hay quedadas pasadas en el archivo todavía.'
+                : 'No hay quedadas publicadas todavía. Organizá un encuentro y compartilo con Valencia.'
+            }
             actionLabel={user ? 'Crear quedada' : 'Ingresá para crear una quedada'}
             onAction={() => {
               if (!user) {

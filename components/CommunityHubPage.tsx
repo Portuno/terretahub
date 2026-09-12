@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { FolderKanban, Users, UsersRound } from 'lucide-react';
+import { FolderKanban, Users } from 'lucide-react';
 import { AuthUser } from '../types';
 
 interface DashboardOutletContext {
@@ -9,12 +9,11 @@ interface DashboardOutletContext {
 }
 
 interface CommunityHubCard {
-  id: 'miembros' | 'proyectos' | 'grupos';
+  id: 'miembros' | 'proyectos';
   title: string;
   description: string;
   icon: React.ReactNode;
   handleClick: () => void;
-  badge?: string;
 }
 
 export const CommunityHubPage: React.FC = () => {
@@ -44,14 +43,6 @@ export const CommunityHubPage: React.FC = () => {
       description: 'Explora ideas y productos que están construyendo en la comunidad.',
       icon: <FolderKanban size={20} />,
       handleClick: () => handleRequireAuth(() => navigate('/proyectos'))
-    },
-    {
-      id: 'grupos',
-      title: 'Grupos',
-      description: 'Espacios temáticos en preparación. Dejá tu interés: no hay listado todavía.',
-      icon: <UsersRound size={20} />,
-      handleClick: () => navigate('/grupos'),
-      badge: 'Próximamente'
     }
   ];
 
@@ -64,7 +55,7 @@ export const CommunityHubPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {cards.map((card) => (
           <button
             key={card.id}
@@ -77,13 +68,20 @@ export const CommunityHubPage: React.FC = () => {
               {card.icon}
             </div>
             <h2 className="text-lg font-bold text-terreta-dark">{card.title}</h2>
-            {card.badge ? (
-              <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-terreta-accent">{card.badge}</p>
-            ) : null}
             <p className="mt-2 text-sm leading-relaxed text-terreta-dark/70">{card.description}</p>
           </button>
         ))}
       </div>
+      <p className="mt-6 text-center text-xs text-terreta-dark/50">
+        Grupos temáticos están en preparación.{' '}
+        <button
+          type="button"
+          onClick={() => navigate('/grupos')}
+          className="underline decoration-terreta-dark/30 underline-offset-2 hover:text-terreta-dark"
+        >
+          Dejar interés
+        </button>
+      </p>
     </div>
   );
 };

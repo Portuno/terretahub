@@ -1,6 +1,8 @@
 import { useLocation } from 'react-router-dom';
 import { useDynamicMetaTags } from './useDynamicMetaTags';
 
+import { SITE_CLAIM } from '../lib/site';
+
 interface RouteMeta {
   title: string;
   description: string;
@@ -8,8 +10,7 @@ interface RouteMeta {
 
 const DEFAULT_META: RouteMeta = {
   title: 'Terreta Hub · red social de Valencia',
-  description:
-    'Terreta Hub es la red social de Valencia: gente, proyectos, quedadas y recursos de la comunidad.',
+  description: SITE_CLAIM,
 };
 
 const ROUTE_META: Record<string, RouteMeta> = {
@@ -54,16 +55,49 @@ const ROUTE_META: Record<string, RouteMeta> = {
     title: 'Dominios · Terreta Hub',
     description: 'Áreas y experimentos de Terreta Hub: espacios, QR, biblioteca y más.',
   },
+  '/que-es-terreta-hub': {
+    title: 'Qué es Terreta Hub · red social de Valencia',
+    description:
+      'Terreta Hub es la red social de Valencia: perfil, gente y lo que pasa en la ciudad. No es Terreta Business Hub S.L.',
+  },
+  '/faq': {
+    title: 'Preguntas frecuentes · Terreta Hub',
+    description: 'Cuánto cuesta, cómo unirse, idiomas, y diferencias con Meetup, LinkedIn y Terreta Business Hub S.L.',
+  },
+  '/donde-networking-valencia': {
+    title: 'Dónde hacer networking en Valencia · Terreta Hub',
+    description: 'Quedadas de Terreta Hub, UPV, hackathons y formatos de barrio.',
+  },
+  '/vibehack': {
+    title: 'VibeHack en Valencia (UPV) · Terreta Hub',
+    description: 'Qué es VibeHack, la edición 2025 en la UPV y cómo seguir la siguiente.',
+  },
+  '/comunidad-tech-valencia-2026': {
+    title: 'Comunidad tech en Valencia 2026 · Terreta Hub',
+    description: 'UPV, VibeHack y Terreta Hub: panorama 2026 sin métricas infladas.',
+  },
+  '/recursos-emprendedores-valencia': {
+    title: 'Recursos para emprendedores en Valencia · Terreta Hub',
+    description: 'Lista curada, con criterio y fecha, para quien emprende en Valencia.',
+  },
+  '/para-recien-llegados-valencia': {
+    title: 'Para recién llegados a Valencia · Terreta Hub',
+    description: 'Guía breve en español e inglés para quien acaba de llegar a Valencia.',
+  },
 };
 
 export const useRouteMeta = () => {
   const location = useLocation();
-  const meta = ROUTE_META[location.pathname] ?? DEFAULT_META;
+  const meta = ROUTE_META[location.pathname];
 
-  useDynamicMetaTags({
-    title: meta.title,
-    description: meta.description,
-    url: location.pathname,
-    type: 'website',
-  });
+  useDynamicMetaTags(
+    meta
+      ? {
+          title: meta.title,
+          description: meta.description,
+          url: location.pathname,
+          type: 'website',
+        }
+      : {}
+  );
 };

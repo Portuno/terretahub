@@ -6,7 +6,7 @@ import { AuthUser, Project } from '../types';
 import { Toast } from './Toast';
 import { useProfileNavigation } from '../hooks/useProfileNavigation';
 import { persistProject } from '../lib/projectPersistence';
-import { generateSlug } from '../lib/utils';
+import { getProjectSlug } from '../lib/utils';
 
 interface ProjectsPageProps {
   user: AuthUser | null;
@@ -53,9 +53,8 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ user, onOpenAuth }) 
     setShowToast(true);
     setIsCreating(false);
 
-    if (project.name.trim()) {
-      navigate(`/proyecto/${generateSlug(project.name)}`);
-    }
+    const projectId = result.projectId || project.id;
+    navigate(`/proyecto/${getProjectSlug(project.name, projectId)}`);
   };
 
   const toastNode = showToast ? (

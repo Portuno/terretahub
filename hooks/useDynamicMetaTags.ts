@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { SITE_ORIGIN, absoluteUrl } from '../lib/site';
 
 interface MetaTagsData {
   title?: string;
@@ -24,8 +25,7 @@ export const useDynamicMetaTags = (data: MetaTagsData) => {
       return;
     }
 
-    const baseUrl = 'https://terretahub.com';
-    const fullUrl = data.url ? (data.url.startsWith('http') ? data.url : `${baseUrl}${data.url}`) : baseUrl;
+    const fullUrl = data.url ? absoluteUrl(data.url) : `${SITE_ORIGIN}/`;
 
     const updateMetaTag = (property: string, content: string) => {
       // Buscar meta tag existente
@@ -89,15 +89,14 @@ export const useDynamicMetaTags = (data: MetaTagsData) => {
     }
     
     if (data.image) {
-      const imageUrl = data.image.startsWith('http') ? data.image : `${baseUrl}${data.image}`;
+      const imageUrl = data.image.startsWith('http') ? data.image : absoluteUrl(data.image);
       updateMetaTag('og:image', imageUrl);
       updateMetaTag('og:image:width', '1200');
       updateMetaTag('og:image:height', '630');
       updateMetaTag('og:image:type', 'image/jpeg');
       updateMetaTag('og:image:secure_url', imageUrl);
     } else {
-      // Imagen por defecto si no se proporciona
-      updateMetaTag('og:image', `${baseUrl}/logo.png`);
+      updateMetaTag('og:image', `${SITE_ORIGIN}/logo.png`);
     }
     
     updateMetaTag('og:url', fullUrl);
@@ -116,7 +115,7 @@ export const useDynamicMetaTags = (data: MetaTagsData) => {
     }
     
     if (data.image) {
-      const imageUrl = data.image.startsWith('http') ? data.image : `${baseUrl}${data.image}`;
+      const imageUrl = data.image.startsWith('http') ? data.image : absoluteUrl(data.image);
       updateMetaTagName('twitter:image', imageUrl);
     }
 

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { generateSlug, normalizeUrl, renderMarkdown } from '../lib/utils';
+import { normalizeUrl, parseProjectIdFromSlug, projectMatchesSlug, projectPublicPath, renderMarkdown } from '../lib/utils';
+import { SITE_ORIGIN, absoluteUrl } from '../lib/site';
 import { NotFound404 } from './NotFound404';
 import { Calendar, Image as ImageIcon, ArrowLeft, ExternalLink, Pencil, Trash2, Undo2 } from 'lucide-react';
 import { useDynamicMetaTags } from '../hooks/useDynamicMetaTags';
@@ -17,6 +18,7 @@ import {
   withdrawProjectFromReview
 } from '../lib/projectPersistence';
 import { isOwnContent } from '../lib/ownership';
+import { isListablePublishedProject } from '../lib/contentValidation';
 
 // Helper to convert YouTube/Vimeo URLs to embed format
 const getEmbedUrl = (url: string): string => {
@@ -86,6 +88,7 @@ interface ProjectFromDB {
   status: 'draft' | 'review' | 'published';
   created_at: string;
   updated_at: string;
+  archived_at?: string | null;
 }
 
 interface ProjectWithAuthor extends ProjectFromDB {
@@ -135,37 +138,51 @@ export const PublicProject: React.FC<PublicProjectProps> = ({ user = null }) => 
       setError(null);
       setLoadError(null);
 
-      let query = supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const idFromSlug = parseProjectIdFromSlug(slug);
+      let matchingProject: ProjectFromDB | null = null;
 
-      if (user?.id) {
-        query = query.or(`status.eq.published,author_id.eq.${user.id}`);
+      if (idFromSlug) {
+        const { data: byId, error: byIdError } = await executeQueryWithRetry(
+          async () => await supabase.from('projects').select('*').eq('id', idFromSlug).maybeSingle(),
+          'load public project by id'
+        );
+        if (byIdError) {
+          console.error('Error al cargar proyecto:', byIdError);
+          setError('load');
+          setLoadError('No pudimos cargar el proyecto. Probá de nuevo.');
+          setLoading(false);
+          return;
+        }
+        matchingProject = (byId as ProjectFromDB | null) || null;
       } else {
-        query = query.eq('status', 'published');
+        let query = supabase
+          .from('projects')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (user?.id) {
+          query = query.or(`status.eq.published,author_id.eq.${user.id}`);
+        } else {
+          query = query.eq('status', 'published');
+        }
+
+        const { data: projectsData, error: projectsError } = await executeQueryWithRetry(
+          async () => await query,
+          'load public project by slug'
+        );
+
+        if (projectsError) {
+          console.error('Error al cargar proyectos:', projectsError);
+          setError('load');
+          setLoadError('No pudimos cargar el proyecto. Probá de nuevo.');
+          setLoading(false);
+          return;
+        }
+
+        matchingProject =
+          (projectsData as ProjectFromDB[] | null)?.find((p) => projectMatchesSlug(p.name, p.id, slug)) ||
+          null;
       }
-
-      const { data: projectsData, error: projectsError } = await executeQueryWithRetry(
-        async () => await query,
-        'load public project by slug'
-      );
-
-      if (projectsError) {
-        console.error('Error al cargar proyectos:', projectsError);
-        setError('load');
-        setLoadError('No pudimos cargar el proyecto. Probá de nuevo.');
-        setLoading(false);
-        return;
-      }
-
-      if (!projectsData || projectsData.length === 0) {
-        setError('not-found');
-        setLoading(false);
-        return;
-      }
-
-      const matchingProject = (projectsData as ProjectFromDB[]).find((p) => generateSlug(p.name) === slug);
 
       if (!matchingProject) {
         setError('not-found');
@@ -174,8 +191,18 @@ export const PublicProject: React.FC<PublicProjectProps> = ({ user = null }) => 
       }
 
       const isOwner = isOwnContent(matchingProject.author_id, user?.id);
-      if (matchingProject.status !== 'published' && !isOwner) {
-        setError('pending');
+      const isPubliclyVisible =
+        !matchingProject.archived_at &&
+        isListablePublishedProject({
+          name: matchingProject.name || '',
+          slogan: matchingProject.slogan || '',
+          description: matchingProject.description || '',
+          images: matchingProject.images || [],
+          status: matchingProject.status,
+        });
+
+      if (!isOwner && !isPubliclyVisible) {
+        setError(matchingProject.status !== 'published' ? 'pending' : 'not-found');
         setLoading(false);
         return;
       }
@@ -241,9 +268,9 @@ export const PublicProject: React.FC<PublicProjectProps> = ({ user = null }) => 
     setIsEditing(false);
     setToastMessage(updated.status === 'draft' ? 'Borrador guardado' : 'Proyecto actualizado');
     setShowToast(true);
-    const nextSlug = generateSlug(updated.name);
-    if (nextSlug && nextSlug !== slug) {
-      navigate(`/proyecto/${nextSlug}`, { replace: true });
+    const nextPath = projectPublicPath(updated.name, result.projectId || updated.id);
+    if (nextPath !== `/proyecto/${slug}`) {
+      navigate(nextPath, { replace: true });
       return;
     }
     await loadProject();
@@ -283,7 +310,7 @@ export const PublicProject: React.FC<PublicProjectProps> = ({ user = null }) => 
     await loadProject();
   };
 
-  const projectUrl = slug ? `/proyecto/${slug}` : '/proyecto';
+  const projectUrl = project ? projectPublicPath(project.name, project.id) : slug ? `/proyecto/${slug}` : '/proyectos';
   const projectImageUrl =
     project?.images && project.images.length > 0 ? project.images[0] : '/logo.png';
   const baseDescription =
@@ -298,18 +325,18 @@ export const PublicProject: React.FC<PublicProjectProps> = ({ user = null }) => 
     ? {
         '@context': 'https://schema.org',
         '@type': 'CreativeWork',
-        '@id': `https://terretahub.com${projectUrl}`,
+        '@id': absoluteUrl(projectUrl),
         name: project.name,
         description: project.description,
         image: projectImageUrl.startsWith('http')
           ? projectImageUrl
-          : `https://terretahub.com${projectImageUrl}`,
+          : absoluteUrl(projectImageUrl),
         datePublished: project.created_at,
         dateModified: project.updated_at,
         author: {
           '@type': 'Person',
           name: project.author.name,
-          url: `https://terretahub.com/p/${project.author.username}`,
+          url: absoluteUrl(`/p/${project.author.username}`),
           image: project.author.avatar,
         },
         publisher: {
@@ -317,12 +344,12 @@ export const PublicProject: React.FC<PublicProjectProps> = ({ user = null }) => 
           name: 'Terreta Hub',
           logo: {
             '@type': 'ImageObject',
-            url: 'https://terretahub.com/logo.png',
+            url: `${SITE_ORIGIN}/logo.png`,
           },
         },
         mainEntityOfPage: {
           '@type': 'WebPage',
-          '@id': `https://terretahub.com${projectUrl}`,
+          '@id': absoluteUrl(projectUrl),
         },
         keywords: [...categories, ...technologies].join(', '),
         inLanguage: 'es-ES',
@@ -475,7 +502,9 @@ export const PublicProject: React.FC<PublicProjectProps> = ({ user = null }) => 
           <div className="mb-5">
             <div className="flex items-start justify-between mb-3 flex-wrap gap-3">
               <div className="flex-1">
-                <h1 className="font-serif text-2xl md:text-3xl text-terreta-dark mb-1.5">{project.name}</h1>
+                <h1 className="font-serif text-2xl md:text-3xl text-terreta-dark mb-1.5">
+                  {project.name.trim() || 'Proyecto sin título'}
+                </h1>
                 {project.slogan && (
                   <p className="text-base md:text-lg text-gray-600 italic">{project.slogan}</p>
                 )}

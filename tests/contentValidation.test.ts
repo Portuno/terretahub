@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateEvent, validateProject } from '../lib/contentValidation';
+import { isListablePublishedProject, validateEvent, validateProject } from '../lib/contentValidation';
 import { persistProject } from '../lib/projectPersistence';
 
 const futureDate = () => {
@@ -43,6 +43,20 @@ describe('validateProject', () => {
       status: 'draft',
     });
     expect(errors).toEqual({});
+  });
+});
+
+describe('isListablePublishedProject', () => {
+  it('oculta un publicado vacío', () => {
+    expect(
+      isListablePublishedProject({
+        name: '',
+        slogan: '',
+        description: '',
+        images: [],
+        status: 'published',
+      })
+    ).toBe(false);
   });
 });
 

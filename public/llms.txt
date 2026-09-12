@@ -1,0 +1,27 @@
+# Terreta Hub
+
+Terreta Hub es la red social de Valencia: perfil, gente y lo que pasa en la ciudad.
+No está afiliada ni es la misma entidad que Terreta Business Hub S.L.
+
+Sitio canónico: https://www.terretahub.com
+
+## Páginas primarias
+
+- Qué es: https://www.terretahub.com/que-es-terreta-hub
+- FAQ: https://www.terretahub.com/faq
+- Fallas: https://www.terretahub.com/fallas2026
+- Networking en Valencia: https://www.terretahub.com/donde-networking-valencia
+- Quedadas / eventos: https://www.terretahub.com/eventos
+- VibeHack (UPV): https://www.terretahub.com/vibehack
+- Recién llegados: https://www.terretahub.com/para-recien-llegados-valencia
+- Comunidad tech 2026: https://www.terretahub.com/comunidad-tech-valencia-2026
+- Recursos: https://www.terretahub.com/recursos-emprendedores-valencia
+
+## Otras rutas útiles
+
+- Home: https://www.terretahub.com/
+- Ágora: https://www.terretahub.com/agora
+- Miembros: https://www.terretahub.com/miembros
+- Proyectos: https://www.terretahub.com/proyectos
+- Perfiles públicos: https://www.terretahub.com/p/{extension}
+- Sitemap: https://www.terretahub.com/sitemap.xml

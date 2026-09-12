@@ -5,6 +5,8 @@ import { BriefcaseBusiness, CalendarClock, MapPin, Plus, StickyNote } from 'luci
 import { AuthUser } from '../types';
 import { supabase } from '../lib/supabase';
 import { EventTimeFilter, filterMapItems, getEventTimeBucket, MapItem, MapItemType } from '../lib/mapUtils';
+import { executeQueryWithRetry } from '../lib/supabaseHelpers';
+import { QueryState } from './QueryState';
 
 interface MapaPageProps {
   user: AuthUser | null;
@@ -90,13 +92,31 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
     setIsLoading(true);
     try {
       const [businessesResult, notesResult, eventsResult] = await Promise.all([
-        supabase.from('map_businesses').select('id, name, description, tags, latitude, longitude, created_at'),
-        supabase.from('map_notes').select('id, title, note, category, latitude, longitude, created_at'),
-        supabase
-          .from('events')
-          .select('id, title, description, category, start_date, location, latitude, longitude, status')
-          .eq('status', 'published'),
+        executeQueryWithRetry(
+          async () =>
+            await supabase.from('map_businesses').select('id, name, description, tags, latitude, longitude, created_at'),
+          'load map businesses'
+        ),
+        executeQueryWithRetry(
+          async () =>
+            await supabase.from('map_notes').select('id, title, note, category, latitude, longitude, created_at'),
+          'load map notes'
+        ),
+        executeQueryWithRetry(
+          async () =>
+            await supabase
+              .from('events')
+              .select('id, title, description, category, start_date, location, latitude, longitude, status')
+              .eq('status', 'published'),
+          'load map events'
+        ),
       ]);
+
+      if (businessesResult.error && notesResult.error && eventsResult.error) {
+        setItems([]);
+        setErrorMessage('No se pudo cargar el mapa. Probá de nuevo.');
+        return;
+      }
 
       const businessItems: MapItem[] =
         businessesResult.data?.map((business: any) => ({
@@ -139,7 +159,7 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
       setItems([...businessItems, ...eventItems, ...noteItems]);
       setErrorMessage('');
     } catch (error) {
-      setErrorMessage('No se pudo cargar el mapa. Ejecuta primero los SQL de MAPA y recarga.');
+      setErrorMessage('No se pudo cargar el mapa. Probá de nuevo.');
     } finally {
       setIsLoading(false);
     }
@@ -392,8 +412,14 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
             ) : null}
           </div>
 
-          {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
-          {isLoading ? <p className="text-sm text-terreta-dark/70">Cargando mapa...</p> : null}
+          {isLoading || errorMessage ? (
+            <QueryState
+              loading={isLoading}
+              error={errorMessage || null}
+              onRetry={loadData}
+              loadingLabel="Cargando mapa..."
+            />
+          ) : null}
         </aside>
       </div>
     </section>

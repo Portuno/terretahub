@@ -6,6 +6,8 @@ import { ProjectStatus } from '../types';
 import { ProjectModal } from './ProjectModal';
 import { QueryState } from './QueryState';
 import { EmptyState } from './EmptyState';
+import { isListablePublishedProject } from '../lib/contentValidation';
+import { isOwnContent } from '../lib/ownership';
 
 interface ProjectFromDB {
   id: string;
@@ -22,6 +24,7 @@ interface ProjectFromDB {
   status: ProjectStatus;
   created_at: string;
   updated_at: string;
+  archived_at?: string | null;
 }
 
 interface ProjectWithAuthor extends ProjectFromDB {
@@ -35,7 +38,7 @@ interface ProjectWithAuthor extends ProjectFromDB {
 interface ProjectsGalleryProps {
   onViewProfile?: (handle: string) => void;
   onCreateProject?: () => void;
-  user?: { id: string } | null;
+  user?: { id: string; name?: string; username?: string; avatar?: string } | null;
 }
 
 export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile, onCreateProject, user }) => {
@@ -52,7 +55,78 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
 
   useEffect(() => {
     loadProjects();
-  }, []);
+  }, [user?.id]);
+
+  const isVisibleInGallery = (project: ProjectWithAuthor): boolean => {
+    if (isOwnContent(project.author_id, user?.id)) {
+      return true;
+    }
+    if (project.archived_at) {
+      return false;
+    }
+    return isListablePublishedProject({
+      name: project.name || '',
+      slogan: project.slogan || '',
+      description: project.description || '',
+      images: project.images || [],
+      status: project.status,
+    });
+  };
+
+  const withOwnProjects = async (published: ProjectWithAuthor[]): Promise<ProjectWithAuthor[]> => {
+    const byId = new Map(published.map((project) => [project.id, project]));
+
+    if (user?.id) {
+      const ownSelectWithArchive =
+        'id, author_id, name, slogan, description, images, video_url, website, categories, technologies, phase, status, created_at, updated_at, archived_at';
+      const ownSelect =
+        'id, author_id, name, slogan, description, images, video_url, website, categories, technologies, phase, status, created_at, updated_at';
+
+      let ownResult: { data: ProjectFromDB[] | null; error: any } = await executeQueryWithRetry(
+        async () =>
+          await supabase
+            .from('projects')
+            .select(ownSelectWithArchive)
+            .eq('author_id', user.id)
+            .order('updated_at', { ascending: false }),
+        'load own projects'
+      );
+
+      if (ownResult.error && /archived_at/i.test(ownResult.error.message || '')) {
+        ownResult = await executeQueryWithRetry(
+          async () =>
+            await supabase
+              .from('projects')
+              .select(ownSelect)
+              .eq('author_id', user.id)
+              .order('updated_at', { ascending: false }),
+          'load own projects without archived_at'
+        );
+      }
+
+      const ownData = ownResult.data;
+      const ownError = ownResult.error;
+
+      if (!ownError && ownData) {
+        const ownerAuthor = {
+          name: user.name || 'Vos',
+          username: user.username || 'usuario',
+          avatar: user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username || user.id}`,
+        };
+
+        ownData.forEach((project: ProjectFromDB) => {
+          const existing = byId.get(project.id);
+          byId.set(project.id, {
+            ...project,
+            images: Array.isArray(project.images) ? project.images.filter(Boolean) : [],
+            author: existing?.author || ownerAuthor,
+          });
+        });
+      }
+    }
+
+    return Array.from(byId.values()).filter(isVisibleInGallery);
+  };
 
   const loadProjects = async () => {
     try {
@@ -79,7 +153,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
       }
 
       if (!projectsData || projectsData.length === 0) {
-        setProjects([]);
+        setProjects(await withOwnProjects([]));
         return;
       }
 
@@ -116,6 +190,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
           status: p.status as ProjectStatus,
           created_at: p.created_at,
           updated_at: p.updated_at,
+          archived_at: p.archived_at || null,
           author: {
             name: p.author_name || 'Usuario',
             username: p.author_username || 'usuario',
@@ -124,7 +199,7 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
         };
       });
 
-      setProjects(projectsWithAuthors);
+      setProjects(await withOwnProjects(projectsWithAuthors));
     } catch (err) {
       console.error('[ProjectsGallery] Error al cargar proyectos:', err);
       await loadProjectsFallback();
@@ -148,13 +223,16 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
 
       if (projectsError) {
         console.error('[ProjectsGallery] Error al cargar proyectos (fallback):', projectsError);
-        setProjects([]);
-        setLoadError('No pudimos cargar los proyectos. Probá de nuevo.');
+        const merged = await withOwnProjects([]);
+        setProjects(merged);
+        if (merged.length === 0) {
+          setLoadError('No pudimos cargar los proyectos. Probá de nuevo.');
+        }
         return;
       }
 
       if (!projectsData || projectsData.length === 0) {
-        setProjects([]);
+        setProjects(await withOwnProjects([]));
         return;
       }
 
@@ -237,10 +315,10 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
         };
       });
 
-      setProjects(projectsWithAuthors);
+      setProjects(await withOwnProjects(projectsWithAuthors));
     } catch (err) {
       console.error('[ProjectsGallery] Error en fallback:', err);
-      setProjects([]);
+      setProjects(await withOwnProjects([]));
       setLoadError('No pudimos cargar los proyectos. Probá de nuevo.');
     }
   };
@@ -539,8 +617,13 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
                 {/* Contenido */}
                 <div className="p-6">
                   <h3 className="font-sans text-xl text-terreta-dark mb-2 line-clamp-1">
-                    {project.name}
+                    {project.name.trim() || 'Proyecto sin título'}
                   </h3>
+                  {isOwnContent(project.author_id, user?.id) && project.status !== 'published' ? (
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                      {project.status === 'review' ? 'En revisión' : 'Borrador'}
+                    </p>
+                  ) : null}
                   {project.slogan && (
                     <p className="text-sm text-terreta-secondary italic mb-4 line-clamp-1">
                       {project.slogan}

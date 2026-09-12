@@ -48,8 +48,18 @@ const toRow = (userId: string, project: Project) => ({
   categories: project.categories || [],
   technologies: project.technologies || [],
   phase: project.phase,
-  status: project.status
+  status: project.status,
+  archived_at: null as string | null,
 });
+
+const withoutArchivedAt = <T extends { archived_at?: string | null }>(row: T) => {
+  const next = { ...row };
+  delete next.archived_at;
+  return next;
+};
+
+const isMissingArchivedAtColumn = (message?: string): boolean =>
+  Boolean(message && /archived_at/i.test(message));
 
 const looksLikePersistedId = (id?: string): boolean =>
   Boolean(id && id !== 'draft' && !/^\d+$/.test(id));
@@ -76,11 +86,20 @@ export const persistProject = async (
   if (isUpdate) {
     const updateRow = { ...row };
     delete (updateRow as { author_id?: string }).author_id;
-    const { error } = await supabase
+    let { error } = await supabase
       .from('projects')
       .update(updateRow)
       .eq('id', project.id)
       .eq('author_id', userId);
+
+    if (error && isMissingArchivedAtColumn(error.message)) {
+      const retry = await supabase
+        .from('projects')
+        .update(withoutArchivedAt(updateRow))
+        .eq('id', project.id)
+        .eq('author_id', userId);
+      error = retry.error;
+    }
 
     if (error) {
       return { error: error.message || 'No se pudo guardar el proyecto.' };
@@ -89,17 +108,17 @@ export const persistProject = async (
     return { error: null, projectId: project.id };
   }
 
-  const { data, error } = await supabase
-    .from('projects')
-    .insert(row)
-    .select('id')
-    .single();
+  let insert = await supabase.from('projects').insert(row).select('id').single();
 
-  if (error) {
-    return { error: error.message || 'No se pudo guardar el proyecto.' };
+  if (insert.error && isMissingArchivedAtColumn(insert.error.message)) {
+    insert = await supabase.from('projects').insert(withoutArchivedAt(row)).select('id').single();
   }
 
-  return { error: null, projectId: data?.id };
+  if (insert.error) {
+    return { error: insert.error.message || 'No se pudo guardar el proyecto.' };
+  }
+
+  return { error: null, projectId: insert.data?.id };
 };
 
 export const deleteOwnProject = async (userId: string, projectId: string): Promise<string | null> => {

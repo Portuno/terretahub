@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
+import { SITE_CLAIM, absoluteUrl } from '../lib/site';
+import { DEFAULT_OG_IMAGE, ogSafeImageUrl } from '../lib/ogImage';
 
 // Detectar si es un bot de redes sociales
 const isBot = (userAgent: string | undefined): boolean => {
@@ -59,34 +61,8 @@ const getPublicAvatarUrl = (avatar: string | null | undefined, userId: string | 
   return `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId || 'user'}`;
 };
 
-// Generar HTML con meta tags
-const DEFAULT_OG_IMAGE = 'https://terretahub.com/logo.png';
 const HUB_TITLE = 'Terreta Hub · red social de Valencia';
-const HUB_DESCRIPTION =
-  'Terreta Hub es la red social de Valencia: perfil, gente y lo que pasa en la ciudad.';
-
-const ogSafeImageUrl = (url?: string | null): string => {
-  if (!url) {
-    return DEFAULT_OG_IMAGE;
-  }
-
-  const lower = url.toLowerCase();
-  if (lower.startsWith('data:')) {
-    return DEFAULT_OG_IMAGE;
-  }
-  if (
-    lower.includes('.svg') ||
-    lower.includes('image/svg') ||
-    lower.includes('dicebear.com')
-  ) {
-    return DEFAULT_OG_IMAGE;
-  }
-  if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
-    return DEFAULT_OG_IMAGE;
-  }
-
-  return url;
-};
+const HUB_DESCRIPTION = SITE_CLAIM;
 
 const generateHTML = (
   title: string,
@@ -180,9 +156,7 @@ export default async function handler(
   
   if (!supabaseUrl || !supabaseKey) {
     console.error('ERROR: Supabase configuration missing!');
-    const host = req.headers.host || 'terretahub.com';
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const currentUrl = `${protocol}://${host}/p/${extension}`;
+    const currentUrl = absoluteUrl(`/p/${extension}`);
     
     res.status(200);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -246,9 +220,7 @@ export default async function handler(
     }
 
     // Obtener la URL completa del request
-    const host = req.headers.host || 'terretahub.com';
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const currentUrl = `${protocol}://${host}/p/${extension}`;
+    const currentUrl = absoluteUrl(`/p/${extension}`);
 
     if (!profileData) {
       console.log('Profile not found');
@@ -300,9 +272,7 @@ export default async function handler(
     console.error('Error stack:', error.stack);
     
     // En caso de error, usar defaults
-    const host = req.headers.host || 'terretahub.com';
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const currentUrl = `${protocol}://${host}/p/${extension}`;
+    const currentUrl = absoluteUrl(`/p/${extension}`);
     
     const defaultTitle = HUB_TITLE;
     const defaultDescription = HUB_DESCRIPTION;

@@ -10,8 +10,8 @@ describe('ogSafeImageUrl', () => {
   });
 
   it('conserva una URL http de imagen raster', () => {
-    expect(ogSafeImageUrl('https://terretahub.com/storage/avatar.jpg')).toBe(
-      'https://terretahub.com/storage/avatar.jpg'
+    expect(ogSafeImageUrl('https://www.terretahub.com/storage/avatar.jpg')).toBe(
+      'https://www.terretahub.com/storage/avatar.jpg'
     );
   });
 });
