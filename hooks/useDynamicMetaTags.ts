@@ -96,7 +96,13 @@ export const useDynamicMetaTags = (data: MetaTagsData) => {
       updateMetaTag('og:image:type', 'image/jpeg');
       updateMetaTag('og:image:secure_url', imageUrl);
     } else {
-      updateMetaTag('og:image', `${SITE_ORIGIN}/logo.png`);
+      const fallback = `${SITE_ORIGIN}/og-image.jpg`;
+      updateMetaTag('og:image', fallback);
+      updateMetaTag('og:image:width', '1200');
+      updateMetaTag('og:image:height', '630');
+      updateMetaTag('og:image:type', 'image/jpeg');
+      updateMetaTag('og:image:secure_url', fallback);
+      updateMetaTagName('twitter:image', fallback);
     }
     
     updateMetaTag('og:url', fullUrl);

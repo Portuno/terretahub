@@ -1,6 +1,6 @@
 import { SITE_ORIGIN } from './site';
 
-export const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/logo.png`;
+export const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/og-image.jpg`;
 
 export const ogSafeImageUrl = (url?: string | null): string => {
   if (!url) {
