@@ -58,7 +58,7 @@ export const DirectoryOnboarding: React.FC<DirectoryOnboardingProps> = ({ onDone
   if (!user) {
     return (
       <div className="rounded-2xl border border-terreta-border bg-terreta-card p-6 text-center">
-        <p className="mb-3 text-sm text-terreta-dark/70">Iniciá sesión para personalizar el directorio.</p>
+        <p className="mb-3 text-sm text-terreta-dark/70">Inicia sesión para personalizar el directorio.</p>
         <button
           type="button"
           onClick={onOpenAuth}
@@ -99,7 +99,7 @@ export const DirectoryOnboarding: React.FC<DirectoryOnboardingProps> = ({ onDone
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="font-serif text-xl font-bold text-terreta-dark">Para la Terreta</h2>
-          <p className="text-sm text-terreta-dark/70">Onboarding corto (podés saltarlo).</p>
+          <p className="text-sm text-terreta-dark/70">Onboarding corto (puedes saltarlo).</p>
         </div>
         <button
           type="button"
@@ -141,7 +141,7 @@ export const DirectoryOnboarding: React.FC<DirectoryOnboardingProps> = ({ onDone
 
       {step === 1 ? (
         <div className="space-y-3">
-          <p className="text-sm font-semibold">¿Qué buscás?</p>
+          <p className="text-sm font-semibold">¿Qué buscas?</p>
           <div className="flex flex-wrap gap-2">
             {SEEKING_OPTIONS.map((opt) => (
               <button
@@ -212,7 +212,7 @@ export const DirectoryOnboarding: React.FC<DirectoryOnboardingProps> = ({ onDone
           </select>
           <label className="flex items-start gap-2 text-sm text-terreta-dark/80">
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1" />
-            Consentimiento para personalizar recomendaciones con estos datos (podés borrarlos en tu perfil).
+            Consentimiento para personalizar recomendaciones con estos datos (puedes borrarlos en tu perfil).
           </label>
           <label className="flex items-start gap-2 text-sm text-terreta-dark/50">
             <input type="checkbox" disabled checked={false} className="mt-1" />

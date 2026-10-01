@@ -69,7 +69,7 @@ export const ParaLaTerretaPage: React.FC = () => {
           name: e.name,
           href: `/directorio/${e.id}`,
           match: 'coincide',
-          reasons: ['Guardado por vos'],
+          reasons: ['Guardado por ti'],
           conf: e.conf,
         });
       }
@@ -82,7 +82,7 @@ export const ParaLaTerretaPage: React.FC = () => {
           name: e.name,
           href: `/directorio/evento/${e.id}`,
           match: 'coincide',
-          reasons: ['Guardado por vos'],
+          reasons: ['Guardado por ti'],
           conf: e.conf,
         });
       }
@@ -115,7 +115,7 @@ export const ParaLaTerretaPage: React.FC = () => {
     return (
       <section className="mx-auto max-w-3xl space-y-4 py-8 text-center">
         <h1 className="font-serif text-3xl font-bold text-terreta-dark">Para la Terreta</h1>
-        <p className="text-sm text-terreta-dark/70">Entrá para personalizar recomendaciones del directorio.</p>
+        <p className="text-sm text-terreta-dark/70">Entra para personalizar recomendaciones del directorio.</p>
         <button
           type="button"
           onClick={onOpenAuth}
@@ -150,7 +150,7 @@ export const ParaLaTerretaPage: React.FC = () => {
       {!loading && prefs && !prefs.consentPersonalization ? (
         <EmptyState
           title="Personalización desactivada"
-          description="Activá el consentimiento en el onboarding para ver recomendaciones."
+          description="Activa el consentimiento en el onboarding para ver recomendaciones."
           actionLabel="Configurar"
           onAction={() => setShowOnboarding(true)}
         />

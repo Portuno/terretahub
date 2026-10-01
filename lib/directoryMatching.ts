@@ -51,10 +51,10 @@ export const explainMatch = (input: {
     }
     if (!reasons.length) {
       if (seeking.includes('conocer gente') && e.tipo === 'fisica') {
-        reasons.push('Puente: buscás conocer gente');
+        reasons.push('Puente: buscas conocer gente');
         match = 'puente';
       } else if (seeking.includes('socios') && e.tipo === 'juridica') {
-        reasons.push('Puente: buscás socios / orgs');
+        reasons.push('Puente: buscas socios / orgs');
         match = 'puente';
       } else {
         return null;
@@ -89,7 +89,7 @@ export const explainMatch = (input: {
     }
     if (seeking.includes('eventos') || seeking.includes('cultura')) {
       if (!reasons.length) {
-        reasons.push(`Puente: buscás ${seeking.includes('cultura') ? 'cultura' : 'eventos'}`);
+        reasons.push(`Puente: buscas ${seeking.includes('cultura') ? 'cultura' : 'eventos'}`);
         match = 'puente';
       }
     }
