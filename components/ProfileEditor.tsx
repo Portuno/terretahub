@@ -12,6 +12,7 @@ import { PublishProfileModal } from './PublishProfileModal';
 import { Toast } from './Toast';
 import { trackLinkClick, getProfileViewsStats, getLinkClicksStats } from '../lib/analytics';
 import { uploadAvatarToStorage, migrateAvatarToStorage } from '../lib/avatarUtils';
+import { normalizeLinkedInUrl, normalizeWhatsAppUrl, getFullQualityAvatarUrl } from '../lib/socialLinks';
 import { ReferralPanel } from './ReferralPanel';
 import { useFollow } from '../hooks/useFollow';
 import { QueryState } from './QueryState';
@@ -1266,9 +1267,18 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                       <Linkedin size={16} className="absolute left-3 top-3 text-gray-400"/>
                       <input 
                         className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded text-sm focus:border-[#D97706] outline-none"
-                        placeholder="LinkedIn URL"
+                        placeholder="LinkedIn (URL o usuario)"
                         value={profile.socials.linkedin || ''}
                         onChange={e => setProfile({...profile, socials: {...profile.socials, linkedin: e.target.value}})}
+                      />
+                   </div>
+                   <div className="relative">
+                      <MessageCircle size={16} className="absolute left-3 top-3 text-gray-400"/>
+                      <input 
+                        className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded text-sm focus:border-[#D97706] outline-none"
+                        placeholder="WhatsApp (+34...)"
+                        value={profile.socials.whatsapp || ''}
+                        onChange={e => setProfile({...profile, socials: {...profile.socials, whatsapp: e.target.value}})}
                       />
                    </div>
                    <div className="relative">
@@ -2225,11 +2235,29 @@ export const ProfileRenderer: React.FC<{
   onOpenAuth?: (referrerUsername?: string) => void;
 }> = ({ profile, profileUserId, viewerUserId, onOpenAuth }) => {
   const { theme } = profile;
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const shouldShowFollow = !!profileUserId && viewerUserId !== profileUserId;
   const followState = useFollow({
     userId: viewerUserId || null,
     targetUserId: profileUserId || null
   });
+  const linkedInHref = normalizeLinkedInUrl(profile.socials.linkedin);
+  const whatsAppHref = normalizeWhatsAppUrl(profile.socials.whatsapp);
+  const fullAvatarUrl = getFullQualityAvatarUrl(profile.avatar) || profile.avatar;
+
+  useEffect(() => {
+    if (!isAvatarModalOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsAvatarModalOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isAvatarModalOpen]);
 
   const handleFollowClick = () => {
     if (!profileUserId) return;
@@ -2320,15 +2348,50 @@ export const ProfileRenderer: React.FC<{
           </div>
         )}
 
-        {/* Avatar */}
+        {/* Avatar — click abre modal a tamaño completo */}
         <div className="mb-4 relative group">
-          <img 
-              src={profile.avatar} 
-              alt={profile.displayName} 
-              className="w-24 h-24 rounded-full object-cover border-2 shadow-md"
+          <button
+            type="button"
+            onClick={() => setIsAvatarModalOpen(true)}
+            className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-terreta-accent"
+            aria-label={`Ver foto de ${profile.displayName}`}
+          >
+            <img
+              src={profile.avatar}
+              alt={profile.displayName}
+              className="w-24 h-24 rounded-full object-cover border-2 shadow-md cursor-pointer transition-transform group-hover:scale-105"
               style={{ borderColor: theme.textColor }}
-          />
+            />
+          </button>
         </div>
+
+        {isAvatarModalOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Foto de ${profile.displayName}`}
+            onClick={() => setIsAvatarModalOpen(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setIsAvatarModalOpen(false);
+            }}
+          >
+            <button
+              type="button"
+              className="absolute top-4 right-4 text-white/90 hover:text-white p-2 rounded-full bg-black/40"
+              aria-label="Cerrar"
+              onClick={() => setIsAvatarModalOpen(false)}
+            >
+              <X size={22} />
+            </button>
+            <img
+              src={fullAvatarUrl}
+              alt={profile.displayName}
+              className="max-h-[85vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
 
         {/* Name & Bio */}
         <h1 className="text-xl font-bold mb-2 text-center drop-shadow-sm">{profile.displayName}</h1>
@@ -2338,7 +2401,7 @@ export const ProfileRenderer: React.FC<{
         <div className="flex gap-4 mb-8 justify-center flex-wrap">
           {profile.socials.instagram && <a href={`https://instagram.com/${profile.socials.instagram.replace('@','').replace('https://instagram.com/','').replace('https://www.instagram.com/','')}`} target="_blank" rel="noopener noreferrer"><Instagram size={20} style={{ color: theme.textColor }} /></a>}
           {profile.socials.twitter && <a href={`https://twitter.com/${profile.socials.twitter.replace('@','').replace('https://twitter.com/','').replace('https://www.twitter.com/','').replace('https://x.com/','').replace('https://www.x.com/','')}`} target="_blank" rel="noopener noreferrer"><Twitter size={20} style={{ color: theme.textColor }} /></a>}
-          {profile.socials.linkedin && <a href={profile.socials.linkedin.startsWith('http') ? profile.socials.linkedin : `https://linkedin.com/in/${profile.socials.linkedin.replace('@','')}`} target="_blank" rel="noopener noreferrer"><Linkedin size={20} style={{ color: theme.textColor }} /></a>}
+          {linkedInHref && <a href={linkedInHref} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><Linkedin size={20} style={{ color: theme.textColor }} /></a>}
           {profile.socials.facebook && <a href={profile.socials.facebook.startsWith('http') ? profile.socials.facebook : `https://facebook.com/${profile.socials.facebook.replace('@','')}`} target="_blank" rel="noopener noreferrer"><Facebook size={20} style={{ color: theme.textColor }} /></a>}
           {profile.socials.youtube && <a href={profile.socials.youtube.startsWith('http') ? profile.socials.youtube : `https://youtube.com/@${profile.socials.youtube.replace('@','')}`} target="_blank" rel="noopener noreferrer"><Youtube size={20} style={{ color: theme.textColor }} /></a>}
           {profile.socials.tiktok && <a href={profile.socials.tiktok.startsWith('http') ? profile.socials.tiktok : `https://tiktok.com/@${profile.socials.tiktok.replace('@','')}`} target="_blank" rel="noopener noreferrer">
@@ -2346,7 +2409,7 @@ export const ProfileRenderer: React.FC<{
               <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.79 2.89 2.89 0 0 1 2.31-4.64 2.89 2.89 0 0 1 .88-.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.04-.1z"/>
             </svg>
           </a>}
-          {profile.socials.whatsapp && <a href={profile.socials.whatsapp.startsWith('http') ? profile.socials.whatsapp : `https://wa.me/${profile.socials.whatsapp.replace(/[^0-9]/g,'')}`} target="_blank" rel="noopener noreferrer">
+          {whatsAppHref && <a href={whatsAppHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ color: theme.textColor }}>
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
             </svg>
