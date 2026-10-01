@@ -15,6 +15,8 @@ import { uploadAvatarToStorage, migrateAvatarToStorage } from '../lib/avatarUtil
 import { ReferralPanel } from './ReferralPanel';
 import { useFollow } from '../hooks/useFollow';
 import { QueryState } from './QueryState';
+import { clearUserPersonalization } from '../lib/directoryApi';
+import { Link } from 'react-router-dom';
 
 interface ProfileEditorProps {
   user: AuthUser;
@@ -1301,6 +1303,46 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
                           showInCommunity ? 'translate-x-6' : 'translate-x-1'
                         }`}
                       />
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              {/* Directory personalization privacy */}
+              <section className="space-y-4">
+                <h3 className="font-serif text-xl text-terreta-dark">Personalización del directorio</h3>
+                <div className="bg-terreta-bg p-6 rounded-xl border border-terreta-border space-y-3">
+                  <p className="text-xs text-terreta-secondary">
+                    Preferencias de «Para la Terreta», intereses y flags (guardado / me interesa / contactado).
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      to="/para-la-terreta"
+                      className="rounded-full border border-terreta-border px-3 py-1.5 text-xs font-bold text-terreta-dark hover:border-terreta-accent"
+                    >
+                      Ver recomendaciones
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (
+                          !window.confirm(
+                            '¿Borrar personalización del directorio? Se eliminan preferencias y guardados del directorio.'
+                          )
+                        ) {
+                          return;
+                        }
+                        const error = await clearUserPersonalization(user.id);
+                        if (error) {
+                          alert(error);
+                          return;
+                        }
+                        setToastMessage('Personalización del directorio borrada');
+                        setShowToast(true);
+                      }}
+                      className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100"
+                    >
+                      Borrar personalización
                     </button>
                   </div>
                 </div>

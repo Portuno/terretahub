@@ -1,12 +1,25 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MapContainer, Marker, Popup, TileLayer, useMapEvents } from 'react-leaflet';
+import { Link } from 'react-router-dom';
+import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { divIcon, LatLngLiteral } from 'leaflet';
-import { BriefcaseBusiness, CalendarClock, MapPin, Plus, StickyNote } from 'lucide-react';
+import { BriefcaseBusiness, CalendarClock, MapPin, Plus, StickyNote, Search } from 'lucide-react';
 import { AuthUser } from '../types';
 import { supabase } from '../lib/supabase';
-import { EventTimeFilter, filterMapItems, getEventTimeBucket, MapItem, MapItemType } from '../lib/mapUtils';
+import {
+  EventTimeFilter,
+  filterMapItems,
+  getEventTimeBucket,
+  MapItem,
+  MapItemType,
+  MAP_TYPE_LABELS,
+} from '../lib/mapUtils';
 import { executeQueryWithRetry } from '../lib/supabaseHelpers';
 import { QueryState } from './QueryState';
+import { Toast } from './Toast';
+import { listEntities, listEvents, listZones } from '../lib/directoryApi';
+import type { DirectoryCategory, DirectoryZone } from '../lib/directoryTypes';
+import { CATEGORY_LABELS, DIRECTORY_CATEGORIES } from '../lib/directoryTypes';
+import { formatDirectoryAddress } from '../lib/geoPrecision';
 
 interface MapaPageProps {
   user: AuthUser | null;
@@ -37,12 +50,42 @@ interface EventFormState {
 
 const valenciaCenter: LatLngLiteral = { lat: 39.4699, lng: -0.3763 };
 
-const markerIcon = (type: MapItemType) =>
+const DEFAULT_TYPES: MapItemType[] = [
+  'dir_entity',
+  'dir_person',
+  'dir_event',
+  'business',
+  'event',
+  'note',
+];
+
+const markerColor = (item: MapItem): string => {
+  if (item.source === 'directory') {
+    if (item.type === 'dir_person') return '#1B4A9B';
+    if (item.type === 'dir_event') return '#A4670C';
+    return '#0A6D60';
+  }
+  if (item.type === 'business') return '#1f8a70';
+  if (item.type === 'event') return '#ff7f50';
+  return '#6b5b95';
+};
+
+const markerLetter = (item: MapItem | { type: MapItemType; source?: string }): string => {
+  const type = item.type;
+  if (type === 'dir_person') return 'P';
+  if (type === 'dir_entity') return 'O';
+  if (type === 'dir_event') return 'C';
+  if (type === 'business') return 'N';
+  if (type === 'event') return 'E';
+  return 'A';
+};
+
+const markerIcon = (item: MapItem | { type: MapItemType; source?: 'ugc' | 'directory' }) =>
   divIcon({
     className: 'custom-map-marker',
-    html: `<div style="width:34px;height:34px;border-radius:9999px;display:flex;align-items:center;justify-content:center;color:white;font-size:16px;font-weight:700;border:2px solid white;box-shadow:0 4px 10px rgba(0,0,0,0.25);background:${
-      type === 'business' ? '#1f8a70' : type === 'event' ? '#ff7f50' : '#6b5b95'
-    };">${type === 'business' ? 'N' : type === 'event' ? 'E' : 'A'}</div>`,
+    html: `<div style="width:34px;height:34px;border-radius:9999px;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:700;border:2px solid ${
+      item.source === 'directory' ? '#C0573E' : 'white'
+    };box-shadow:0 4px 10px rgba(0,0,0,0.25);background:${markerColor(item as MapItem)};">${markerLetter(item)}</div>`,
     iconSize: [34, 34],
     iconAnchor: [17, 34],
     popupAnchor: [0, -30],
@@ -54,18 +97,34 @@ const ClickMapPicker: React.FC<{ onPick: (position: LatLngLiteral) => void }> = 
       onPick(event.latlng);
     },
   });
+  return null;
+};
 
+const FlyToZone: React.FC<{ target: LatLngLiteral | null; zoom?: number }> = ({ target, zoom = 12 }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (target) {
+      map.flyTo(target, zoom, { duration: 0.8 });
+    }
+  }, [map, target, zoom]);
   return null;
 };
 
 export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
   const [items, setItems] = useState<MapItem[]>([]);
+  const [zones, setZones] = useState<DirectoryZone[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTypes, setActiveTypes] = useState<MapItemType[]>(['business', 'event', 'note']);
+  const [activeTypes, setActiveTypes] = useState<MapItemType[]>(DEFAULT_TYPES);
   const [eventFilter, setEventFilter] = useState<EventTimeFilter>('future');
   const [selectedPosition, setSelectedPosition] = useState<LatLngLiteral | null>(null);
   const [activeCreate, setActiveCreate] = useState<MapItemType>('business');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [search, setSearch] = useState('');
+  const [cats, setCats] = useState<DirectoryCategory[]>([]);
+  const [zoneId, setZoneId] = useState<number | null>(null);
+  const [subzoneId, setSubzoneId] = useState<number | null>(null);
+  const [flyTarget, setFlyTarget] = useState<LatLngLiteral | null>(null);
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' | 'terreta' } | null>(null);
 
   const [businessForm, setBusinessForm] = useState<BusinessFormState>({
     name: '',
@@ -73,11 +132,7 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
     tags: '',
     contact: '',
   });
-  const [noteForm, setNoteForm] = useState<NoteFormState>({
-    title: '',
-    note: '',
-    category: '',
-  });
+  const [noteForm, setNoteForm] = useState<NoteFormState>({ title: '', note: '', category: '' });
   const [eventForm, setEventForm] = useState<EventFormState>({
     title: '',
     description: '',
@@ -91,37 +146,43 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [businessesResult, notesResult, eventsResult] = await Promise.all([
-        executeQueryWithRetry(
-          async () =>
-            await supabase.from('map_businesses').select('id, name, description, tags, latitude, longitude, created_at'),
-          'load map businesses'
-        ),
-        executeQueryWithRetry(
-          async () =>
-            await supabase.from('map_notes').select('id, title, note, category, latitude, longitude, created_at'),
-          'load map notes'
-        ),
-        executeQueryWithRetry(
-          async () =>
-            await supabase
-              .from('events')
-              .select('id, title, description, category, start_date, location, latitude, longitude, status')
-              .eq('status', 'published'),
-          'load map events'
-        ),
-      ]);
+      const [businessesResult, notesResult, eventsResult, dirEntities, dirEvents, zonesResult] =
+        await Promise.all([
+          executeQueryWithRetry(
+            async () =>
+              await supabase
+                .from('map_businesses')
+                .select('id, name, description, tags, latitude, longitude, created_at'),
+            'load map businesses'
+          ),
+          executeQueryWithRetry(
+            async () =>
+              await supabase
+                .from('map_notes')
+                .select('id, title, note, category, latitude, longitude, created_at'),
+            'load map notes'
+          ),
+          executeQueryWithRetry(
+            async () =>
+              await supabase
+                .from('events')
+                .select('id, title, description, category, start_date, location, latitude, longitude, status')
+                .eq('status', 'published'),
+            'load map events'
+          ),
+          listEntities({ geolocated: true, limit: 500 }),
+          listEvents({ geolocated: true, limit: 500 }),
+          listZones(),
+        ]);
 
-      if (businessesResult.error && notesResult.error && eventsResult.error) {
-        setItems([]);
-        setErrorMessage('No se pudo cargar el mapa. Probá de nuevo.');
-        return;
-      }
+      const zoneName = (z?: number | null) =>
+        zonesResult.data.find((zone) => zone.id === z)?.name || null;
 
       const businessItems: MapItem[] =
         businessesResult.data?.map((business: any) => ({
           id: business.id,
-          type: 'business',
+          type: 'business' as const,
+          source: 'ugc' as const,
           title: business.name,
           description: business.description,
           tags: business.tags || [],
@@ -133,7 +194,8 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
       const noteItems: MapItem[] =
         notesResult.data?.map((note: any) => ({
           id: note.id,
-          type: 'note',
+          type: 'note' as const,
+          source: 'ugc' as const,
           title: note.title,
           description: note.note,
           tags: note.category ? [note.category] : [],
@@ -147,7 +209,8 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
           ?.filter((event: any) => event.latitude !== null && event.longitude !== null)
           .map((event: any) => ({
             id: event.id,
-            type: 'event',
+            type: 'event' as const,
+            source: 'ugc' as const,
             title: event.title,
             description: event.description || event.location,
             tags: event.category ? [event.category] : [],
@@ -156,9 +219,68 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
             eventStartDate: event.start_date,
           })) || [];
 
-      setItems([...businessItems, ...eventItems, ...noteItems]);
+      const dirEntityItems: MapItem[] = dirEntities.data
+        .filter((e) => e.lat != null && e.lon != null)
+        .map((e) => ({
+          id: e.id,
+          type: (e.tipo === 'fisica' ? 'dir_person' : 'dir_entity') as MapItemType,
+          source: 'directory' as const,
+          title: e.name,
+          description: e.description,
+          latitude: e.lat!,
+          longitude: e.lon!,
+          geoPrecision: e.geoPrecision,
+          zoneName: zoneName(e.zoneId),
+          cats: e.cats,
+          tipo: e.tipo,
+          url: e.url,
+          directoryPath: `/directorio/${e.id}`,
+          tags: e.tags,
+        }));
+
+      const dirEventItems: MapItem[] = dirEvents.data
+        .filter((e) => e.lat != null && e.lon != null)
+        .map((e) => ({
+          id: e.id,
+          type: 'dir_event' as const,
+          source: 'directory' as const,
+          title: e.name,
+          description: e.description || e.lugar,
+          latitude: e.lat!,
+          longitude: e.lon!,
+          geoPrecision: e.geoPrecision,
+          zoneName: zoneName(e.zoneId),
+          cats: e.cats,
+          eventStartDate: e.ini || undefined,
+          url: e.url,
+          directoryPath: `/directorio/evento/${e.id}`,
+        }));
+
+      // Attach zone/subzone ids on directory items via filter later using original data
+      const withZoneMeta = (list: MapItem[], source: typeof dirEntities.data | typeof dirEvents.data) =>
+        list.map((item) => {
+          const raw = source.find((s) => s.id === item.id);
+          return {
+            ...item,
+            // stash for filtering
+            tags: [
+              ...(item.tags || []),
+              raw?.zoneId != null ? `__zone:${raw.zoneId}` : '',
+              raw && 'subzoneId' in raw && raw.subzoneId != null ? `__sz:${raw.subzoneId}` : '',
+            ].filter(Boolean),
+          };
+        });
+
+      setItems([
+        ...businessItems,
+        ...eventItems,
+        ...noteItems,
+        ...withZoneMeta(dirEntityItems, dirEntities.data),
+        ...withZoneMeta(dirEventItems, dirEvents.data),
+      ]);
+      setZones(zonesResult.data);
       setErrorMessage('');
-    } catch (error) {
+    } catch {
       setErrorMessage('No se pudo cargar el mapa. Probá de nuevo.');
     } finally {
       setIsLoading(false);
@@ -169,7 +291,23 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
     loadData();
   }, []);
 
-  const visibleItems = useMemo(() => filterMapItems(items, activeTypes, eventFilter), [items, activeTypes, eventFilter]);
+  const visibleItems = useMemo(() => {
+    let list = filterMapItems(items, activeTypes, eventFilter, {
+      search,
+      cats: cats.length ? cats : undefined,
+    });
+    if (zoneId != null) {
+      list = list.filter(
+        (item) => item.source !== 'directory' || (item.tags || []).includes(`__zone:${zoneId}`)
+      );
+    }
+    if (subzoneId != null) {
+      list = list.filter(
+        (item) => item.source !== 'directory' || (item.tags || []).includes(`__sz:${subzoneId}`)
+      );
+    }
+    return list;
+  }, [items, activeTypes, eventFilter, search, cats, zoneId, subzoneId]);
 
   const handleToggleType = (type: MapItemType) => {
     setActiveTypes((currentTypes) => {
@@ -211,10 +349,11 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
 
     setIsSubmitting(false);
     if (error) {
-      setErrorMessage('Error al guardar negocio.');
+      setToast({ message: 'Error al guardar negocio.', variant: 'error' });
       return;
     }
 
+    setToast({ message: 'Negocio publicado en el mapa.', variant: 'success' });
     setBusinessForm({ name: '', description: '', tags: '', contact: '' });
     setSelectedPosition(null);
     loadData();
@@ -238,10 +377,11 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
     setIsSubmitting(false);
 
     if (error) {
-      setErrorMessage('Error al guardar acontecimiento.');
+      setToast({ message: 'Error al guardar acontecimiento.', variant: 'error' });
       return;
     }
 
+    setToast({ message: 'Nota publicada.', variant: 'success' });
     setNoteForm({ title: '', note: '', category: '' });
     setSelectedPosition(null);
     loadData();
@@ -280,65 +420,208 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
     setIsSubmitting(false);
 
     if (error) {
-      setErrorMessage('Error al crear evento.');
+      setToast({ message: 'Error al crear evento.', variant: 'error' });
       return;
     }
 
+    setToast({
+      message: 'Quedada creada como borrador. Aparecerá en el mapa cuando se publique.',
+      variant: 'terreta',
+    });
     setEventForm({ title: '', description: '', location: '', startDate: '', endDate: '', category: '' });
     setSelectedPosition(null);
     loadData();
   };
 
+  const selectedZone = zones.find((z) => z.id === zoneId) || null;
+
   return (
-    <section className="max-w-7xl mx-auto py-6 space-y-4">
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <div className="xl:col-span-2 rounded-2xl border border-terreta-border overflow-hidden">
-          <MapContainer center={valenciaCenter} zoom={13} className="h-[580px] w-full" scrollWheelZoom>
+    <section className="mx-auto max-w-7xl space-y-4 overflow-x-hidden py-6">
+      <header className="space-y-1 px-1">
+        <h1 className="font-serif text-2xl font-bold text-terreta-dark md:text-3xl">Mapa de Valencia</h1>
+        <p className="text-sm text-terreta-dark/70">
+          Directorio curado + lo que publica la comunidad.{' '}
+          <Link to="/directorio" className="font-semibold text-terreta-accent">
+            Ver listado
+          </Link>
+        </p>
+      </header>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div className="overflow-hidden rounded-2xl border border-terreta-border xl:col-span-2">
+          <MapContainer center={valenciaCenter} zoom={13} className="h-[580px] w-full max-w-[100vw]" scrollWheelZoom>
             <ClickMapPicker onPick={setSelectedPosition} />
+            <FlyToZone target={flyTarget} />
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {visibleItems.map((item) => (
+            {visibleItems.map((item) => {
+              const address = formatDirectoryAddress({ geoPrecision: item.geoPrecision });
+              return (
+                <Marker
+                  key={`${item.source}-${item.type}-${item.id}`}
+                  position={{ lat: item.latitude, lng: item.longitude }}
+                  icon={markerIcon(item)}
+                >
+                  <Popup>
+                    <div className="max-w-[260px] space-y-1 font-serif">
+                      <p className="font-semibold">{item.title}</p>
+                      {item.description ? (
+                        <p className="text-sm leading-snug">{String(item.description).slice(0, 140)}</p>
+                      ) : null}
+                      {item.geoPrecision ? (
+                        <p className="text-xs text-terreta-dark/60">Precisión: {address.badge}</p>
+                      ) : null}
+                      {item.zoneName ? <p className="text-xs">Zona: {item.zoneName}</p> : null}
+                      <p className="text-[10px] uppercase tracking-wide text-terreta-dark/50">
+                        {item.source === 'directory' ? 'Directorio curado' : 'Publicado por la comunidad'}
+                      </p>
+                      {item.directoryPath ? (
+                        <Link to={item.directoryPath} className="text-sm font-bold text-terreta-accent">
+                          Ver ficha
+                        </Link>
+                      ) : null}
+                      {item.type === 'event' || item.type === 'dir_event' ? (
+                        <p className="text-xs">
+                          Estado:{' '}
+                          {getEventTimeBucket(item.eventStartDate) === 'future'
+                            ? 'Futuro'
+                            : getEventTimeBucket(item.eventStartDate) === 'today'
+                              ? 'Hoy'
+                              : 'Pasado'}
+                        </p>
+                      ) : null}
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+            {selectedPosition ? (
               <Marker
-                key={`${item.type}-${item.id}`}
-                position={{ lat: item.latitude, lng: item.longitude }}
-                icon={markerIcon(item.type)}
-              >
-                <Popup>
-                  <div className="space-y-1">
-                    <p className="font-semibold">{item.title}</p>
-                    {item.description ? <p className="text-sm">{item.description}</p> : null}
-                    {item.type === 'event' ? (
-                      <p className="text-xs">Estado: {getEventTimeBucket(item.eventStartDate) === 'future' ? 'Futuro' : getEventTimeBucket(item.eventStartDate) === 'today' ? 'Hoy' : 'Pasado'}</p>
-                    ) : null}
-                    {item.tags && item.tags.length > 0 ? <p className="text-xs">Tags: {item.tags.join(', ')}</p> : null}
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-            {selectedPosition ? <Marker position={selectedPosition} icon={markerIcon(activeCreate)} /> : null}
+                position={selectedPosition}
+                icon={markerIcon({ type: activeCreate, source: 'ugc' })}
+              />
+            ) : null}
           </MapContainer>
         </div>
 
-        <aside className="rounded-2xl border border-terreta-border bg-terreta-card p-4 space-y-4">
+        <aside className="max-h-[80vh] space-y-4 overflow-y-auto rounded-2xl border border-terreta-border bg-terreta-card p-4">
+          <label className="relative block">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-terreta-dark/40" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nombre…"
+              className="w-full rounded-lg border border-terreta-border bg-terreta-bg py-2 pl-8 pr-3 text-sm"
+            />
+          </label>
+
           <div>
-            <p className="text-sm font-semibold text-terreta-dark mb-2">Tipos visibles</p>
-            <div className="flex gap-2 flex-wrap">
-              <button onClick={() => handleToggleType('business')} className={`px-3 py-1.5 rounded-full text-sm ${activeTypes.includes('business') ? 'bg-terreta-accent text-white' : 'bg-terreta-sidebar text-terreta-dark'}`}>
-                Negocios
-              </button>
-              <button onClick={() => handleToggleType('event')} className={`px-3 py-1.5 rounded-full text-sm ${activeTypes.includes('event') ? 'bg-terreta-accent text-white' : 'bg-terreta-sidebar text-terreta-dark'}`}>
-                Eventos
-              </button>
-              <button onClick={() => handleToggleType('note')} className={`px-3 py-1.5 rounded-full text-sm ${activeTypes.includes('note') ? 'bg-terreta-accent text-white' : 'bg-terreta-sidebar text-terreta-dark'}`}>
-                Acontecimientos
-              </button>
+            <p className="mb-2 text-sm font-semibold text-terreta-dark">Capas</p>
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(MAP_TYPE_LABELS) as MapItemType[]).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => handleToggleType(type)}
+                  className={`rounded-full px-2.5 py-1 text-xs ${
+                    activeTypes.includes(type)
+                      ? 'bg-terreta-accent text-white'
+                      : 'bg-terreta-sidebar text-terreta-dark'
+                  }`}
+                >
+                  {MAP_TYPE_LABELS[type]}
+                </button>
+              ))}
             </div>
           </div>
 
           <div>
-            <p className="text-sm font-semibold text-terreta-dark mb-2">Filtro temporal de eventos</p>
+            <p className="mb-2 text-sm font-semibold text-terreta-dark">Categorías (directorio)</p>
+            <div className="flex flex-wrap gap-1.5">
+              {DIRECTORY_CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() =>
+                    setCats((prev) =>
+                      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+                    )
+                  }
+                  className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                    cats.includes(cat)
+                      ? 'border-terreta-accent bg-terreta-accent/10 text-terreta-accent'
+                      : 'border-terreta-border text-terreta-dark/60'
+                  }`}
+                >
+                  {CATEGORY_LABELS[cat]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-sm font-semibold text-terreta-dark">Índice territorial</p>
+            <div className="max-h-48 space-y-1 overflow-y-auto">
+              {zones.map((zone) => (
+                <div key={zone.id} className="rounded-lg border border-terreta-border/70">
+                  <button
+                    type="button"
+                    className={`flex w-full items-center justify-between px-2 py-1.5 text-left text-sm ${
+                      zoneId === zone.id ? 'bg-terreta-sidebar font-semibold' : ''
+                    }`}
+                    onClick={() => {
+                      setZoneId(zone.id);
+                      setSubzoneId(null);
+                      if (zone.centroidLat != null && zone.centroidLon != null) {
+                        setFlyTarget({ lat: zone.centroidLat, lng: zone.centroidLon });
+                      }
+                    }}
+                  >
+                    <span>{zone.name}</span>
+                    <span className="text-[10px] text-terreta-dark/50">Z{zone.id}</span>
+                  </button>
+                  {zoneId === zone.id && zone.subzones.length ? (
+                    <div className="space-y-0.5 border-t border-terreta-border px-2 py-1">
+                      {zone.subzones.map((sz) => (
+                        <button
+                          key={sz.idx}
+                          type="button"
+                          onClick={() => {
+                            setSubzoneId(sz.idx);
+                            if (sz.centroidLat != null && sz.centroidLon != null) {
+                              setFlyTarget({ lat: sz.centroidLat, lng: sz.centroidLon });
+                            }
+                          }}
+                          className={`block w-full rounded px-1 py-1 text-left text-xs ${
+                            subzoneId === sz.idx ? 'bg-terreta-accent/10 text-terreta-accent' : 'text-terreta-dark/70'
+                          }`}
+                        >
+                          {sz.name}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+              {(zoneId != null || subzoneId != null) && (
+                <button
+                  type="button"
+                  className="text-xs text-terreta-accent"
+                  onClick={() => {
+                    setZoneId(null);
+                    setSubzoneId(null);
+                  }}
+                >
+                  Limpiar zona
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-sm font-semibold text-terreta-dark">Filtro temporal de eventos</p>
             <select
               className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm"
               value={eventFilter}
@@ -351,62 +634,121 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
             </select>
           </div>
 
-          <div className="border-t border-terreta-border pt-4 space-y-3">
-            <p className="text-sm font-semibold text-terreta-dark">Agregar al mapa</p>
+          <p className="text-xs text-terreta-dark/55">
+            Visibles: {visibleItems.length}
+            {selectedZone ? ` · ${selectedZone.name}` : ''}
+          </p>
+
+          <div className="space-y-3 border-t border-terreta-border pt-4">
+            <p className="text-sm font-semibold text-terreta-dark">Agregar (comunidad)</p>
             <div className="flex gap-2">
-              <button onClick={() => setActiveCreate('business')} className={`flex-1 px-3 py-2 rounded-lg text-sm ${activeCreate === 'business' ? 'bg-terreta-accent text-white' : 'bg-terreta-sidebar text-terreta-dark'}`}>
-                <BriefcaseBusiness className="inline mr-1" size={14} /> Negocio
+              <button
+                type="button"
+                onClick={() => setActiveCreate('business')}
+                className={`flex-1 rounded-lg px-2 py-2 text-xs ${
+                  activeCreate === 'business' ? 'bg-terreta-accent text-white' : 'bg-terreta-sidebar text-terreta-dark'
+                }`}
+              >
+                <BriefcaseBusiness className="mr-1 inline" size={14} /> Negocio
               </button>
-              <button onClick={() => setActiveCreate('event')} className={`flex-1 px-3 py-2 rounded-lg text-sm ${activeCreate === 'event' ? 'bg-terreta-accent text-white' : 'bg-terreta-sidebar text-terreta-dark'}`}>
-                <CalendarClock className="inline mr-1" size={14} /> Evento
+              <button
+                type="button"
+                onClick={() => setActiveCreate('event')}
+                className={`flex-1 rounded-lg px-2 py-2 text-xs ${
+                  activeCreate === 'event' ? 'bg-terreta-accent text-white' : 'bg-terreta-sidebar text-terreta-dark'
+                }`}
+              >
+                <CalendarClock className="mr-1 inline" size={14} /> Evento
               </button>
-              <button onClick={() => setActiveCreate('note')} className={`flex-1 px-3 py-2 rounded-lg text-sm ${activeCreate === 'note' ? 'bg-terreta-accent text-white' : 'bg-terreta-sidebar text-terreta-dark'}`}>
-                <StickyNote className="inline mr-1" size={14} /> Nota
+              <button
+                type="button"
+                onClick={() => setActiveCreate('note')}
+                className={`flex-1 rounded-lg px-2 py-2 text-xs ${
+                  activeCreate === 'note' ? 'bg-terreta-accent text-white' : 'bg-terreta-sidebar text-terreta-dark'
+                }`}
+              >
+                <StickyNote className="mr-1 inline" size={14} /> Nota
               </button>
             </div>
 
-            <p className="text-xs text-terreta-dark/70 flex items-center gap-1">
-              <MapPin size={14} /> Haz click en el mapa para fijar la ubicación.
+            <p className="flex items-center gap-1 text-xs text-terreta-dark/70">
+              <MapPin size={14} /> Click en el mapa para fijar ubicación.
             </p>
-            {selectedPosition ? (
-              <p className="text-xs text-terreta-dark/70">
-                Punto seleccionado: {selectedPosition.lat.toFixed(5)}, {selectedPosition.lng.toFixed(5)}
-              </p>
-            ) : null}
 
             {activeCreate === 'business' ? (
               <div className="space-y-2">
-                <input className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm" placeholder="Nombre del negocio" value={businessForm.name} onChange={(event) => setBusinessForm((currentForm) => ({ ...currentForm, name: event.target.value }))} />
-                <textarea className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm" placeholder="Descripción" value={businessForm.description} onChange={(event) => setBusinessForm((currentForm) => ({ ...currentForm, description: event.target.value }))} />
-                <input className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm" placeholder="Tags separados por coma" value={businessForm.tags} onChange={(event) => setBusinessForm((currentForm) => ({ ...currentForm, tags: event.target.value }))} />
-                <input className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm" placeholder="Contacto (opcional)" value={businessForm.contact} onChange={(event) => setBusinessForm((currentForm) => ({ ...currentForm, contact: event.target.value }))} />
-                <button disabled={isSubmitting} onClick={handleSubmitBusiness} className="w-full rounded-lg bg-terreta-accent text-white px-3 py-2 text-sm font-semibold disabled:opacity-50">
-                  <Plus size={14} className="inline mr-1" /> Publicar negocio
+                <input
+                  className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm"
+                  placeholder="Nombre del negocio"
+                  value={businessForm.name}
+                  onChange={(e) => setBusinessForm((f) => ({ ...f, name: e.target.value }))}
+                />
+                <textarea
+                  className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm"
+                  placeholder="Descripción"
+                  value={businessForm.description}
+                  onChange={(e) => setBusinessForm((f) => ({ ...f, description: e.target.value }))}
+                />
+                <button
+                  disabled={isSubmitting}
+                  onClick={handleSubmitBusiness}
+                  className="w-full rounded-lg bg-terreta-accent px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  <Plus size={14} className="mr-1 inline" /> Publicar negocio
                 </button>
               </div>
             ) : null}
 
             {activeCreate === 'event' ? (
               <div className="space-y-2">
-                <input className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm" placeholder="Título del evento" value={eventForm.title} onChange={(event) => setEventForm((currentForm) => ({ ...currentForm, title: event.target.value }))} />
-                <textarea className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm" placeholder="Descripción" value={eventForm.description} onChange={(event) => setEventForm((currentForm) => ({ ...currentForm, description: event.target.value }))} />
-                <input className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm" placeholder="Ubicación textual" value={eventForm.location} onChange={(event) => setEventForm((currentForm) => ({ ...currentForm, location: event.target.value }))} />
-                <input type="datetime-local" className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm" value={eventForm.startDate} onChange={(event) => setEventForm((currentForm) => ({ ...currentForm, startDate: event.target.value }))} />
-                <input type="datetime-local" className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm" value={eventForm.endDate} onChange={(event) => setEventForm((currentForm) => ({ ...currentForm, endDate: event.target.value }))} />
-                <input className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm" placeholder="Categoría (opcional)" value={eventForm.category} onChange={(event) => setEventForm((currentForm) => ({ ...currentForm, category: event.target.value }))} />
-                <button disabled={isSubmitting} onClick={handleSubmitEvent} className="w-full rounded-lg bg-terreta-accent text-white px-3 py-2 text-sm font-semibold disabled:opacity-50">
-                  <Plus size={14} className="inline mr-1" /> Crear evento
+                <input
+                  className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm"
+                  placeholder="Título del evento"
+                  value={eventForm.title}
+                  onChange={(e) => setEventForm((f) => ({ ...f, title: e.target.value }))}
+                />
+                <input
+                  type="datetime-local"
+                  className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm"
+                  value={eventForm.startDate}
+                  onChange={(e) => setEventForm((f) => ({ ...f, startDate: e.target.value }))}
+                />
+                <input
+                  type="datetime-local"
+                  className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm"
+                  value={eventForm.endDate}
+                  onChange={(e) => setEventForm((f) => ({ ...f, endDate: e.target.value }))}
+                />
+                <button
+                  disabled={isSubmitting}
+                  onClick={handleSubmitEvent}
+                  className="w-full rounded-lg bg-terreta-accent px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  <Plus size={14} className="mr-1 inline" /> Crear evento (borrador)
                 </button>
               </div>
             ) : null}
 
             {activeCreate === 'note' ? (
               <div className="space-y-2">
-                <input className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm" placeholder="Título del acontecimiento" value={noteForm.title} onChange={(event) => setNoteForm((currentForm) => ({ ...currentForm, title: event.target.value }))} />
-                <textarea className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm" placeholder="Nota" value={noteForm.note} onChange={(event) => setNoteForm((currentForm) => ({ ...currentForm, note: event.target.value }))} />
-                <input className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm" placeholder="Categoría (opcional)" value={noteForm.category} onChange={(event) => setNoteForm((currentForm) => ({ ...currentForm, category: event.target.value }))} />
-                <button disabled={isSubmitting} onClick={handleSubmitNote} className="w-full rounded-lg bg-terreta-accent text-white px-3 py-2 text-sm font-semibold disabled:opacity-50">
-                  <Plus size={14} className="inline mr-1" /> Publicar nota
+                <input
+                  className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm"
+                  placeholder="Título"
+                  value={noteForm.title}
+                  onChange={(e) => setNoteForm((f) => ({ ...f, title: e.target.value }))}
+                />
+                <textarea
+                  className="w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm"
+                  placeholder="Nota"
+                  value={noteForm.note}
+                  onChange={(e) => setNoteForm((f) => ({ ...f, note: e.target.value }))}
+                />
+                <button
+                  disabled={isSubmitting}
+                  onClick={handleSubmitNote}
+                  className="w-full rounded-lg bg-terreta-accent px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  <Plus size={14} className="mr-1 inline" /> Publicar nota
                 </button>
               </div>
             ) : null}
@@ -422,6 +764,10 @@ export const MapaPage: React.FC<MapaPageProps> = ({ user, onOpenAuth }) => {
           ) : null}
         </aside>
       </div>
+
+      {toast ? (
+        <Toast message={toast.message} variant={toast.variant} onClose={() => setToast(null)} />
+      ) : null}
     </section>
   );
 };

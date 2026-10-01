@@ -34,7 +34,7 @@ export const ANSWER_PAGES: AnswerPageDef[] = [
     h1: 'Terreta Hub',
     lead: [
       SITE_CLAIM,
-      'Acá la gente de Valencia abre perfil, se cruza en el Ágora, publica proyectos y queda. No es un directorio de startups ni una red corporativa.',
+      'Acá la gente de Valencia abre perfil, se cruza en el Ágora, publica proyectos y queda. Es la red social de Valencia y un directorio vivo del ecosistema, no una plataforma líder de startups ni una red corporativa.',
       SITE_DISAMBIGUATION,
     ],
     schema: 'WebPage',
@@ -58,7 +58,7 @@ export const ANSWER_PAGES: AnswerPageDef[] = [
         heading: 'Qué podés hacer',
         paragraphs: [
           'Crear un perfil público (/p/tu-nombre), escribir en el Ágora, mostrar un proyecto, enterarte de quedadas y pedir o ofrecer recursos.',
-          'También hay una guía de Fallas, un mapa de la ciudad y Terris, la moneda nativa de la comunidad.',
+          'También hay un directorio vivo del ecosistema valenciano (personas, orgs, cultura y citas), una guía de Fallas, un mapa de la ciudad y Terris, la moneda nativa de la comunidad.',
         ],
       },
     ],

@@ -34,6 +34,14 @@ export const Footer: React.FC = () => {
             Un Finde en la Terreta
           </Link>
           <span className="text-terreta-border/70">|</span>
+          <Link to="/directorio" className="transition-colors hover:text-terreta-accent">
+            Directorio
+          </Link>
+          <span className="text-terreta-border/70">|</span>
+          <Link to="/mapa" className="transition-colors hover:text-terreta-accent">
+            Mapa
+          </Link>
+          <span className="text-terreta-border/70">|</span>
           <Link to="/que-es-terreta-hub" className="transition-colors hover:text-terreta-accent">
             Qué es
           </Link>

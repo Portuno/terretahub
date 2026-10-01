@@ -16,10 +16,8 @@ import { CommunityHubPage } from './components/CommunityHubPage';
 import { ProjectsPage } from './components/ProjectsPage';
 import { ResourceCollabPanel } from './components/ResourceCollabPanel';
 import { AdminProjectsPanel } from './components/AdminProjectsPanel';
-import { AdminEventsPanel } from './components/AdminEventsPanel';
 import { AdminBlogsPanel } from './components/AdminBlogsPanel';
 import { ProfileEditor } from './components/ProfileEditor';
-import { PlaceholderPage } from './components/PlaceholderPage';
 import { EventsPage } from './components/EventsPage';
 import { EventPage } from './components/EventPage';
 import { TermsAndConditions } from './components/TermsAndConditions';
@@ -53,6 +51,11 @@ import { TorreCreadorPage } from './components/biblioteca/TorreCreadorPage';
 import { TorreSeoPageView } from './components/biblioteca/TorreSeoPageView';
 import { MapaPage } from './components/MapaPage';
 import { AnswerPage } from './components/AnswerPage';
+import { DirectoryPage } from './components/DirectoryPage';
+import { DirectoryEntityPage, DirectoryEventPage } from './components/DirectoryDetailPages';
+import { ComunidadesPage } from './components/ComunidadesPage';
+import { ParaLaTerretaPage } from './components/ParaLaTerretaPage';
+import { DirectoryOnboarding } from './components/DirectoryOnboarding';
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -530,6 +533,12 @@ const AppContent: React.FC = () => {
           <Route path="proyectos" element={<ProjectsPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="propiedades" element={<PropertiesPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="mapa" element={<MapaPage user={user} onOpenAuth={handleOpenAuth} />} />
+          <Route path="directorio" element={<DirectoryPage />} />
+          <Route path="directorio/evento/:id" element={<DirectoryEventPage />} />
+          <Route path="directorio/:id" element={<DirectoryEntityPage />} />
+          <Route path="comunidades" element={<ComunidadesPage />} />
+          <Route path="para-la-terreta" element={<ParaLaTerretaPage />} />
+          <Route path="para-la-terreta/onboarding" element={<DirectoryOnboarding />} />
           <Route path="dominio" element={<DominioPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="framehack" element={<FrameHackPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="chatbot" element={<ChatbotPage />} />

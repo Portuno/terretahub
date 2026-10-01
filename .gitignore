@@ -28,5 +28,7 @@ dist-ssr
 .cursor/
 .cursor/rules/
 
-# Supabase SQL migrations
-supabase/
+# Supabase local cache / internals (keep versioned SQL)
+supabase/*
+!supabase/migrations/
+!supabase/migrations/*.sql

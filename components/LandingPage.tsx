@@ -105,7 +105,7 @@ export const LandingPage: React.FC = () => {
     const routeByTopic: Record<Exclude<TotesTopicKey, 'feedback'>, string> = {
       perfil: '/perfil',
       foro: '/agora',
-      mapa: '/eventos',
+      mapa: '/mapa',
       recursos: '/recursos',
       comunidad: '/comunidad',
       dominio: '/dominio'
@@ -303,7 +303,7 @@ export const LandingPage: React.FC = () => {
               Explorar
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-terreta-dark/75 md:text-base">
-              Ágora, gente, proyectos y quedadas de Valencia.
+              Ágora, gente, proyectos, quedadas y el directorio vivo de Valencia.
             </p>
 
             <div className="mt-5 grid grid-cols-2 gap-2 sm:gap-3">

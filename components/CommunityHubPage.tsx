@@ -72,8 +72,31 @@ export const CommunityHubPage: React.FC = () => {
           </button>
         ))}
       </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => navigate('/directorio')}
+          className="rounded-2xl border border-dashed border-terreta-accent/40 bg-terreta-accent/5 px-4 py-3 text-left"
+        >
+          <p className="text-sm font-bold text-terreta-accent">Directorio</p>
+          <p className="text-xs text-terreta-dark/60">Personas, orgs y citas curadas</p>
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/comunidades')}
+          className="rounded-2xl border border-dashed border-terreta-accent/40 bg-terreta-accent/5 px-4 py-3 text-left"
+        >
+          <p className="text-sm font-bold text-terreta-accent">Comunidades</p>
+          <p className="text-xs text-terreta-dark/60">Hubs, incubadoras y colectivos</p>
+        </button>
+      </div>
+
       <p className="mt-6 text-center text-xs text-terreta-dark/50">
         Grupos temáticos están en preparación.{' '}
+        <span className="mr-1 rounded-full bg-terreta-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-terreta-accent">
+          Próximamente
+        </span>
         <button
           type="button"
           onClick={() => navigate('/grupos')}

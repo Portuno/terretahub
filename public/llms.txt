@@ -1,6 +1,7 @@
 # Terreta Hub
 
 Terreta Hub es la red social de Valencia: perfil, gente y lo que pasa en la ciudad.
+También mantiene un directorio vivo del ecosistema (personas, organizaciones, cultura y citas).
 No está afiliada ni es la misma entidad que Terreta Business Hub S.L.
 
 Sitio canónico: https://www.terretahub.com
@@ -9,6 +10,10 @@ Sitio canónico: https://www.terretahub.com
 
 - Qué es: https://www.terretahub.com/que-es-terreta-hub
 - FAQ: https://www.terretahub.com/faq
+- Directorio: https://www.terretahub.com/directorio
+- Mapa: https://www.terretahub.com/mapa
+- Comunidades: https://www.terretahub.com/comunidades
+- Para la Terreta: https://www.terretahub.com/para-la-terreta
 - Fallas: https://www.terretahub.com/fallas2026
 - Networking en Valencia: https://www.terretahub.com/donde-networking-valencia
 - Quedadas / eventos: https://www.terretahub.com/eventos
@@ -24,4 +29,10 @@ Sitio canónico: https://www.terretahub.com
 - Miembros: https://www.terretahub.com/miembros
 - Proyectos: https://www.terretahub.com/proyectos
 - Perfiles públicos: https://www.terretahub.com/p/{extension}
+- Fichas del directorio: https://www.terretahub.com/directorio/{id}
+- Citas del directorio: https://www.terretahub.com/directorio/evento/{id}
 - Sitemap: https://www.terretahub.com/sitemap.xml
+
+## Disambiguación
+
+Terreta Hub (terretahub.com) ≠ Terreta Business Hub S.L. (terretabusinesshub.com).
