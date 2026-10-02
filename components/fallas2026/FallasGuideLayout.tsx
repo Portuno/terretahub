@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, NavLink, useLocation, Link } from 'react-router-dom';
-import { Flame, CalendarDays, Shield, Landmark, Lightbulb, Route as RouteIcon, MessageCircle, BookOpen, Download, Menu, X } from 'lucide-react';
+import { Flame, CalendarDays, Shield, Landmark, Lightbulb, Route as RouteIcon, BookOpen, Download, Menu, X } from 'lucide-react';
 
 import { FallasGuideHomePage } from './FallasGuideHomePage';
 import { FallasWhatIsPage } from './FallasWhatIsPage';
@@ -22,8 +22,8 @@ const navItems = [
   {
     id: 'overview',
     path: '',
-    labelEs: 'Asistente Fallas',
-    labelEn: 'Fallas Assistant',
+    labelEs: 'Inicio',
+    labelEn: 'Home',
   },
   {
     id: 'what-is',
@@ -77,7 +77,7 @@ const navItems = [
 
 const getNavIcon = (id: string) => {
   if (id === 'overview') {
-    return <MessageCircle size={16} />;
+    return <Flame size={16} />;
   }
   if (id === 'what-is') {
     return <Flame size={16} />;

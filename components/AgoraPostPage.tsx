@@ -22,6 +22,57 @@ const formatTimestamp = (dateString: string): string => {
   return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 };
 
+
+const countVotes = (rows: { type?: string }[] | null | undefined) => {
+  let likes = 0;
+  let dislikes = 0;
+  (rows || []).forEach((row) => {
+    if (row.type === 'like') likes += 1;
+    else if (row.type === 'dislike') dislikes += 1;
+  });
+  return { likes, dislikes };
+};
+
+const loadPostVoteState = async (postId: string, userId: string | null) => {
+  const { data: likesData } = await supabase
+    .from('agora_post_likes')
+    .select('type, user_id')
+    .eq('post_id', postId);
+
+  const counts = countVotes(likesData);
+  let userLikeType: 'like' | 'dislike' | null = null;
+  if (userId && likesData) {
+    const mine = likesData.find((row: any) => row.user_id === userId);
+    if (mine?.type === 'like' || mine?.type === 'dislike') {
+      userLikeType = mine.type;
+    }
+  }
+  return { ...counts, userLikeType };
+};
+
+const loadCommentVoteState = async (commentIds: string[], userId: string | null) => {
+  const counts = new Map<string, { likes: number; dislikes: number }>();
+  const userVotes = new Map<string, 'like' | 'dislike'>();
+  if (commentIds.length === 0) {
+    return { counts, userVotes };
+  }
+  const { data } = await supabase
+    .from('agora_comment_likes')
+    .select('comment_id, type, user_id')
+    .in('comment_id', commentIds);
+
+  (data || []).forEach((row: any) => {
+    const entry = counts.get(row.comment_id) || { likes: 0, dislikes: 0 };
+    if (row.type === 'like') entry.likes += 1;
+    else if (row.type === 'dislike') entry.dislikes += 1;
+    counts.set(row.comment_id, entry);
+    if (userId && row.user_id === userId && (row.type === 'like' || row.type === 'dislike')) {
+      userVotes.set(row.comment_id, row.type);
+    }
+  });
+  return { counts, userVotes };
+};
+
 interface AgoraPostPageProps {
   user: AuthUser | null;
   onOpenAuth: (referrerUsername?: string) => void;
@@ -157,6 +208,9 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
           const foundPost = feedData.posts.find((p: any) => p.id === id);
           
           if (foundPost) {
+            const voteState = await loadPostVoteState(foundPost.id, user?.id || null);
+            const commentIds = (foundPost.comments || []).map((c: any) => c.id);
+            const commentVotes = await loadCommentVoteState(commentIds, user?.id || null);
             const transformedPost: AgoraPost = {
               id: foundPost.id,
               authorId: foundPost.author_id,
@@ -171,6 +225,9 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
               imageUrls: foundPost.image_urls || [],
               videoUrl: foundPost.video_url || null,
               linkUrl: foundPost.link_url || null,
+              likesCount: voteState.likes,
+              dislikesCount: voteState.dislikes,
+              userLikeType: voteState.userLikeType,
               poll: pollRow
                 ? {
                     id: pollRow.id,
@@ -181,16 +238,22 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
                     createdAt: pollRow.created_at,
                   }
                 : undefined,
-              comments: (foundPost.comments || []).map((comment: any) => ({
-                id: comment.id,
-                author: {
-                  name: comment.author?.name || 'Usuario',
-                  handle: `@${comment.author?.username || 'usuario'}`,
-                  avatar: comment.author?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.author?.username || 'user'}`
-                },
-                content: comment.content,
-                timestamp: formatTimestamp(comment.created_at)
-              }))
+              comments: (foundPost.comments || []).map((comment: any) => {
+                const cCounts = commentVotes.counts.get(comment.id) || { likes: 0, dislikes: 0 };
+                return {
+                  id: comment.id,
+                  author: {
+                    name: comment.author?.name || 'Usuario',
+                    handle: `@${comment.author?.username || 'usuario'}`,
+                    avatar: comment.author?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.author?.username || 'user'}`
+                  },
+                  content: comment.content,
+                  timestamp: formatTimestamp(comment.created_at),
+                  likesCount: cCounts.likes,
+                  dislikesCount: cCounts.dislikes,
+                  userLikeType: commentVotes.userVotes.get(comment.id) || null
+                };
+              })
             };
             setPost(transformedPost);
             setPostCreatedAt(foundPost.created_at);
@@ -248,6 +311,9 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
         const authorProfileData = profilesMap.get(postData.author_id);
         const finalAvatar = authorProfileData?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorProfileData?.username || 'user'}`;
 
+        const voteState = await loadPostVoteState(postData.id, user?.id || null);
+        const commentIds = (commentsData || []).map((c: any) => c.id);
+        const commentVotes = await loadCommentVoteState(commentIds, user?.id || null);
         const transformedPost: AgoraPost = {
           id: postData.id,
           authorId: postData.author_id,
@@ -262,6 +328,9 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
           imageUrls: postData.image_urls || [],
           videoUrl: postData.video_url || null,
           linkUrl: postData.link_url || null,
+          likesCount: voteState.likes,
+          dislikesCount: voteState.dislikes,
+          userLikeType: voteState.userLikeType,
           poll: pollRow
             ? {
                 id: pollRow.id,
@@ -274,6 +343,7 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
             : undefined,
           comments: (commentsData || []).map((comment: any) => {
             const commentAuthor = profilesMap.get(comment.author_id);
+            const cCounts = commentVotes.counts.get(comment.id) || { likes: 0, dislikes: 0 };
             return {
               id: comment.id,
               author: {
@@ -282,7 +352,10 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
                 avatar: commentAuthor?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${commentAuthor?.username || 'user'}`
               },
               content: comment.content,
-              timestamp: formatTimestamp(comment.created_at)
+              timestamp: formatTimestamp(comment.created_at),
+              likesCount: cCounts.likes,
+              dislikesCount: cCounts.dislikes,
+              userLikeType: commentVotes.userVotes.get(comment.id) || null
             };
           })
         };
@@ -297,7 +370,7 @@ export const AgoraPostPage: React.FC<AgoraPostPageProps> = ({ user, onOpenAuth }
     };
 
     loadPost();
-  }, [id]);
+  }, [id, user?.id]);
 
   const handleReply = async (postId: string, content: string) => {
     if (!user) {

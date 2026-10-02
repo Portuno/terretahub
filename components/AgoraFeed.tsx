@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, User, AlertTriangle, Image as ImageIcon, Video, Link as LinkIcon, X, BarChart3, Mic, Square, MessageSquareText, FolderKanban, BookOpen, CalendarDays, TrendingUp } from 'lucide-react';
+import { Send, User, AlertTriangle, Image as ImageIcon, Video, Link as LinkIcon, X, BarChart3 } from 'lucide-react';
 import { AgoraPost as AgoraPostComponent } from './AgoraPost';
 import { AgoraCardResourceRequest } from './AgoraCardResourceRequest';
 import { AgoraCardProfileCreated } from './AgoraCardProfileCreated';
@@ -98,16 +98,6 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
   const videoInputRef = useRef<HTMLInputElement>(null);
   const linkInputRef = useRef<HTMLInputElement>(null);
 
-  // Audio transcription state
-  const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [liveTranscript, setLiveTranscript] = useState('');
-  const [audioError, setAudioError] = useState<string | null>(null);
-  const [transcriptionUnavailable, setTranscriptionUnavailable] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const liveTranscriptRef = useRef('');
-
   // Función para cargar posts con paginación y filtros
   const loadPosts = async (offset: number = 0, limit: number = 12, reset: boolean = false) => {
     try {
@@ -172,25 +162,29 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         return [];
       }
 
-      // Cargar likes del usuario si está autenticado
-      let userLikes: Map<string, 'like' | 'dislike'> = new Map();
-      if (user && postsData.length > 0) {
-        const postIds = postsData.map((p: any) => p.id);
+      // Contar likes/dislikes desde agora_post_likes (fuente de verdad;
+      // likes_count denormalizado suele quedar en 0 sin triggers).
+      const postIds = postsData.map((p: any) => p.id);
+      const postLikeCounts = new Map<string, { likes: number; dislikes: number }>();
+      const userLikes: Map<string, 'like' | 'dislike'> = new Map();
+      {
         const { data: likesData } = await supabase
           .from('agora_post_likes')
-          .select('post_id, type')
-          .eq('user_id', user.id)
+          .select('post_id, type, user_id')
           .in('post_id', postIds);
 
-        if (likesData) {
-          likesData.forEach((like: any) => {
+        (likesData || []).forEach((like: any) => {
+          const entry = postLikeCounts.get(like.post_id) || { likes: 0, dislikes: 0 };
+          if (like.type === 'like') entry.likes += 1;
+          else if (like.type === 'dislike') entry.dislikes += 1;
+          postLikeCounts.set(like.post_id, entry);
+          if (user && like.user_id === user.id && (like.type === 'like' || like.type === 'dislike')) {
             userLikes.set(like.post_id, like.type);
-          });
-        }
+          }
+        });
       }
 
       // Cargar comentarios para estos posts
-      const postIds = postsData.map((p: any) => p.id);
       const { data: allComments } = await executeQueryWithRetry(
         async () => await supabase
           .from('agora_comments')
@@ -214,21 +208,25 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         'load agora comments'
       );
 
-      // Cargar likes de comentarios del usuario
-      let commentLikes: Map<string, 'like' | 'dislike'> = new Map();
-      if (user && allComments && allComments.length > 0) {
+      // Contar likes de comentarios desde agora_comment_likes
+      const commentLikeCounts = new Map<string, { likes: number; dislikes: number }>();
+      const commentLikes: Map<string, 'like' | 'dislike'> = new Map();
+      if (allComments && allComments.length > 0) {
         const commentIds = allComments.map((c: any) => c.id);
         const { data: commentLikesData } = await supabase
           .from('agora_comment_likes')
-          .select('comment_id, type')
-          .eq('user_id', user.id)
+          .select('comment_id, type, user_id')
           .in('comment_id', commentIds);
 
-        if (commentLikesData) {
-          commentLikesData.forEach((like: any) => {
+        (commentLikesData || []).forEach((like: any) => {
+          const entry = commentLikeCounts.get(like.comment_id) || { likes: 0, dislikes: 0 };
+          if (like.type === 'like') entry.likes += 1;
+          else if (like.type === 'dislike') entry.dislikes += 1;
+          commentLikeCounts.set(like.comment_id, entry);
+          if (user && like.user_id === user.id && (like.type === 'like' || like.type === 'dislike')) {
             commentLikes.set(like.comment_id, like.type);
-          });
-        }
+          }
+        });
       }
 
       // Agrupar comentarios por post
@@ -237,8 +235,11 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         if (!commentsByPost.has(comment.post_id)) {
           commentsByPost.set(comment.post_id, []);
         }
+        const counts = commentLikeCounts.get(comment.id) || { likes: 0, dislikes: 0 };
         commentsByPost.get(comment.post_id)!.push({
           ...comment,
+          likes_count: counts.likes,
+          dislikes_count: counts.dislikes,
           userLikeType: commentLikes.get(comment.id) || null
         });
       });
@@ -294,8 +295,8 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         videoUrl: post.video_url || null,
         linkUrl: post.link_url || null,
         tags: post.tags || [],
-        likesCount: post.likes_count || 0,
-        dislikesCount: post.dislikes_count || 0,
+        likesCount: (postLikeCounts.get(post.id)?.likes ?? post.likes_count) || 0,
+        dislikesCount: (postLikeCounts.get(post.id)?.dislikes ?? post.dislikes_count) || 0,
         userLikeType: userLikes.get(post.id) || null,
         poll: poll ? {
           id: poll.id,
@@ -1082,154 +1083,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     await createPost();
   };
 
-  const blobToBase64 = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result?.toString() || '';
-        const base64 = result.split(',')[1] || '';
-        resolve(base64);
-      };
-      reader.onerror = () => reject(new Error('No se pudo leer el audio'));
-      reader.readAsDataURL(blob);
-    });
-  };
-
-  const transcribeAudioBlob = async (audioBlob: Blob, isFinal: boolean): Promise<string> => {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-    
-    if (!supabaseUrl) {
-      setTranscriptionUnavailable(true);
-      throw new Error('Servicio de transcripción no disponible. Configura VITE_SUPABASE_URL.');
-    }
-
-    const audioBase64 = await blobToBase64(audioBlob);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('elevenlabs-transcribe', {
-        body: {
-          audioBase64,
-          mimeType: audioBlob.type || 'audio/webm',
-          isFinal
-        }
-      });
-
-      if (error) {
-        console.error('[AgoraFeed] Edge Function error:', error);
-        if (error.message?.includes('404') || error.message?.includes('not found')) {
-          setTranscriptionUnavailable(true);
-          throw new Error('Servicio de transcripción no disponible. Asegura la Edge Function de Supabase.');
-        }
-        // Intentar extraer mensaje de error del body si está disponible
-        const errorMessage = error.message || (error.context?.body?.error || 'No se pudo transcribir el audio');
-        throw new Error(errorMessage);
-      }
-
-      return data?.text || '';
-    } catch (err: any) {
-      console.error('[AgoraFeed] Transcription error:', err);
-      if (err.message?.includes('404') || err.message?.includes('not found')) {
-        setTranscriptionUnavailable(true);
-        throw new Error('Servicio de transcripción no disponible. Asegura la Edge Function de Supabase.');
-      }
-      // Si el error tiene detalles de la Edge Function, mostrarlos
-      if (err.message) {
-        throw err;
-      }
-      throw new Error(err.message || 'Error al transcribir el audio');
-    }
-  };
-
-  const handleStartRecording = async () => {
-    if (!user) {
-      onOpenAuth();
-      return;
-    }
-    if (isRecording || isTranscribing) {
-      return;
-    }
-    if (transcriptionUnavailable) {
-      setAudioError('Servicio de transcripción no disponible. Verifica la Edge Function de Supabase.');
-      return;
-    }
-
-    setAudioError(null);
-    setLiveTranscript('');
-    liveTranscriptRef.current = '';
-    audioChunksRef.current = [];
-
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setAudioError('Tu navegador no soporta grabación de audio.');
-        return;
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const preferredMimeType = MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : '';
-
-      const recorder = new MediaRecorder(stream, preferredMimeType ? { mimeType: preferredMimeType } : undefined);
-      mediaRecorderRef.current = recorder;
-
-      recorder.ondataavailable = async (event) => {
-        if (!event.data || event.data.size === 0) {
-          return;
-        }
-
-        audioChunksRef.current.push(event.data);
-
-        try {
-          const partialText = await transcribeAudioBlob(event.data, false);
-          if (partialText) {
-            setLiveTranscript(prev => {
-              const updated = prev ? `${prev} ${partialText}` : partialText;
-              liveTranscriptRef.current = updated;
-              return updated;
-            });
-          }
-        } catch (err) {
-          console.warn('Error en transcripción parcial:', err);
-        }
-      };
-
-      recorder.onstop = async () => {
-        stream.getTracks().forEach(track => track.stop());
-        setIsRecording(false);
-        setIsTranscribing(true);
-
-        try {
-          const fullBlob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-          const finalText = await transcribeAudioBlob(fullBlob, true);
-          const transcript = (finalText || liveTranscriptRef.current).trim();
-
-          if (!transcript) {
-            setAudioError('No se pudo transcribir el audio. Intenta nuevamente.');
-            return;
-          }
-
-          await createPost({ contentOverride: transcript, ignoreMedia: true });
-        } catch (err: any) {
-          console.error('Error al transcribir audio:', err);
-          setAudioError(err.message || 'Error al transcribir el audio');
-        } finally {
-          setIsTranscribing(false);
-        }
-      };
-
-      recorder.start(1200);
-      setIsRecording(true);
-    } catch (err: any) {
-      console.error('Error al iniciar grabación:', err);
-      setAudioError(err.message || 'No se pudo acceder al micrófono.');
-    }
-  };
-
-  const handleStopRecording = () => {
-    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
-      return;
-    }
-    mediaRecorderRef.current.stop();
-  };
+;
 
   const handleReply = async (postId: string, content: string) => {
     if (!user) return;
@@ -1358,43 +1212,17 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
     }
   };
 
-  const desktopSections = [
-    { label: 'Ágora', href: '/agora', icon: <MessageSquareText size={16} /> },
-    { label: 'Proyectos', href: '/proyectos', icon: <FolderKanban size={16} /> },
-    { label: 'Manual', href: '/manual', icon: <BookOpen size={16} /> },
-    { label: 'Quedadas', href: '/eventos', icon: <CalendarDays size={16} /> }
-  ];
-
   const topTags = availableTags.slice(0, 5);
   const isPublishDisabled = (() => {
     const hasContent = !!newPostContent.trim() || selectedFiles.length > 0 || !!linkUrl.trim();
     const hasValidPoll = pollData && pollData.question.trim() && pollData.options.filter(o => o.trim()).length >= 2;
-    return (!hasContent && !hasValidPoll) || isUploading || isTranscribing || isRecording;
+    return (!hasContent && !hasValidPoll) || isUploading;
   })();
 
 
   return (
-    <div className="mx-auto w-full max-w-[1500px] py-6 md:py-8 animate-fade-in">
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[240px_minmax(0,1fr)_280px]">
-        <aside className="hidden xl:block">
-          <div className="sticky top-24 rounded-2xl border border-terreta-border bg-terreta-card/80 p-4 shadow-sm">
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-terreta-dark/60">Navegación</p>
-            <div className="space-y-2">
-              {desktopSections.map((section) => (
-                <a
-                  key={section.href}
-                  href={section.href}
-                  className="flex items-center gap-2 rounded-xl border border-transparent px-3 py-2 text-sm font-semibold text-terreta-dark/75 transition-colors hover:border-terreta-accent/30 hover:bg-terreta-bg"
-                  aria-label={`Abrir ${section.label}`}
-                >
-                  <span className="text-terreta-accent">{section.icon}</span>
-                  <span>{section.label}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-        </aside>
-
+    <div className="mx-auto w-full max-w-[900px] py-6 md:py-8 animate-fade-in">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_240px]">
         <section className="min-w-0">
       
       {/* Create Post Section */}
@@ -1459,23 +1287,6 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                       />
                     </div>
                  </div>
-
-                 {(isRecording || isTranscribing || liveTranscript || audioError) && (
-                   <div className="mt-3 rounded-lg border border-terreta-border bg-terreta-bg/50 p-3">
-                     <div className="flex items-center gap-2 text-xs text-terreta-secondary">
-                       <span className={`inline-flex h-2.5 w-2.5 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-terreta-accent'}`} />
-                       {isRecording && <span>Escuchando en vivo...</span>}
-                       {!isRecording && isTranscribing && <span>Procesando transcripción...</span>}
-                       {!isRecording && !isTranscribing && liveTranscript && <span>Transcripción generada</span>}
-                     </div>
-                     {liveTranscript && (
-                       <p className="mt-2 text-sm text-terreta-dark">{liveTranscript}</p>
-                     )}
-                     {audioError && (
-                       <p className="mt-2 text-xs text-red-500">{audioError}</p>
-                     )}
-                   </div>
-                 )}
 
                  {/* Media Selection */}
                  <div className="mt-3 space-y-2">
@@ -1676,20 +1487,6 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
 
                       <button
                         type="button"
-                        onClick={isRecording ? handleStopRecording : handleStartRecording}
-                        className={`p-1.5 rounded transition-colors cursor-pointer ${
-                          isRecording
-                            ? 'text-white bg-red-500 hover:bg-red-600'
-                            : 'text-terreta-secondary hover:text-terreta-dark hover:bg-terreta-bg'
-                        }`}
-                        title={isRecording ? 'Detener transcripción' : 'Transcribir por voz'}
-                        aria-label={isRecording ? 'Detener transcripción' : 'Transcribir por voz'}
-                      >
-                        {isRecording ? <Square size={18} /> : <Mic size={18} />}
-                      </button>
-
-                      <button
-                        type="button"
                         onClick={() => {
                           if (!pollData) setShowPollCreator(true);
                         }}
@@ -1874,11 +1671,11 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
 
         </section>
 
-        <aside className="hidden xl:block">
-          <div className="sticky top-24 space-y-4">
-            {trendingTags.length > 0 ? (
-            <div className="rounded-2xl border border-terreta-border bg-terreta-card/80 p-4 shadow-sm">
-              <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-terreta-dark/60">Tendencias en la Terreta</p>
+        {trendingTags.length > 0 ? (
+          <aside className="hidden xl:block">
+            <div className="sticky top-24 space-y-4">
+              <div className="rounded-2xl border border-terreta-border bg-terreta-card/80 p-4 shadow-sm">
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-terreta-dark/60">Tendencias en la Terreta</p>
                 <div className="flex flex-wrap gap-2">
                   {trendingTags.map((item) => (
                     <button
@@ -1892,20 +1689,10 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
                     </button>
                   ))}
                 </div>
-            </div>
-            ) : null}
-
-            <div className="rounded-2xl border border-terreta-border bg-terreta-card/80 p-4 shadow-sm">
-              <div className="mb-2 flex items-center gap-2">
-                <TrendingUp size={14} className="text-terreta-accent" />
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-terreta-dark/60">Ranking de Terris</p>
               </div>
-              <p className="text-sm text-terreta-secondary">
-                Completa acciones en Perfil, Manual y Ágora para subir tu saldo y desbloquear nuevas capas de participación.
-              </p>
             </div>
-          </div>
-        </aside>
+          </aside>
+        ) : null}
       </div>
     </div>
   );

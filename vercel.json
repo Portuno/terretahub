@@ -56,9 +56,6 @@
     },
     "api/sitemap.ts": {
       "maxDuration": 30
-    },
-    "api/chat/gemini.ts": {
-      "maxDuration": 15
     }
   },
   "headers": [

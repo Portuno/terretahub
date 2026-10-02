@@ -21,6 +21,88 @@ interface UseLikesReturn {
   handleDislike: () => Promise<void>;
 }
 
+const getTableName = (entityType: UseLikesOptions['entityType']) => {
+  switch (entityType) {
+    case 'post':
+      return 'agora_post_likes';
+    case 'comment':
+      return 'agora_comment_likes';
+    case 'resource':
+      return 'resource_votes';
+    case 'blog':
+      return 'blog_likes';
+    default:
+      throw new Error(`Unknown entity type: ${entityType}`);
+  }
+};
+
+const getEntityIdColumn = (entityType: UseLikesOptions['entityType']) => {
+  switch (entityType) {
+    case 'post':
+      return 'post_id';
+    case 'comment':
+      return 'comment_id';
+    case 'resource':
+      return 'resource_id';
+    case 'blog':
+      return 'blog_id';
+    default:
+      throw new Error(`Unknown entity type: ${entityType}`);
+  }
+};
+
+const getMainTableName = (entityType: UseLikesOptions['entityType']) => {
+  switch (entityType) {
+    case 'post':
+      return 'agora_posts';
+    case 'comment':
+      return 'agora_comments';
+    case 'resource':
+      return 'resources';
+    case 'blog':
+      return 'blogs';
+    default:
+      return '';
+  }
+};
+
+/** Recount votes from the likes table (source of truth). Denormalized counters are often stale. */
+const recountVotes = async (
+  entityType: UseLikesOptions['entityType'],
+  entityId: string
+): Promise<{ likes: number; dislikes: number }> => {
+  const tableName = getTableName(entityType);
+  const entityIdColumn = getEntityIdColumn(entityType);
+
+  const { data: rows, error } = await supabase
+    .from(tableName)
+    .select('type')
+    .eq(entityIdColumn, entityId);
+
+  if (error) {
+    console.error('Error recounting likes:', error);
+    throw error;
+  }
+
+  let likes = 0;
+  let dislikes = 0;
+  (rows || []).forEach((row: { type?: string }) => {
+    if (row.type === 'like') likes += 1;
+    else if (row.type === 'dislike') dislikes += 1;
+  });
+
+  // Best-effort sync of denormalized columns (may fail under RLS for non-authors).
+  const mainTableName = getMainTableName(entityType);
+  if (mainTableName) {
+    await supabase
+      .from(mainTableName)
+      .update({ likes_count: likes, dislikes_count: dislikes })
+      .eq('id', entityId);
+  }
+
+  return { likes, dislikes };
+};
+
 export const useLikes = ({
   entityType,
   entityId,
@@ -33,83 +115,29 @@ export const useLikes = ({
   const [likesCount, setLikesCount] = useState(initialLikesCount);
   const [dislikesCount, setDislikesCount] = useState(initialDislikesCount);
   const [isLiking, setIsLiking] = useState(false);
-  const [lastSyncedEntityId, setLastSyncedEntityId] = useState(entityId);
-  const [hasLocalChanges, setHasLocalChanges] = useState(false);
-  
-  // Usar useRef para rastrear los últimos valores sincronizados sin causar re-renders
-  const lastSyncedValuesRef = useRef({
-    entityId,
-    likeType: currentLikeType || null,
-    likesCount: initialLikesCount,
-    dislikesCount: initialDislikesCount
-  });
 
-  // Sincronizar estado cuando cambia el entityId o cuando cambian los valores iniciales
-  // (solo si no hay cambios locales pendientes)
+  // Track entity identity so we only reset from props when the entity changes,
+  // not when a parent re-renders with stale denormalized counts (often 0).
+  const lastEntityIdRef = useRef(entityId);
+  const hasInteractedRef = useRef(false);
+
   useEffect(() => {
-    const entityChanged = entityId !== lastSyncedValuesRef.current.entityId;
-    const valuesChanged = 
-      (currentLikeType || null) !== lastSyncedValuesRef.current.likeType ||
-      initialLikesCount !== lastSyncedValuesRef.current.likesCount ||
-      initialDislikesCount !== lastSyncedValuesRef.current.dislikesCount;
-
-    // Sincronizar si cambió el entityId (nuevo post/comentario)
-    if (entityChanged) {
+    if (entityId !== lastEntityIdRef.current) {
+      lastEntityIdRef.current = entityId;
+      hasInteractedRef.current = false;
       setLikeType(currentLikeType || null);
       setLikesCount(initialLikesCount);
       setDislikesCount(initialDislikesCount);
-      setLastSyncedEntityId(entityId);
-      lastSyncedValuesRef.current = {
-        entityId,
-        likeType: currentLikeType || null,
-        likesCount: initialLikesCount,
-        dislikesCount: initialDislikesCount
-      };
-      setHasLocalChanges(false);
-    } 
-    // Sincronizar si cambiaron los valores iniciales y no hay cambios locales pendientes
-    else if (valuesChanged && !hasLocalChanges && !isLiking) {
+      return;
+    }
+
+    // Accept fresher counts from parent only before the user interacts locally.
+    if (!hasInteractedRef.current && !isLiking) {
       setLikeType(currentLikeType || null);
       setLikesCount(initialLikesCount);
       setDislikesCount(initialDislikesCount);
-      lastSyncedValuesRef.current = {
-        entityId,
-        likeType: currentLikeType || null,
-        likesCount: initialLikesCount,
-        dislikesCount: initialDislikesCount
-      };
     }
-  }, [entityId, currentLikeType, initialLikesCount, initialDislikesCount, hasLocalChanges, isLiking]);
-
-  const getTableName = () => {
-    switch (entityType) {
-      case 'post':
-        return 'agora_post_likes';
-      case 'comment':
-        return 'agora_comment_likes';
-      case 'resource':
-        return 'resource_votes';
-      case 'blog':
-        return 'blog_likes';
-      default:
-        throw new Error(`Unknown entity type: ${entityType}`);
-    }
-  };
-
-  const getEntityIdColumn = () => {
-    switch (entityType) {
-      case 'post':
-        return 'post_id';
-      case 'comment':
-        return 'comment_id';
-      case 'resource':
-        return 'resource_id';
-      case 'blog':
-        return 'blog_id';
-      default:
-        throw new Error(`Unknown entity type: ${entityType}`);
-    }
-  };
+  }, [entityId, currentLikeType, initialLikesCount, initialDislikesCount, isLiking]);
 
   const toggleLike = async (type: 'like' | 'dislike') => {
     if (!userId) {
@@ -117,125 +145,72 @@ export const useLikes = ({
     }
 
     setIsLiking(true);
-    setHasLocalChanges(true);
-    const tableName = getTableName();
-    const entityIdColumn = getEntityIdColumn();
+    hasInteractedRef.current = true;
+    const tableName = getTableName(entityType);
+    const entityIdColumn = getEntityIdColumn(entityType);
 
-    // Guardar estado anterior para revertir en caso de error
     const previousLikeType = likeType;
     const previousLikesCount = likesCount;
     const previousDislikesCount = dislikesCount;
 
     try {
-      // Actualización optimista inmediata
+      // Optimistic UI
       if (previousLikeType === type) {
-        // Si ya tiene el mismo tipo, eliminar
         setLikeType(null);
         if (type === 'like') {
-          setLikesCount(prev => Math.max(0, prev - 1));
+          setLikesCount((prev) => Math.max(0, prev - 1));
         } else {
-          setDislikesCount(prev => Math.max(0, prev - 1));
+          setDislikesCount((prev) => Math.max(0, prev - 1));
         }
       } else if (previousLikeType) {
-        // Si tiene el tipo opuesto, cambiar
         setLikeType(type);
         if (type === 'like') {
-          setLikesCount(prev => prev + 1);
-          setDislikesCount(prev => Math.max(0, prev - 1));
+          setLikesCount((prev) => prev + 1);
+          setDislikesCount((prev) => Math.max(0, prev - 1));
         } else {
-          setDislikesCount(prev => prev + 1);
-          setLikesCount(prev => Math.max(0, prev - 1));
+          setDislikesCount((prev) => prev + 1);
+          setLikesCount((prev) => Math.max(0, prev - 1));
         }
       } else {
-        // Crear nuevo like/dislike
         setLikeType(type);
         if (type === 'like') {
-          setLikesCount(prev => prev + 1);
+          setLikesCount((prev) => prev + 1);
         } else {
-          setDislikesCount(prev => prev + 1);
+          setDislikesCount((prev) => prev + 1);
         }
       }
 
-      // Verificar si ya existe un like/dislike en la BD
-      const { data: existing } = await supabase
+      const { data: existing, error: existingError } = await supabase
         .from(tableName)
         .select('id, type')
         .eq(entityIdColumn, entityId)
         .eq('user_id', userId)
         .maybeSingle();
 
+      if (existingError) throw existingError;
+
       if (existing) {
         if (existing.type === type) {
-          // Si ya tiene el mismo tipo, eliminar
-          const { error } = await supabase
-            .from(tableName)
-            .delete()
-            .eq('id', existing.id);
-
+          const { error } = await supabase.from(tableName).delete().eq('id', existing.id);
           if (error) throw error;
         } else {
-          // Si tiene el tipo opuesto, actualizar
-          const { error } = await supabase
-            .from(tableName)
-            .update({ type })
-            .eq('id', existing.id);
-
+          const { error } = await supabase.from(tableName).update({ type }).eq('id', existing.id);
           if (error) throw error;
         }
       } else {
-        // Crear nuevo like/dislike
-        const { error } = await supabase
-          .from(tableName)
-          .insert({
-            [entityIdColumn]: entityId,
-            user_id: userId,
-            type
-          });
-
+        const { error } = await supabase.from(tableName).insert({
+          [entityIdColumn]: entityId,
+          user_id: userId,
+          type
+        });
         if (error) throw error;
       }
 
-      // Recargar valores reales de la BD para asegurar sincronización
-      // Los triggers actualizan los contadores automáticamente
-      let mainTableName: string;
-      switch (entityType) {
-        case 'post':
-          mainTableName = 'agora_posts';
-          break;
-        case 'comment':
-          mainTableName = 'agora_comments';
-          break;
-        case 'resource':
-          mainTableName = 'resources';
-          break;
-        case 'blog':
-          mainTableName = 'blogs';
-          break;
-        default:
-          mainTableName = '';
-      }
+      // Source of truth: recount from likes table (not denormalized columns).
+      const { likes, dislikes } = await recountVotes(entityType, entityId);
+      setLikesCount(likes);
+      setDislikesCount(dislikes);
 
-      // Recargar valores reales de la BD para asegurar sincronización
-      // Los triggers actualizan los contadores automáticamente
-      let finalLikesCount = likesCount;
-      let finalDislikesCount = dislikesCount;
-      
-      if (mainTableName) {
-        const { data: updatedEntity } = await supabase
-          .from(mainTableName)
-          .select('likes_count, dislikes_count')
-          .eq('id', entityId)
-          .single();
-
-        if (updatedEntity) {
-          finalLikesCount = updatedEntity.likes_count || 0;
-          finalDislikesCount = updatedEntity.dislikes_count || 0;
-          setLikesCount(finalLikesCount);
-          setDislikesCount(finalDislikesCount);
-        }
-      }
-
-      // Verificar el tipo de like actual del usuario
       const { data: currentUserLike } = await supabase
         .from(tableName)
         .select('type')
@@ -243,35 +218,12 @@ export const useLikes = ({
         .eq('user_id', userId)
         .maybeSingle();
 
-      const finalLikeType = (currentUserLike?.type as LikeType) || null;
-      setLikeType(finalLikeType);
-      
-      // Actualizar la referencia con los valores finales de la BD
-      lastSyncedValuesRef.current = {
-        entityId,
-        likeType: finalLikeType,
-        likesCount: finalLikesCount,
-        dislikesCount: finalDislikesCount
-      };
-      
-      setHasLocalChanges(false); // Marcar que ya se sincronizó con la BD
-
+      setLikeType((currentUserLike?.type as LikeType) || null);
     } catch (error) {
       console.error('Error toggling like:', error);
-      // Revertir cambios optimistas en caso de error
       setLikeType(previousLikeType);
       setLikesCount(previousLikesCount);
       setDislikesCount(previousDislikesCount);
-      
-      // Actualizar la referencia con los valores revertidos
-      lastSyncedValuesRef.current = {
-        entityId,
-        likeType: previousLikeType,
-        likesCount: previousLikesCount,
-        dislikesCount: previousDislikesCount
-      };
-      
-      setHasLocalChanges(false);
     } finally {
       setIsLiking(false);
     }

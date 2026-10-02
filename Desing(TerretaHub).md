@@ -42,7 +42,6 @@ Terreta Hub elimina la fragmentación de información y acciones en comunidades 
 - **Gestión de identidad:** auth + perfil extendido.
 - **Contenido SEO:** páginas indexables y publicaciones públicas.
 - **Verticales internos:** módulos de dominio (ej. Fallas, Biblioteca/Torre, etc.).
-- **Integraciones IA/voz:** chat contextual y transcripción.
 
 ## 7) Stack tecnológico real
 ### Frontend
@@ -66,9 +65,6 @@ Terreta Hub elimina la fragmentación de información y acciones en comunidades 
 - Vercel Analytics
 - Vercel Speed Insights
 
-### IA y voz
-- Gemini (chat contextual)
-- ElevenLabs STT (speech-to-text)
 
 ## 8) Arquitectura de aplicación (alto nivel)
 - **Shell principal:** enrutamiento, sesión y gate de onboarding.
@@ -101,17 +97,6 @@ Además se infieren relaciones para likes, comentarios, notificaciones, asistenc
 - Riesgo principal: divergencia entre permisos UI (`isAdmin`) y enforcement real en DB.
 
 ## 10) Integraciones API (contratos internos)
-### 10.1 Chat IA con Gemini
-- **Endpoint:** `POST /api/chat/gemini`
-- **Entrada:** `messages`, `context`
-- **Lógica:** compone contexto vivo con datos de Supabase, selecciona prompt por contexto y genera respuesta.
-- **Salida:** `text` para render en UI.
-
-### 10.2 Transcripción con ElevenLabs
-- **Endpoint:** `POST /api/elevenlabs/transcribe`
-- **Entrada:** audio base64
-- **Lógica:** transforma payload a `FormData`, reenvía a STT.
-- **Salida:** texto transcrito.
 
 ### 10.3 Sitemap dinámico
 - **Endpoint:** `GET /api/sitemap`
@@ -207,13 +192,12 @@ Artefactos mínimos por iteración: brief, context pack, plan ejecutable, eviden
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_AVATAR_API_URL`
-- claves de proveedor en capa serverless (Gemini/ElevenLabs, según despliegue)
+- claves de proveedor en capa serverless según despliegue
 - `AVATAR_API_KEY` (opcional, en avatar-api)
 
 ## 19) Scripts de desarrollo relevantes
 ### Proyecto principal
 - `npm run dev`
-- `npm run dev:api`
 - `npm run build`
 - `npm run preview`
 

@@ -38,7 +38,6 @@ import { UnFindePage } from './components/UnFindePage';
 import { DominioPage } from './components/DominioPage';
 import { FrameHackPage } from './components/FrameHackPage';
 import { QRPage } from './components/QRPage';
-import { ChatbotPage } from './components/ChatbotPage';
 import { TerrisPage } from './components/TerrisPage';
 import { GruposComingPage } from './components/GruposComingPage';
 import { ResetPasswordPage } from './components/ResetPasswordPage';
@@ -541,7 +540,7 @@ const AppContent: React.FC = () => {
           <Route path="para-la-terreta/onboarding" element={<DirectoryOnboarding />} />
           <Route path="dominio" element={<DominioPage user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="framehack" element={<FrameHackPage user={user} onOpenAuth={handleOpenAuth} />} />
-          <Route path="chatbot" element={<ChatbotPage />} />
+          <Route path="chatbot" element={<Navigate to="/" replace />} />
           <Route path="terreta" element={<Navigate to="/unfinde" replace />} />
           <Route path="recursos" element={<ResourceCollabPanel user={user} onOpenAuth={handleOpenAuth} />} />
           <Route path="eventos" element={<EventsPage user={user} onOpenAuth={handleOpenAuth} />} />
