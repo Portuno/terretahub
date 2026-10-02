@@ -31,6 +31,14 @@ const ALLOWED_AMBITO = new Set(['ciudad', 'producto']);
 const ALLOWED_CONF = new Set(['V', 'E', 'A']);
 const ALLOWED_GEO = new Set(['sede', 'calle', 'barrio']);
 
+const IMPORT_TIPOS = new Set(
+  (process.env.IMPORT_TIPOS || 'fisica,juridica')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+);
+const SKIP_EVENTS = ['1', 'true', 'yes'].includes(String(process.env.SKIP_EVENTS || '').toLowerCase());
+
 const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
@@ -195,6 +203,8 @@ const main = async () => {
 
   console.log('[import] dataset', datasetPath);
   console.log('[import] personas', raw.personas?.length || 0, 'eventos', raw.eventos?.length || 0);
+  console.log('[import] IMPORT_TIPOS', [...IMPORT_TIPOS].join(','));
+  console.log('[import] SKIP_EVENTS', SKIP_EVENTS);
 
   const pointsByZone = new Map();
   const pointsBySubzone = new Map();
@@ -263,6 +273,10 @@ const main = async () => {
   const entitySkips = [];
   let entityGeo = 0;
   for (const person of raw.personas || []) {
+    if (!IMPORT_TIPOS.has(person.tipo)) {
+      entitySkips.push({ id: person.id || null, reason: `tipo excluido: ${person.tipo}` });
+      continue;
+    }
     const { row, skip } = mapPerson(person, sourceUpdatedAt, zoneCanon);
     if (skip || !row) {
       entitySkips.push(skip);
@@ -282,7 +296,10 @@ const main = async () => {
   const eventRows = [];
   const eventSkips = [];
   let eventGeo = 0;
-  for (const event of raw.eventos || []) {
+  if (SKIP_EVENTS) {
+    console.log('[import] SKIP_EVENTS=1 — not importing directory_events');
+  }
+  for (const event of SKIP_EVENTS ? [] : (raw.eventos || [])) {
     const { row, skip } = mapEvent(event, sourceUpdatedAt, zoneCanon);
     if (skip || !row) {
       eventSkips.push(skip);
