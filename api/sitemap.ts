@@ -1,7 +1,23 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { SITE_ORIGIN } from '../lib/site';
-import { getProjectSlug } from '../lib/projectSlug';
+
+// Inlined (no local lib imports): Vercel ESM ("type":"module") fails to resolve
+// extensionless ../lib/* at cold start → FUNCTION_INVOCATION_FAILED before handler.
+const SITE_ORIGIN = 'https://www.terretahub.com';
+const PROJECT_ID_SLUG_PREFIX = 'id-';
+
+const generateSlug = (name: string): string =>
+  name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+const getProjectSlug = (name: string, id: string): string => {
+  const fromName = generateSlug(name || '');
+  return fromName || `${PROJECT_ID_SLUG_PREFIX}${id}`;
+};
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';

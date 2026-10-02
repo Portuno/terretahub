@@ -1,7 +1,46 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { SITE_CLAIM, absoluteUrl } from '../lib/site';
-import { DEFAULT_OG_IMAGE, ogSafeImageUrl } from '../lib/ogImage';
+
+// Inlined (no local lib imports): Vercel ESM ("type":"module") fails to resolve
+// extensionless ../lib/* at cold start → FUNCTION_INVOCATION_FAILED before handler.
+const SITE_ORIGIN = 'https://www.terretahub.com';
+const APEX_ORIGIN = 'https://terretahub.com';
+const SITE_CLAIM =
+  'Terreta Hub es la red social de Valencia: perfil, gente y lo que pasa en la ciudad.';
+
+const absoluteUrl = (path = '/'): string => {
+  if (/^https?:\/\//i.test(path)) {
+    return path.replace(APEX_ORIGIN, SITE_ORIGIN);
+  }
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  if (normalized === '/') {
+    return `${SITE_ORIGIN}/`;
+  }
+  return `${SITE_ORIGIN}${normalized}`;
+};
+
+const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/og-image.jpg`;
+
+const ogSafeImageUrl = (url?: string | null): string => {
+  if (!url) {
+    return DEFAULT_OG_IMAGE;
+  }
+  const lower = url.toLowerCase();
+  if (lower.startsWith('data:')) {
+    return DEFAULT_OG_IMAGE;
+  }
+  if (
+    lower.includes('.svg') ||
+    lower.includes('image/svg') ||
+    lower.includes('dicebear.com')
+  ) {
+    return DEFAULT_OG_IMAGE;
+  }
+  if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
+    return DEFAULT_OG_IMAGE;
+  }
+  return url;
+};
 
 // Detectar si es un bot de redes sociales
 const isBot = (userAgent: string | undefined): boolean => {
