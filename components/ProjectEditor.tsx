@@ -21,6 +21,7 @@ export const ProjectEditor: React.FC<ProjectEditorProps> = ({ user, onCancel, on
   // Form State
   const [name, setName] = useState(initialProject?.name || '');
   const [slogan, setSlogan] = useState(initialProject?.slogan || '');
+  const [needSummary, setNeedSummary] = useState(initialProject?.needSummary || '');
   const [description, setDescription] = useState(initialProject?.description || '');
   const [videoUrl, setVideoUrl] = useState(initialProject?.videoUrl || '');
   const [website, setWebsite] = useState(initialProject?.website || '');
@@ -118,6 +119,7 @@ export const ProjectEditor: React.FC<ProjectEditorProps> = ({ user, onCancel, on
       authorId: user.id,
       name: name.trim(),
       slogan: slogan.trim(),
+      needSummary: needSummary.trim() || null,
       description: description.trim(),
       images,
       videoUrl,
@@ -217,6 +219,21 @@ export const ProjectEditor: React.FC<ProjectEditorProps> = ({ user, onCancel, on
                 {fieldErrors.slogan ? (
                   <p id="project-slogan-error" className="mt-1 text-xs text-red-500" role="alert">{fieldErrors.slogan}</p>
                 ) : null}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5" htmlFor="project-need">
+                  Qué busca (opcional)
+                </label>
+                <input
+                  id="project-need"
+                  type="text"
+                  maxLength={120}
+                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-700 outline-none"
+                  placeholder="Una frase corta. Si la escribís, la tarjeta dice que busca colaboradores."
+                  value={needSummary}
+                  onChange={(event) => setNeedSummary(event.target.value)}
+                />
               </div>
             </section>
 

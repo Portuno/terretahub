@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Users, Clock, Plus, ExternalLink, ChevronDown, ChevronUp, Share2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { AuthUser, Event } from '../types';
 import { openGoogleCalendar } from '../lib/calendarUtils';
@@ -10,6 +10,11 @@ import { executeQueryWithRetry } from '../lib/supabaseHelpers';
 import { QueryState } from './QueryState';
 import { EmptyState } from './EmptyState';
 import { isEventEnded } from '../lib/eventUtils';
+import { currentWeek, isSameLocalDay } from '../lib/weekStrip';
+import { WeekStrip } from './mobile/WeekStrip';
+import { PullToRefresh } from './mobile/PullToRefresh';
+import { ListSkeleton } from './mobile/ListSkeleton';
+import { trackProduct } from '../lib/productAnalytics';
 
 interface EventsPageProps {
   user: AuthUser | null;
@@ -18,6 +23,7 @@ interface EventsPageProps {
 
 export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -26,10 +32,37 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
   const [toastMessage, setToastMessage] = useState('');
   const [filter, setFilter] = useState<'upcoming' | 'past' | 'all'>('upcoming');
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [cityEvents, setCityEvents] = useState<Array<{ id: string; name: string; ini: string | null; lugar: string | null }>>([]);
 
   useEffect(() => {
     loadEvents();
   }, [filter, user]);
+
+  useEffect(() => {
+    if (searchParams.get('crear') === '1' && user) {
+      setIsCreating(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('crear');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, user]);
+
+  useEffect(() => {
+    const week = currentWeek(new Date());
+    const from = week[0]?.iso;
+    const until = week[6]?.iso;
+    if (!from || !until) return;
+    void supabase
+      .from('directory_events')
+      .select('id, name, ini, lugar')
+      .eq('visibility', 'published')
+      .gte('ini', from)
+      .lte('ini', until)
+      .order('ini', { ascending: true })
+      .limit(20)
+      .then(({ data }) => setCityEvents((data || []) as Array<{ id: string; name: string; ini: string | null; lugar: string | null }>));
+  }, [filter]);
 
   const loadEvents = async () => {
     try {
@@ -279,6 +312,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
       }
 
       setToastMessage('¡Te has registrado al evento exitosamente! Puedes exportarlo a tu calendario usando los botones de exportación.');
+      trackProduct('inscribirse', { origen: 'listado' });
       setShowToast(true);
       loadEvents();
     } catch (error) {
@@ -386,6 +420,9 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
   };
 
   const now = new Date();
+  const visibleEvents = selectedDay
+    ? events.filter((event) => isSameLocalDay(event.startDate, selectedDay))
+    : events;
 
   return (
     <>
@@ -400,7 +437,9 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
           }}
         />
       )}
-      <div className="max-w-7xl mx-auto py-6">
+      <div className="max-w-7xl mx-auto min-w-0 py-6">
+        <PullToRefresh onRefresh={loadEvents}>
+        <WeekStrip selectedIso={selectedDay} onSelect={setSelectedDay} />
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
@@ -523,14 +562,16 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
         </div>
 
         {/* Events List */}
-        {isLoading || loadError ? (
+        {isLoading ? (
+          <ListSkeleton />
+        ) : loadError ? (
           <QueryState
-            loading={isLoading}
+            loading={false}
             error={loadError}
             onRetry={loadEvents}
             loadingLabel="Cargando quedadas..."
           />
-        ) : events.length === 0 ? (
+        ) : visibleEvents.length === 0 ? (
           <EmptyState
             title={
               filter === 'upcoming'
@@ -557,7 +598,7 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map((event) => (
+            {visibleEvents.map((event) => (
               <div
                 key={event.id}
                 onClick={() => event.slug && handleViewEvent(event)}
@@ -720,6 +761,23 @@ export const EventsPage: React.FC<EventsPageProps> = ({ user, onOpenAuth }) => {
             ))}
           </div>
         )}
+        {cityEvents.length > 0 ? (
+          <section className="mt-8" aria-label="Citas del directorio">
+            <h2 className="text-m-lg text-terreta-dark">En la ciudad</h2>
+            <p className="mb-2 text-m-sm text-terreta-secondary">Citas del directorio. No tienen inscripción.</p>
+            <ul className="space-y-2">
+              {cityEvents.map((item) => (
+                <li key={item.id}>
+                  <a href={`/directorio/evento/${item.id}`} className="text-m-base text-terreta-dark">
+                    {item.name}
+                    {item.lugar ? <span className="text-terreta-secondary"> · {item.lugar}</span> : null}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+        </PullToRefresh>
       </div>
 
       {showToast && (

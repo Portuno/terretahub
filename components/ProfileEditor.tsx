@@ -18,6 +18,7 @@ import { useFollow } from '../hooks/useFollow';
 import { QueryState } from './QueryState';
 import { clearUserPersonalization } from '../lib/directoryApi';
 import { Link } from 'react-router-dom';
+import { ProfileMobileHeader } from './mobile/ProfileMobileHeader';
 
 interface ProfileEditorProps {
   user: AuthUser;
@@ -1143,12 +1144,15 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ user }) => {
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] flex flex-col lg:flex-row bg-terreta-bg overflow-hidden relative">
+    <div className="flex h-[calc(100dvh-5rem)] flex-col overflow-y-auto bg-terreta-bg relative lg:h-[calc(100vh-80px)] lg:flex-row lg:overflow-hidden">
+      <div className="w-full shrink-0 lg:hidden">
+        <ProfileMobileHeader user={user} />
+      </div>
       
       {/* Mobile Preview Button - Only visible on mobile */}
       <button
         onClick={() => setIsMobilePreviewOpen(true)}
-        className="lg:hidden fixed bottom-6 right-6 z-50 bg-terreta-accent text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all flex items-center gap-2 font-bold text-sm"
+        className="lg:hidden fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-6 z-50 bg-terreta-accent text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all flex items-center gap-2 font-bold text-sm md:bottom-6"
       >
         <Smartphone size={20} />
         <span>Preview</span>

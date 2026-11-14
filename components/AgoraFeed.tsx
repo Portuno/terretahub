@@ -26,6 +26,11 @@ import { PollCreator } from './PollCreator';
 import { QueryState } from './QueryState';
 import { EmptyState } from './EmptyState';
 import { rankTrends, TrendTag } from '../lib/trends';
+import { useMediaQuery } from '../hooks/useMediaQuery';
+import { AgoraMobileCard } from './mobile/AgoraMobileCard';
+import { ListSkeleton } from './mobile/ListSkeleton';
+import { PullToRefresh } from './mobile/PullToRefresh';
+import { trackProduct } from '../lib/productAnalytics';
 
 // Helper para formatear timestamps
 const formatTimestamp = (dateString: string): string => {
@@ -38,6 +43,15 @@ const formatTimestamp = (dateString: string): string => {
   if (diffInSeconds < 86400) return `hace ${Math.floor(diffInSeconds / 3600)} horas`;
   if (diffInSeconds < 604800) return `hace ${Math.floor(diffInSeconds / 86400)} días`;
   return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+};
+
+const authorIdOf = (item: AgoraFeedItem): string | null => {
+  if (item.type === 'post') return (item.payload as AgoraPost).authorId || null;
+  if (item.type === 'resource_request') return (item.payload as ResourceRequestFeedPayload).author?.id || null;
+  if (item.type === 'profile_created') return (item.payload as ProfileCreatedPayload).id || null;
+  if (item.type === 'event_created') return (item.payload as EventCreatedPayload).organizer?.id || null;
+  if (item.type === 'blog_published') return (item.payload as BlogPublishedPayload).author?.id || null;
+  return null;
 };
 
 interface AgoraFeedProps {
@@ -65,6 +79,10 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
   const [trendingTags, setTrendingTags] = useState<TrendTag[]>([]);
   type FeedTypeFilter = 'all' | 'post' | 'resource_request' | 'profile_created' | 'event_created';
   const [feedTypeFilter, setFeedTypeFilter] = useState<FeedTypeFilter>('all');
+  const [zoneMode, setZoneMode] = useState<'reciente' | 'zona'>('reciente');
+  const [viewerZoneId, setViewerZoneId] = useState<number | null>(null);
+  const [authorZones, setAuthorZones] = useState<Map<string, number | null>>(new Map());
+  const isMobile = useMediaQuery('(max-width: 767px)');
   
   // Creación de post
   const [postTags, setPostTags] = useState<string[]>([]);
@@ -583,9 +601,10 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
   }, [posts, resourceNeedsFeed, eventsCreatedFeed, newProfilesFeed, blogsFeed]);
 
   const filteredFeedItems = React.useMemo(() => {
-    if (feedTypeFilter === 'all') return feedItems;
-    return feedItems.filter((item) => item.type === feedTypeFilter);
-  }, [feedItems, feedTypeFilter]);
+    const byType = feedTypeFilter === 'all' ? feedItems : feedItems.filter((item) => item.type === feedTypeFilter);
+    if (zoneMode !== 'zona' || !viewerZoneId) return byType;
+    return byType.filter((item) => authorZones.get(authorIdOf(item) || '') === viewerZoneId);
+  }, [feedItems, feedTypeFilter, zoneMode, viewerZoneId, authorZones]);
 
   // Fallback method using the old approach (in case the RPC function doesn't exist)
   const loadPostsFallback = async () => {
@@ -813,6 +832,33 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
   };
 
   // Cargar feed unificado: posts, recursos, eventos, perfiles nuevos
+  useEffect(() => {
+    if (!user) {
+      setViewerZoneId(null);
+      return;
+    }
+    void supabase
+      .from('user_directory_prefs')
+      .select('zone_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => setViewerZoneId(data?.zone_id ?? null));
+  }, [user?.id]);
+
+  useEffect(() => {
+    const ids = [...new Set(feedItems.map(authorIdOf).filter((id): id is string => Boolean(id)))];
+    if (ids.length === 0) return;
+    void supabase
+      .from('user_directory_prefs')
+      .select('user_id, zone_id')
+      .in('user_id', ids)
+      .then(({ data }) => {
+        const next = new Map<string, number | null>();
+        (data || []).forEach((row: { user_id: string; zone_id: number | null }) => next.set(row.user_id, row.zone_id));
+        setAuthorZones(next);
+      });
+  }, [feedItems]);
+
   useEffect(() => {
     loadPosts(0, 12, true);
     loadAvailableTags();
@@ -1048,6 +1094,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
 
       // Agregar al inicio de la lista
       setPosts(prev => [formattedPost, ...prev]);
+      trackProduct('publicar', { tipo: 'agora' });
       setNewPostContent('');
       setSelectedFiles([]);
       setLinkUrl('');
@@ -1589,10 +1636,37 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         ))}
       </div>
 
+      <div className="mb-3 flex gap-2" role="group" aria-label="Orden del Ágora">
+        <button
+          type="button"
+          onClick={() => setZoneMode('reciente')}
+          className={`h-10 rounded-shell px-3 text-m-sm ${zoneMode === 'reciente' ? 'bg-terreta-accent text-white' : 'bg-terreta-card text-terreta-dark'}`}
+          aria-pressed={zoneMode === 'reciente'}
+        >
+          Reciente
+        </button>
+        <button
+          type="button"
+          onClick={() => setZoneMode('zona')}
+          className={`h-10 rounded-shell px-3 text-m-sm ${zoneMode === 'zona' ? 'bg-terreta-accent text-white' : 'bg-terreta-card text-terreta-dark'}`}
+          aria-pressed={zoneMode === 'zona'}
+        >
+          Mi zona
+        </button>
+      </div>
+      {zoneMode === 'zona' && !viewerZoneId ? (
+        <p className="mb-3 text-m-sm text-terreta-secondary">
+          No tenés una zona guardada. Elegila en Para la Terreta. Mientras, ves lo reciente.
+        </p>
+      ) : null}
+
       {/* Feed List */}
-      {loading || loadError ? (
+      <PullToRefresh onRefresh={() => loadPosts(0, 12, true)}>
+      {loading ? (
+        <ListSkeleton />
+      ) : loadError ? (
         <QueryState
-          loading={loading}
+          loading={false}
           error={loadError}
           onRetry={() => loadPosts(0, 12, true)}
           loadingLabel="Cargando feed..."
@@ -1619,6 +1693,17 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
         <>
           <div className="space-y-4">
             {filteredFeedItems.map((item) => {
+              if (item.type === 'post' && isMobile) {
+                return (
+                  <AgoraMobileCard
+                    key={item.id}
+                    post={item.payload as AgoraPost}
+                    currentUser={user}
+                    onReply={handleReply}
+                    onOpenAuth={onOpenAuth}
+                  />
+                );
+              }
               if (item.type === 'post') {
                 return (
                   <AgoraPostComponent
@@ -1668,6 +1753,7 @@ export const AgoraFeed: React.FC<AgoraFeedProps> = ({ user, onOpenAuth }) => {
           )}
         </>
       )}
+      </PullToRefresh>
 
         </section>
 

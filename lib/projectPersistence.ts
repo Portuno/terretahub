@@ -50,6 +50,7 @@ const toRow = (userId: string, project: Project) => ({
   phase: project.phase,
   status: project.status,
   archived_at: null as string | null,
+  need_summary: project.needSummary?.trim() || null,
 });
 
 const withoutArchivedAt = <T extends { archived_at?: string | null }>(row: T) => {
@@ -60,6 +61,15 @@ const withoutArchivedAt = <T extends { archived_at?: string | null }>(row: T) =>
 
 const isMissingArchivedAtColumn = (message?: string): boolean =>
   Boolean(message && /archived_at/i.test(message));
+
+const isMissingNeedSummaryColumn = (message?: string): boolean =>
+  Boolean(message && /need_summary/i.test(message));
+
+const withoutKey = <T extends object>(row: T, key: keyof T): T => {
+  const next = { ...row };
+  delete next[key];
+  return next;
+};
 
 const looksLikePersistedId = (id?: string): boolean =>
   Boolean(id && id !== 'draft' && !/^\d+$/.test(id));
@@ -92,10 +102,19 @@ export const persistProject = async (
       .eq('id', project.id)
       .eq('author_id', userId);
 
+    if (error && isMissingNeedSummaryColumn(error.message)) {
+      const retry = await supabase
+        .from('projects')
+        .update(withoutKey(updateRow, 'need_summary'))
+        .eq('id', project.id)
+        .eq('author_id', userId);
+      error = retry.error;
+    }
+
     if (error && isMissingArchivedAtColumn(error.message)) {
       const retry = await supabase
         .from('projects')
-        .update(withoutArchivedAt(updateRow))
+        .update(withoutArchivedAt(withoutKey(updateRow, 'need_summary')))
         .eq('id', project.id)
         .eq('author_id', userId);
       error = retry.error;
@@ -110,8 +129,16 @@ export const persistProject = async (
 
   let insert = await supabase.from('projects').insert(row).select('id').single();
 
+  if (insert.error && isMissingNeedSummaryColumn(insert.error.message)) {
+    insert = await supabase.from('projects').insert(withoutKey(row, 'need_summary')).select('id').single();
+  }
+
   if (insert.error && isMissingArchivedAtColumn(insert.error.message)) {
-    insert = await supabase.from('projects').insert(withoutArchivedAt(row)).select('id').single();
+    insert = await supabase
+      .from('projects')
+      .insert(withoutArchivedAt(withoutKey(row, 'need_summary')))
+      .select('id')
+      .single();
   }
 
   if (insert.error) {

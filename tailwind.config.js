@@ -45,6 +45,23 @@ export default {
         body: ['"Lora"', '"Georgia"', 'serif'], // Vintage serif for body text
         display: ['"Playfair Display"', 'serif'], // Display font for headings
       },
+      fontSize: {
+        'm-sm': ['0.875rem', { lineHeight: '1.25rem' }],
+        'm-base': ['1rem', { lineHeight: '1.5rem' }],
+        'm-lg': ['1.25rem', { lineHeight: '1.75rem' }],
+        'm-xl': ['1.5rem', { lineHeight: '2rem' }],
+      },
+      borderRadius: {
+        shell: '8px',
+        sheet: '16px',
+      },
+      boxShadow: {
+        shell: '0 1px 2px rgb(45 41 38 / 0.08)',
+        raised: '0 4px 12px rgb(45 41 38 / 0.12)',
+      },
+      transitionDuration: {
+        shell: '150ms',
+      },
       transitionTimingFunction: {
         'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
         'out-soft': 'cubic-bezier(0.34, 1.56, 0.64, 1)',

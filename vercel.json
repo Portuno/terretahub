@@ -56,6 +56,9 @@
     },
     "api/sitemap.ts": {
       "maxDuration": 30
+    },
+    "api/mcp.ts": {
+      "maxDuration": 30
     }
   },
   "headers": [

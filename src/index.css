@@ -16,6 +16,16 @@ html {
   max-width: 100%;
 }
 
+.app-shell {
+  height: 100dvh;
+  max-width: 100vw;
+  overscroll-behavior: none;
+}
+
+.pb-shell {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
+
 body {
   overflow-x: hidden;
   max-width: 100%;

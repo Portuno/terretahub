@@ -10,6 +10,8 @@ import { ShareModal } from './ShareModal';
 import { EventModal } from './EventModal';
 import { executeQueryWithRetry } from '../lib/supabaseHelpers';
 import { QueryState } from './QueryState';
+import { EventPlaceMap } from './mobile/EventPlaceMap';
+import { trackProduct } from '../lib/productAnalytics';
 
 interface EventPageProps {
   user: AuthUser | null;
@@ -241,7 +243,22 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
         updatedAt: eventData.updated_at,
       };
 
-      setEvent(transformedEvent);
+        const extra = await supabase
+          .from('events')
+          .select('latitude, longitude, zone_id, venue_setting')
+          .eq('id', eventData.id)
+          .maybeSingle();
+        if (!extra.error && extra.data) {
+          transformedEvent.latitude = extra.data.latitude ?? transformedEvent.latitude;
+          transformedEvent.longitude = extra.data.longitude ?? transformedEvent.longitude;
+          transformedEvent.zoneId = extra.data.zone_id ?? null;
+          transformedEvent.venueSetting = extra.data.venue_setting ?? null;
+          if (extra.data.zone_id) {
+            const zone = await supabase.from('directory_zones').select('name').eq('id', extra.data.zone_id).maybeSingle();
+            transformedEvent.zoneName = zone.data?.name ?? null;
+          }
+        }
+        setEvent(transformedEvent);
 
       // Cargar estadísticas si el usuario es el organizador
       if (user && user.id === transformedEvent.organizerId) {
@@ -489,6 +506,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
           setPreInscriptionPurpose('');
           setPreInscriptionAnswer('');
           setToastMessage('Te has inscrito al evento.');
+          trackProduct('inscribirse', { origen: 'ficha' });
           setShowToast(true);
           loadEvent();
           setIsRegistering(false);
@@ -505,6 +523,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
       setPreInscriptionPurpose('');
       setPreInscriptionAnswer('');
       setToastMessage('Solicitud enviada. Te notificaremos cuando sea revisada.');
+      trackProduct('inscribirse', { origen: 'ficha' });
       setShowToast(true);
       loadEvent();
     } catch (err) {
@@ -902,7 +921,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
         ) : (
           <>
         {/* Header del evento */}
-        <article className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-8 mb-6">
+        <article className="bg-terreta-card rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-4 pb-36 md:p-8 md:pb-8 mb-6">
           {/* Categoría */}
           {event.category && (
             <div className="mb-4">
@@ -971,6 +990,17 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
               </div>
             )}
 
+            {event.zoneName || event.venueSetting ? (
+              <p className="text-m-sm text-terreta-secondary">
+                {event.zoneName ? `Zona: ${event.zoneName}` : ''}
+                {event.zoneName && event.venueSetting ? ' · ' : ''}
+                {event.venueSetting === 'interior' ? 'Interior' : event.venueSetting === 'exterior' ? 'Exterior' : ''}
+              </p>
+            ) : null}
+            {event.latitude != null && event.longitude != null ? (
+              <EventPlaceMap latitude={event.latitude} longitude={event.longitude} />
+            ) : null}
+
             {!isPastEvent && (
               <div className="flex items-center gap-3 text-terreta-dark">
                 <Users size={20} className="text-terreta-accent" />
@@ -996,7 +1026,7 @@ export const EventPage: React.FC<EventPageProps> = ({ user, onOpenAuth }) => {
           )}
 
           {/* Acciones */}
-          <div className="flex flex-wrap items-center gap-4 pt-6 border-t border-terreta-border">
+          <div className="fixed inset-x-0 bottom-0 z-30 flex max-h-[45dvh] flex-wrap items-center gap-4 overflow-y-auto border-t border-terreta-border bg-terreta-card p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:static md:max-h-none md:overflow-visible md:border-0 md:bg-transparent md:p-0 md:pt-6">
             {isPastEvent ? (
               <div className="w-full rounded-xl border-2 border-terreta-border bg-terreta-bg p-6">
                 <h3 className="font-serif text-xl font-bold text-terreta-dark mb-2">Quedada finalizada</h3>

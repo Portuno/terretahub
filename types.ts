@@ -226,6 +226,7 @@ export interface Project {
   authorId: string;
   name: string;
   slogan: string;
+  needSummary?: string | null;
   description: string; // The pitch
   images: string[]; // URLs or base64
   videoUrl?: string;
@@ -277,6 +278,9 @@ export interface Event {
   locationUrl?: string;
   latitude?: number | null;
   longitude?: number | null;
+  zoneId?: number | null;
+  zoneName?: string | null;
+  venueSetting?: 'interior' | 'exterior' | null;
   mapIconType?: string | null;
   startDate: string;
   endDate: string;

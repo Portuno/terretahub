@@ -47,6 +47,9 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
   const [isOnline, setIsOnline] = useState(false);
   const [locationPublic, setLocationPublic] = useState(true);
   const [locationPlaceholder, setLocationPlaceholder] = useState('');
+  const [zoneId, setZoneId] = useState<number | null>(null);
+  const [venueSetting, setVenueSetting] = useState<'' | 'interior' | 'exterior'>('');
+  const [zones, setZones] = useState<Array<{ id: number; name: string }>>([]);
 
   const [maxAttendees, setMaxAttendees] = useState<number | undefined>(undefined);
   const [admissionType, setAdmissionType] = useState<AdmissionType>('pre_registration');
@@ -120,7 +123,17 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
     }
     setStep(1);
     setFieldErrors({});
+    setZoneId(event?.zoneId ?? null);
+    setVenueSetting(event?.venueSetting ?? '');
   }, [event, isOpen]);
+
+  useEffect(() => {
+    void supabase
+      .from('directory_zones')
+      .select('id, name')
+      .order('name', { ascending: true })
+      .then(({ data }) => setZones((data || []) as Array<{ id: number; name: string }>));
+  }, []);
 
   const validateStep1 = (): boolean => {
     const errors = validateEvent({
@@ -216,14 +229,28 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
         duration_minutes: durationMinutes,
         location_public: locationPublic,
         location_placeholder: locationPublic ? null : (locationPlaceholder.trim() || null),
+        zone_id: zoneId,
+        venue_setting: venueSetting || null,
       };
 
+      const withoutPlace = { ...eventData };
+      delete withoutPlace.zone_id;
+      delete withoutPlace.venue_setting;
+      const missingPlace = (message: string) => /zone_id|venue_setting/.test(message);
+
       if (event) {
-        const { error } = await supabase
+        let { error } = await supabase
           .from('events')
           .update(eventData)
           .eq('id', event.id)
           .eq('organizer_id', user.id);
+        if (error && missingPlace(error.message)) {
+          ({ error } = await supabase
+            .from('events')
+            .update(withoutPlace)
+            .eq('id', event.id)
+            .eq('organizer_id', user.id));
+        }
 
         if (error) {
           console.error('[EventModal] Error updating event:', error);
@@ -234,7 +261,7 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
         }
         setToastMessage('Evento actualizado exitosamente');
       } else {
-        const { error: insertError } = await supabase
+        let { error: insertError } = await supabase
           .from('events')
           .insert({
             ...eventData,
@@ -242,6 +269,16 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
           })
           .select()
           .single();
+        if (insertError && missingPlace(insertError.message)) {
+          ({ error: insertError } = await supabase
+            .from('events')
+            .insert({
+              ...withoutPlace,
+              status: 'draft' as EventStatus,
+            })
+            .select()
+            .single());
+        }
 
         if (insertError) {
           console.error('[EventModal] Error creating event:', insertError);
@@ -302,7 +339,8 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
               className={`flex-1 py-2 text-sm font-semibold transition-colors ${step === 1 ? 'bg-terreta-accent/10 text-terreta-accent border-b-2 border-terreta-accent' : 'text-terreta-dark/60 hover:text-terreta-dark'}`}
               aria-current={step === 1 ? 'step' : undefined}
             >
-              Paso 1: Información general
+              <span className="md:hidden">General</span>
+              <span className="hidden md:inline">Paso 1: Información general</span>
             </button>
             <button
               type="button"
@@ -310,7 +348,8 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
               className={`flex-1 py-2 text-sm font-semibold transition-colors ${step === 2 ? 'bg-terreta-accent/10 text-terreta-accent border-b-2 border-terreta-accent' : 'text-terreta-dark/60 hover:text-terreta-dark'}`}
               aria-current={step === 2 ? 'step' : undefined}
             >
-              Paso 2: Logística y admisión
+              <span className="md:hidden">Cuándo</span>
+              <span className="hidden md:inline">Paso 2: Logística y admisión</span>
             </button>
           </div>
 
@@ -437,7 +476,7 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
                     <Calendar size={18} className="text-terreta-accent" />
                     Fecha y hora
                   </h3>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
                     <div>
                       <label className="block text-xs font-semibold text-terreta-dark mb-1">Día de inicio *</label>
                       <input
@@ -545,6 +584,29 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, user, e
                       Evento en línea
                     </label>
                   </div>
+                  <label className="block text-xs font-semibold text-terreta-dark mb-1" htmlFor="event-zone">Zona</label>
+                  <select
+                    id="event-zone"
+                    value={zoneId ?? ''}
+                    onChange={(e) => setZoneId(e.target.value ? Number(e.target.value) : null)}
+                    className="mb-3 w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm text-terreta-dark"
+                  >
+                    <option value="">Sin zona</option>
+                    {zones.map((zone) => (
+                      <option key={zone.id} value={zone.id}>{zone.name}</option>
+                    ))}
+                  </select>
+                  <label className="block text-xs font-semibold text-terreta-dark mb-1" htmlFor="event-venue">Lugar</label>
+                  <select
+                    id="event-venue"
+                    value={venueSetting}
+                    onChange={(e) => setVenueSetting(e.target.value as '' | 'interior' | 'exterior')}
+                    className="mb-3 w-full rounded-lg border border-terreta-border bg-terreta-bg px-3 py-2 text-sm text-terreta-dark"
+                  >
+                    <option value="">Sin indicar</option>
+                    <option value="interior">Interior</option>
+                    <option value="exterior">Exterior</option>
+                  </select>
                   {isOnline ? (
                     <div>
                       <label className="block text-xs font-semibold text-terreta-dark mb-1">URL (Zoom, Meet, etc.)</label>

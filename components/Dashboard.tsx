@@ -10,6 +10,9 @@ import { AuthUser } from '../types';
 import { Navbar } from './Navbar';
 import { fetchUserTotesSummary } from '../lib/totes';
 import { useRouteMeta } from '../hooks/useRouteMeta';
+import { useScrollRestoration } from '../hooks/useScrollRestoration';
+import { BottomNav } from './mobile/BottomNav';
+import { CreateSheet } from './mobile/CreateSheet';
 
 interface DashboardProps {
   user: AuthUser | null;
@@ -25,6 +28,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isGruposModalOpen, setIsGruposModalOpen] = useState(false);
   const [totesBalance, setTotesBalance] = useState(0);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  useScrollRestoration('app-scroll');
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -157,7 +162,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
   const { title, description } = getPageMeta();
 
   return (
-  <div className="flex h-screen max-w-[100vw] overflow-hidden bg-terreta-bg transition-colors duration-500">
+  <div className="app-shell flex h-dvh max-w-[100vw] overflow-hidden bg-terreta-bg transition-colors duration-500">
       
       {/* Sidebar - Fixed */}
       <Sidebar 
@@ -171,7 +176,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
       />
 
       {/* Main Content Area */}
-      <main className="flex min-w-0 flex-1 flex-col h-screen overflow-hidden transition-all duration-300">
+      <main className="flex min-w-0 flex-1 flex-col h-dvh overflow-hidden transition-all duration-300">
         <Navbar
           user={currentUser}
           title={title}
@@ -184,7 +189,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
         />
 
         {/* Content Area */}
-        <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-4 md:px-8">
+        <div id="app-scroll" className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-shell md:px-8 md:pb-4">
           <Outlet
             context={{
               user: currentUser ?? user,
@@ -204,6 +209,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onOpenAuth, onLogout
       <FeedbackModal 
         isOpen={isFeedbackOpen} 
         onClose={() => setIsFeedbackOpen(false)} 
+      />
+      <BottomNav
+        user={currentUser}
+        onOpenAuth={() => onOpenAuth()}
+        onOpenCreate={() => setIsCreateOpen(true)}
+      />
+      <CreateSheet
+        open={isCreateOpen}
+        user={currentUser}
+        onClose={() => setIsCreateOpen(false)}
+        onOpenAuth={() => onOpenAuth()}
       />
       <GruposComingModal 
         isOpen={isGruposModalOpen} 

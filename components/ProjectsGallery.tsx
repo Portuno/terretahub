@@ -25,6 +25,7 @@ interface ProjectFromDB {
   created_at: string;
   updated_at: string;
   archived_at?: string | null;
+  need_summary?: string | null;
 }
 
 interface ProjectWithAuthor extends ProjectFromDB {
@@ -125,7 +126,14 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
       }
     }
 
-    return Array.from(byId.values()).filter(isVisibleInGallery);
+    const visible = Array.from(byId.values()).filter(isVisibleInGallery);
+    if (visible.length === 0) return visible;
+    const needs = await supabase.from('projects').select('id, need_summary').in('id', visible.map((row) => row.id));
+    if (needs.error || !needs.data) return visible;
+    const byNeed = new Map(
+      (needs.data as Array<{ id: string; need_summary: string | null }>).map((row) => [row.id, row.need_summary])
+    );
+    return visible.map((row) => ({ ...row, need_summary: byNeed.get(row.id) ?? null }));
   };
 
   const loadProjects = async () => {
@@ -595,6 +603,9 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
                     <img
                       src={project.images[0]}
                       alt={project.name}
+                      width={640}
+                      height={480}
+                      loading="lazy"
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute top-3 right-3">
@@ -625,9 +636,14 @@ export const ProjectsGallery: React.FC<ProjectsGalleryProps> = ({ onViewProfile,
                     </p>
                   ) : null}
                   {project.slogan && (
-                    <p className="text-sm text-terreta-secondary italic mb-4 line-clamp-1">
+                    <p className="text-sm text-terreta-secondary italic mb-2 line-clamp-1">
                       {project.slogan}
                     </p>
+                  )}
+                  {project.need_summary ? (
+                    <p className="mb-4 text-m-sm text-terreta-dark line-clamp-2">Busca: {project.need_summary}</p>
+                  ) : (
+                    <div className="mb-2" />
                   )}
 
                   {/* Categorías */}

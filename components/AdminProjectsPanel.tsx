@@ -5,6 +5,7 @@ import { AuthUser, ProjectStatus, EventStatus } from '../types';
 import { supabase } from '../lib/supabase';
 import { notifyProjectReview } from '../lib/notifications';
 import { firstErrorMessage, validateProject } from '../lib/contentValidation';
+import { WeeklyRetentionPanel } from './mobile/WeeklyRetentionPanel';
 
 interface AdminProjectsPanelProps {
   user: AuthUser;
@@ -348,6 +349,8 @@ const loadEvents = async () => {
             <p className="text-sm text-terreta-dark/60">Gestiona proyectos y quedadas pendientes de revisión</p>
           </div>
         </div>
+
+        <WeeklyRetentionPanel />
 
         {/* Tabs */}
         <div className="flex gap-2 border-b border-terreta-border">

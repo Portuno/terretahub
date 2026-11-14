@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ProjectsGallery } from './ProjectsGallery';
 import { ProjectEditor } from './ProjectEditor';
 import { AuthUser, Project } from '../types';
@@ -7,6 +7,7 @@ import { Toast } from './Toast';
 import { useProfileNavigation } from '../hooks/useProfileNavigation';
 import { persistProject } from '../lib/projectPersistence';
 import { getProjectSlug } from '../lib/utils';
+import { trackProduct } from '../lib/productAnalytics';
 
 interface ProjectsPageProps {
   user: AuthUser | null;
@@ -15,6 +16,7 @@ interface ProjectsPageProps {
 
 export const ProjectsPage: React.FC<ProjectsPageProps> = ({ user, onOpenAuth }) => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigateToProfile = useProfileNavigation();
   const [isCreating, setIsCreating] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -23,6 +25,15 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ user, onOpenAuth }) 
   const [toastSecondary, setToastSecondary] = useState(
     'Tu proyecto fue enviado y será revisado. Espera una respuesta pronto de parte de la administración.'
   );
+
+  useEffect(() => {
+    if (searchParams.get('crear') === '1' && user) {
+      setIsCreating(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('crear');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, user]);
 
   const handleViewProfile = (handle: string) => {
     navigateToProfile(handle);
@@ -45,6 +56,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ user, onOpenAuth }) 
       setToastMessage('Proyecto guardado como borrador');
       setToastSecondary('Podés seguir editándolo desde tu proyecto cuando quieras.');
     } else {
+      trackProduct('completar_creacion', { tipo: 'proyecto' });
       setToastMessage('¡Proyecto enviado!');
       setToastSecondary(
         'Tu proyecto fue enviado y será revisado. Espera una respuesta pronto de parte de la administración.'
